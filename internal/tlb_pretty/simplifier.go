@@ -15,6 +15,9 @@ const (
 	HmEdge  = "hm_edge"
 	HmnFork = "hmn_fork"
 	HmnLeaf = "hmn_leaf"
+
+	BtFork = "bt_fork"
+	BtLeaf = "bt_leaf"
 )
 
 type TreeSimplifier struct {
@@ -125,10 +128,61 @@ func (t *TreeSimplifier) edgeExtractLeafs(node *AstNode, edgeType string, forkTy
 		if err != nil {
 			return nil, err
 		}
-		leafs = append(leafs, nodeSimplifiedField)
+
+		// leaf value is bt tree with forks and leafs
+		leafValueNode, err := nodeSimplifiedField.GetNode("value")
+		if err == nil {
+			if leafValueNode.IsType(BtFork) {
+				leafsBtFork, err := t.extractLeafsFork(leafValueNode, BtFork, BtLeaf)
+				if err != nil {
+					return nil, err
+				}
+
+				leafs = append(leafs, leafsBtFork...)
+			} else {
+				leafs = append(leafs, nodeSimplifiedField)
+			}
+		} else {
+			leafs = append(leafs, nodeSimplifiedField)
+		}
 	}
 
-	//fmt.Println("found leafs:", leafType, len(leafs))
+	return leafs, nil
+}
+
+func (t *TreeSimplifier) extractLeafsFork(node *AstNode, forkType string, leafType string) ([]*AstNode, error) {
+	if !node.IsType(forkType) {
+		return nil, errors.New("is not fork")
+	}
+	leafs := make([]*AstNode, 0)
+
+	if left, err := node.GetNode("left"); err == nil {
+		if left.IsType(forkType) {
+			leftLeafs, err := t.extractLeafsFork(left, forkType, leafType)
+			if err != nil {
+				return nil, err
+			}
+			leafs = append(leafs, leftLeafs...)
+		} else if left.IsType(leafType) {
+			leafs = append(leafs, left)
+		} else {
+			fmt.Println("left is not fork and not leaf!!!")
+		}
+	}
+
+	if right, err := node.GetNode("right"); err == nil {
+		if right.IsType(forkType) {
+			rightLeafs, err := t.extractLeafsFork(right, forkType, leafType)
+			if err != nil {
+				return nil, err
+			}
+			leafs = append(leafs, rightLeafs...)
+		} else if right.IsType(leafType) {
+			leafs = append(leafs, right)
+		} else {
+			fmt.Println("right is not fork and not leaf!!!")
+		}
+	}
 
 	return leafs, nil
 }

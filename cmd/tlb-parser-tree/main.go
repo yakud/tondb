@@ -62,6 +62,7 @@ func main() {
 	}
 	fmt.Println("Simplified for:", time.Since(since))
 
+	since = time.Now()
 	block, errOrig := tlb_pretty.NewAstTonConverter().ConvertToBlock(newNode)
 	if errOrig != nil {
 		dd, err := newNode.ToJSON()
@@ -75,6 +76,7 @@ func main() {
 
 		log.Fatal("converter err: ", errOrig)
 	}
+	fmt.Println("Converted for:", time.Since(since))
 
 	dd, err := json.Marshal(block)
 	if err != nil {

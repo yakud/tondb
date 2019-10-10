@@ -17,21 +17,96 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		Transactions: make([]*ton.Transaction, 0),
 	}
 
+	// Block info
 	var err error
 	block.Info, err = c.extractBlockInfo(node)
 	if err != nil {
 		return nil, err
 	}
 
+	// Transactions
 	if err = c.extractTransactions(node, &block.Transactions); err != nil {
 		return nil, err
+	}
+
+	for _, tr := range block.Transactions {
+		tr.BlockShardWorkchainId = block.Info.ShardWorkchainId
+		tr.BlockShardPrefix = block.Info.ShardPrefix
+		tr.BlockSeqNo = block.Info.SeqNo
 	}
 
 	sort.SliceStable(block.Transactions, func(i, j int) bool {
 		return block.Transactions[i].Lt < block.Transactions[j].Lt
 	})
 
+	// shard_hashes only for workchain -1
+	if block.Info.ShardWorkchainId == -1 {
+		shardsDescr, err := c.extractShardsDescr(node)
+		if err != nil {
+			return nil, err
+		}
+		for _, descr := range shardsDescr {
+			descr.ShardWorkchainId = 0 // todo: can't find workchain field in data
+			descr.MasterShard = block.Info.ShardPrefix
+			descr.MasterSeqNo = block.Info.SeqNo
+		}
+		block.ShardDescr = shardsDescr
+	}
+
 	return block, nil
+}
+
+func (c *AstTonConverter) extractShardsDescr(node *AstNode) ([]*ton.ShardDescr, error) {
+	customNode, err := node.GetNode("extra", "custom", "value")
+	if err != nil {
+		return nil, nil
+	}
+
+	if !customNode.IsType("masterchain_block_extra") {
+		fmt.Println("custom.value is not masterchain_block_extra type")
+		return nil, nil
+	}
+
+	shardsDescrRoot, err := customNode.GetNode("shard_hashes", "value_0")
+	if err != nil {
+		return nil, err
+	}
+
+	if !shardsDescrRoot.IsType("hme_root") {
+		return nil, errors.New("shards descr root node is not hme_root type")
+	}
+
+	shardDescrs := make([]*ton.ShardDescr, 0)
+
+	err = shardsDescrRoot.EachNode(func(i int, el *AstNode) error {
+		leafNode, err := el.GetNode("leaf")
+		if err != nil {
+			return err
+		}
+
+		shardDescr := &ton.ShardDescr{
+			ShardWorkchainId: 0,
+		}
+
+		shardDescr.ShardPrefix, err = leafNode.GetUint64("next_validator_shard")
+		if err != nil {
+			return err
+		}
+
+		shardDescr.ShardSeqNo, err = leafNode.GetUint64("seq_no")
+		if err != nil {
+			return err
+		}
+
+		shardDescrs = append(shardDescrs, shardDescr)
+
+		return nil
+	}, "leafs")
+	if err != nil {
+		return nil, err
+	}
+
+	return shardDescrs, nil
 }
 
 func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error) {
@@ -111,21 +186,56 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 
 	// Prev ref
 	prevRefNode, err := nodeInfo.GetNode("prev_ref", "prev")
-	if err != nil {
-		return nil, err
-	}
-	info.PrevRef = &ton.BlockRef{}
-	if info.PrevRef.EndLt, err = prevRefNode.GetUint64("end_lt"); err != nil {
-		return nil, err
-	}
-	if info.PrevRef.SeqNo, err = prevRefNode.GetUint64("seq_no"); err != nil {
-		return nil, err
-	}
-	if info.PrevRef.FileHash, err = prevRefNode.GetString("file_hash"); err != nil {
-		return nil, err
-	}
-	if info.PrevRef.RootHash, err = prevRefNode.GetString("root_hash"); err != nil {
-		return nil, err
+	if err == nil {
+		info.Prev1Ref = &ton.BlockRef{}
+		if info.Prev1Ref.EndLt, err = prevRefNode.GetUint64("end_lt"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.SeqNo, err = prevRefNode.GetUint64("seq_no"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.FileHash, err = prevRefNode.GetString("file_hash"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.RootHash, err = prevRefNode.GetString("root_hash"); err != nil {
+			return nil, err
+		}
+	} else {
+		prevRef1Node, err := nodeInfo.GetNode("prev_ref", "prev1")
+		if err != nil {
+			return nil, err
+		}
+		info.Prev1Ref = &ton.BlockRef{}
+		if info.Prev1Ref.EndLt, err = prevRef1Node.GetUint64("end_lt"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.SeqNo, err = prevRef1Node.GetUint64("seq_no"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.FileHash, err = prevRef1Node.GetString("file_hash"); err != nil {
+			return nil, err
+		}
+		if info.Prev1Ref.RootHash, err = prevRef1Node.GetString("root_hash"); err != nil {
+			return nil, err
+		}
+
+		prevRef2Node, err := nodeInfo.GetNode("prev_ref", "prev2")
+		if err != nil {
+			return nil, err
+		}
+		info.Prev2Ref = &ton.BlockRef{}
+		if info.Prev2Ref.EndLt, err = prevRef2Node.GetUint64("end_lt"); err != nil {
+			return nil, err
+		}
+		if info.Prev2Ref.SeqNo, err = prevRef2Node.GetUint64("seq_no"); err != nil {
+			return nil, err
+		}
+		if info.Prev2Ref.FileHash, err = prevRef2Node.GetString("file_hash"); err != nil {
+			return nil, err
+		}
+		if info.Prev2Ref.RootHash, err = prevRef2Node.GetString("root_hash"); err != nil {
+			return nil, err
+		}
 	}
 
 	// Master ref
@@ -209,7 +319,7 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
 			return err
 		}
-		if tr.Now, err = transactionNode.GetUint32("now"); err != nil {
+		if tr.Now, err = transactionNode.GetUint64("now"); err != nil {
 			return err
 		}
 		if tr.AccountAddr, err = transactionNode.GetString("account_addr"); err != nil {
@@ -319,6 +429,8 @@ func (c *AstTonConverter) extractMessage(node *AstNode) (*ton.TransactionMessage
 	}
 
 	switch msg.Type {
+	case "ext_out_msg_info":
+
 	case "ext_in_msg_info":
 		if msg.ImportFeeNanograms, err = msgInfoNode.GetUint64("import_fee", "amount", "value"); err != nil {
 			return nil, err
@@ -378,7 +490,7 @@ func (c *AstTonConverter) extractMessage(node *AstNode) (*ton.TransactionMessage
 		msg.Dest.IsEmpty = true
 	} else {
 		if msg.Dest, err = c.extractAddrStd(dest); err != nil {
-			return nil, err
+			//return nil, err
 		}
 	}
 
@@ -386,7 +498,7 @@ func (c *AstTonConverter) extractMessage(node *AstNode) (*ton.TransactionMessage
 		msg.Src.IsEmpty = true
 	} else {
 		if msg.Src, err = c.extractAddrStd(src); err != nil {
-			return nil, err
+			//return nil, err
 		}
 	}
 

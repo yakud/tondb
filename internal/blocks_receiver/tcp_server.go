@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 type Handler func([]byte) error
@@ -38,16 +39,25 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 			os.Exit(1)
 		}
 
-		headerBuf := make([]byte, 4)
-		dataBuf := make([]byte, 1024*1024)
+		//headerBuf := make([]byte, 4)
+		//dataBuf := make([]byte, 1024*1024*50)
 		bodyReader := &io.LimitedReader{R: conn}
 		for {
+			headerBuf := make([]byte, 4)
+			dataBuf := make([]byte, 1024*1024*50)
+
 			reqLen, err := conn.Read(headerBuf)
 			if err != nil {
-				conn.Close()
-				l.Close()
-				log.Println("Error reading:", err.Error())
-				return err
+				if err == io.EOF {
+					//fmt.Println("WAITING EOF. READED:", reqLen)
+					<-time.After(time.Millisecond * 100)
+					continue
+				} else {
+					conn.Close()
+					l.Close()
+					log.Println("Error reading:", err.Error())
+					return err
+				}
 			}
 			if reqLen != 4 {
 				// TODO: fix
@@ -58,6 +68,7 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 				log.Println("Is empty message size. Continue..")
 				break
 			}
+			//fmt.Println("read header: ", size, string(headerBuf), headerBuf)
 
 			var bodyLen = 0
 			for {
@@ -66,8 +77,8 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 				bodyLenPacket, err := bodyReader.Read(dataBuf[bodyLen:size])
 				bodyLen += bodyLenPacket
 				if err == io.EOF {
-					if needRead-bodyLenPacket <= 0 {
-						break
+					if bodyLen < int(size) {
+						continue
 					}
 					continue
 				}
@@ -78,19 +89,21 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 					return err
 				}
 
-				if needRead-bodyLen <= 0 {
-					break
+				if bodyLen < int(size) {
+					continue
 				}
+				break
 			}
 
 			// read body
-			if bodyLen > int(size) {
+			if bodyLen != int(size) {
 				log.Println("body is not ", size, "bytes. readed len:", bodyLen)
 			}
 
 			if err := handler(dataBuf[:size]); err != nil {
 				log.Fatal("handler fatal: ", err)
 			}
+
 		}
 
 		// Send a response back to person contacting us.

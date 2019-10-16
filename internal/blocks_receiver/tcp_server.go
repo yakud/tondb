@@ -12,25 +12,27 @@ import (
 	"time"
 )
 
+const HeaderLen = 4
+
 type Handler func([]byte) error
 
 type TcpReceiver struct {
+	ServerAddr string
 }
 
 func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handler) error {
 	defer wg.Done()
 
-	var ServerAddr = "0.0.0.0:7315"
-
 	// Listen for incoming connections.
-	l, err := net.Listen("tcp", ServerAddr)
+	l, err := net.Listen("tcp", t.ServerAddr)
 	if err != nil {
 		log.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
+
 	// Close the listener when the application closes.
 	defer l.Close()
-	log.Println("Listening on " + ServerAddr)
+	log.Println("Listening on " + t.ServerAddr)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
@@ -39,14 +41,29 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 			os.Exit(1)
 		}
 
-		//headerBuf := make([]byte, 4)
-		//dataBuf := make([]byte, 1024*1024*50)
-		bodyReader := &io.LimitedReader{R: conn}
-		for {
-			headerBuf := make([]byte, 4)
-			dataBuf := make([]byte, 1024*1024*50)
+		go func(conn net.Conn, handler Handler) {
+			if err := t.worker(conn, handler); err != nil {
+				log.Fatal("Worker receiver error: ", err)
+			}
+		}(conn, handler)
+	}
+}
 
-			reqLen, err := conn.Read(headerBuf)
+func (t *TcpReceiver) worker(conn net.Conn, handler Handler) error {
+	//headerBuf := make([]byte, HeaderLen)
+	//dataBuf := make([]byte, 1024*1024*50)
+
+	bodyReader := &io.LimitedReader{R: conn}
+	for {
+		headerBuf := make([]byte, HeaderLen)
+
+		var size uint32
+		var headerLen = 0
+		for {
+			needRead := HeaderLen - headerLen
+			bodyReader.N = int64(needRead)
+			reqLen, err := bodyReader.Read(headerBuf[headerLen:HeaderLen])
+			headerLen += reqLen
 			if err != nil {
 				if err == io.EOF {
 					//fmt.Println("WAITING EOF. READED:", reqLen)
@@ -54,69 +71,72 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 					continue
 				} else {
 					conn.Close()
-					l.Close()
 					log.Println("Error reading:", err.Error())
 					return err
 				}
 			}
-			if reqLen != 4 {
-				// TODO: fix
-				log.Fatal("header is not 4 bytes")
+
+			if headerLen < HeaderLen {
+				continue
 			}
-			size := binary.LittleEndian.Uint32(headerBuf[:4])
+
+			if headerLen != HeaderLen {
+				// TODO: fix
+				log.Fatal("header is not 4 bytes:", headerLen)
+			}
+			size = binary.LittleEndian.Uint32(headerBuf[0:4])
 			if size == 0 {
 				log.Println("Is empty message size. Continue..")
 				break
 			}
 			//fmt.Println("read header: ", size, string(headerBuf), headerBuf)
+			break
+		}
 
-			var bodyLen = 0
-			for {
-				needRead := int(size) - bodyLen
-				bodyReader.N = int64(needRead)
-				bodyLenPacket, err := bodyReader.Read(dataBuf[bodyLen:size])
-				bodyLen += bodyLenPacket
-				if err == io.EOF {
-					if bodyLen < int(size) {
-						continue
-					}
-					continue
-				}
-				if err != nil {
-					conn.Close()
-					l.Close()
-					log.Println("Error reading body:", err.Error())
-					return err
-				}
-
+		dataBuf := make([]byte, size)
+		var bodyLen = 0
+		for {
+			needRead := int(size) - bodyLen
+			bodyReader.N = int64(needRead)
+			bodyLenPacket, err := bodyReader.Read(dataBuf[bodyLen:size])
+			bodyLen += bodyLenPacket
+			if err == io.EOF {
 				if bodyLen < int(size) {
 					continue
 				}
-				break
+				continue
+			}
+			if err != nil {
+				conn.Close()
+				log.Println("Error reading body:", err.Error())
+				return err
 			}
 
-			// read body
-			if bodyLen != int(size) {
-				log.Println("body is not ", size, "bytes. readed len:", bodyLen)
+			if bodyLen < int(size) {
+				continue
 			}
-
-			if err := handler(dataBuf[:size]); err != nil {
-				log.Fatal("handler fatal: ", err)
-			}
-
+			break
 		}
 
-		// Send a response back to person contacting us.
-		//conn.Write([]byte("Hello my C++!"))
-		// Close the connection when you're done with it.
-		conn.Close()
+		// read body
+		if bodyLen != int(size) {
+			log.Println("body is not ", size, "bytes. readed len:", bodyLen)
+		}
+
+		if err := handler(dataBuf[0:size]); err != nil {
+			log.Fatal("handler fatal: ", err)
+		}
+		headerBuf = nil
+		dataBuf = nil
 	}
+
+	conn.Close()
+
+	return nil
 }
 
-//func (t *TcpReceiver) onpacket(ctx context.Context, wg *sync.WaitGroup, handler Handler) error {
-//
-///}
-
-func NewTcpReceiver() *TcpReceiver {
-	return &TcpReceiver{}
+func NewTcpReceiver(serverAddr string) *TcpReceiver {
+	return &TcpReceiver{
+		ServerAddr: serverAddr,
+	}
 }

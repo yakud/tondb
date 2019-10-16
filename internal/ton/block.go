@@ -7,7 +7,7 @@ const (
 
 type BlockId struct {
 	WorkchainId int32  `json:"workchain_id"`
-	ShardPrefix uint64 `json:"shard_prefix"`
+	Shard       uint64 `json:"shard"`
 	SeqNo       uint64 `json:"seq_no"`
 }
 
@@ -18,10 +18,9 @@ type Block struct {
 }
 
 type BlockInfo struct {
-	ShardWorkchainId int32  `json:"shard_workchain_id"`
-	ShardPrefix      uint64 `json:"shard_prefix"`
-	ShardPfxBits     uint8  `json:"shard_pfx_bits"`
-	SeqNo            uint64 `json:"seq_no"`
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	SeqNo       uint64 `json:"seq_no"`
 
 	MinRefMcSeqno     uint32    `json:"min_ref_mc_seqno"`
 	PrevKeyBlockSeqno uint32    `json:"prev_key_block_seqno"`

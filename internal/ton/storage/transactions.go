@@ -2,7 +2,6 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 	"strings"
 	"time"
 
@@ -15,9 +14,9 @@ import (
 
 const (
 	queryCreateTableTransactions string = `CREATE TABLE IF NOT EXISTS transactions (
-		BlockShardWorkchainId Int32,
-		BlockShardPrefix      UInt64,
-		BlockSeqNo            UInt64,
+		WorkchainId           Int32,
+		Shard                 UInt64,
+		SeqNo                 UInt64,
 		Type                  LowCardinality(String),
 		Lt                    UInt64,
 		Time                  DateTime, -- field Now
@@ -30,6 +29,7 @@ const (
 		PrevTransHash 		  FixedString(64),
 		StateUpdateNewHash    FixedString(64),
 		StateUpdateOldHash    FixedString(64),
+		
 
 		Messages Nested
     	(
@@ -62,13 +62,13 @@ const (
 		)
 	) ENGINE MergeTree
 	PARTITION BY toYYYYMM(Time)
-	ORDER BY (BlockShardWorkchainId, BlockShardPrefix, BlockSeqNo, Lt);
+	ORDER BY (WorkchainId, Shard, SeqNo, Lt);
 `
 
 	queryInsertTransaction = `INSERT INTO transactions (
-	BlockShardWorkchainId,
-	BlockShardPrefix,
-	BlockSeqNo,
+	WorkchainId,
+	Shard,
+	SeqNo,
 	Type,
 	Lt,
 	Time,
@@ -110,53 +110,6 @@ const (
 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropTransactions = `DROP TABLE transactions;`
-
-	querySelectTransactionsByFilter = `
-	SELECT 
-		BlockShardWorkchainId,
-		BlockShardPrefix,
-		BlockSeqNo,
-		Type,
-		Lt,
-		Time,
-		TotalFeesNanograms,
-		TotalFeesNanogramsLen,
-		AccountAddr,
-		OrigStatus,
-		EndStatus,
-		PrevTransLt,
-		PrevTransHash,
-		StateUpdateNewHash,
-		StateUpdateOldHash,
-	    Messages.Direction,
-		Messages.Type,
-		Messages.Init,
-		Messages.Bounce,
-		Messages.Bounced,
-		Messages.CreatedAt,
-		Messages.CreatedLt,
-		Messages.ValueNanograms,
-		Messages.ValueNanogramsLen,
-		Messages.FwdFeeNanograms,
-		Messages.FwdFeeNanogramsLen,
-		Messages.IhrDisabled,
-		Messages.IhrFeeNanograms,
-		Messages.IhrFeeNanogramsLen,
-		Messages.ImportFeeNanograms,
-		Messages.ImportFeeNanogramsLen,
-		Messages.DestIsEmpty,
-		Messages.DestWorkchainId,
-		Messages.DestAddr,
-		Messages.DestAnycast,
-		Messages.SrcIsEmpty,
-		Messages.SrcWorkchainId,
-		Messages.SrcAddr,
-		Messages.SrcAnycast,
-		Messages.BodyType,
-		Messages.BodyValue
-	FROM transactions
-	WHERE ?
-`
 )
 
 type Transactions struct {
@@ -315,9 +268,9 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 
 		// in order like blocksFields
 		if _, err := stmt.Exec(
-			tr.BlockShardWorkchainId,
-			tr.BlockShardPrefix,
-			tr.BlockSeqNo,
+			tr.WorkchainId,
+			tr.Shard,
+			tr.SeqNo,
 			tr.Type,
 			tr.Lt,
 			time.Unix(int64(tr.Now), 0).UTC(),
@@ -363,161 +316,6 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 	}
 
 	return stmt, nil
-}
-
-func (s *Transactions) GetTransactionsByBlocks(blocksFilter ...*ton.BlockId) ([]*ton.Transaction, error) {
-	filters := make([]string, 0, len(blocksFilter))
-	for _, b := range blocksFilter {
-		filters = append(filters, fmt.Sprintf(
-			"(BlockShardWorkchainId = %d AND BlockShardPrefix = %d AND BlockSeqNo = %d)",
-			b.WorkchainId,
-			b.ShardPrefix,
-			b.SeqNo,
-		))
-	}
-
-	query := fmt.Sprintf(
-		"(BlockShardWorkchainId, BlockShardPrefix, BlockSeqNo) IN (%s)",
-		strings.Join(filters, ","),
-	)
-
-	return s.GetTransactionsByFilter(query)
-}
-
-// TODO: filter struct instead string
-func (s *Transactions) GetTransactionsByFilter(filter string) ([]*ton.Transaction, error) {
-	rows, err := s.conn.Query(querySelectTransactionsByFilter, filter)
-	if err != nil {
-		rows.Close()
-		return nil, err
-	}
-
-	transactions := make([]*ton.Transaction, 0)
-	for rows.Next() {
-		transaction := &ton.Transaction{
-			OutMsgs: make([]*ton.TransactionMessage, 0),
-		}
-		messagesDirection := make([]string, 0)
-		messagesType := make([]string, 0)
-		messagesInit := make([]string, 0)
-		messagesBounce := make([]uint8, 0)
-		messagesBounced := make([]uint8, 0)
-		messagesCreatedAt := make([]uint64, 0)
-		messagesCreatedLt := make([]uint64, 0)
-		messagesValueNanograms := make([]uint64, 0)
-		messagesValueNanogramsLen := make([]uint8, 0)
-		messagesFwdFeeNanograms := make([]uint64, 0)
-		messagesFwdFeeNanogramsLen := make([]uint8, 0)
-		messagesIhrDisabled := make([]uint8, 0)
-		messagesIhrFeeNanograms := make([]uint64, 0)
-		messagesIhrFeeNanogramsLen := make([]uint8, 0)
-		messagesImportFeeNanograms := make([]uint64, 0)
-		messagesImportFeeNanogramsLen := make([]uint8, 0)
-		messagesDestIsEmpty := make([]uint8, 0)
-		messagesDestWorkchainId := make([]int32, 0)
-		messagesDestAddr := make([]string, 0)
-		messagesDestAnycast := make([]string, 0)
-		messagesSrcIsEmpty := make([]uint8, 0)
-		messagesSrcWorkchainId := make([]int32, 0)
-		messagesSrcAddr := make([]string, 0)
-		messagesSrcAnycast := make([]string, 0)
-		messagesBodyType := make([]string, 0)
-		messagesBodyValue := make([]string, 0)
-		trTime := &time.Time{}
-		err = rows.Scan(
-			&transaction.BlockShardWorkchainId,
-			&transaction.BlockShardPrefix,
-			&transaction.BlockSeqNo,
-			&transaction.Type,
-			&transaction.Lt,
-			&trTime,
-			&transaction.TotalFeesNanograms,
-			&transaction.TotalFeesNanogramsLen,
-			&transaction.AccountAddr,
-			&transaction.OrigStatus,
-			&transaction.EndStatus,
-			&transaction.PrevTransLt,
-			&transaction.PrevTransHash,
-			&transaction.StateUpdateNewHash,
-			&transaction.StateUpdateOldHash,
-			&messagesDirection,
-			&messagesType,
-			&messagesInit,
-			&messagesBounce,
-			&messagesBounced,
-			&messagesCreatedAt,
-			&messagesCreatedLt,
-			&messagesValueNanograms,
-			&messagesValueNanogramsLen,
-			&messagesFwdFeeNanograms,
-			&messagesFwdFeeNanogramsLen,
-			&messagesIhrDisabled,
-			&messagesIhrFeeNanograms,
-			&messagesIhrFeeNanogramsLen,
-			&messagesImportFeeNanograms,
-			&messagesImportFeeNanogramsLen,
-			&messagesDestIsEmpty,
-			&messagesDestWorkchainId,
-			&messagesDestAddr,
-			&messagesDestAnycast,
-			&messagesSrcIsEmpty,
-			&messagesSrcWorkchainId,
-			&messagesSrcAddr,
-			&messagesSrcAnycast,
-			&messagesBodyType,
-			&messagesBodyValue,
-		)
-		if err != nil {
-			rows.Close()
-			return nil, err
-		}
-
-		transaction.Now = uint64(trTime.Unix())
-		for i, _ := range messagesDirection {
-			direction := messagesDirection[i]
-			msg := &ton.TransactionMessage{
-				Type:                  messagesType[i],
-				Init:                  messagesInit[i],
-				Bounce:                messagesBounce[i] == 1,
-				Bounced:               messagesBounced[i] == 1,
-				CreatedAt:             messagesCreatedAt[i],
-				CreatedLt:             messagesCreatedLt[i],
-				ValueNanograms:        messagesValueNanograms[i],
-				ValueNanogramsLen:     messagesValueNanogramsLen[i],
-				FwdFeeNanograms:       messagesFwdFeeNanograms[i],
-				FwdFeeNanogramsLen:    messagesFwdFeeNanogramsLen[i],
-				IhrDisabled:           messagesIhrDisabled[i] == 1,
-				IhrFeeNanograms:       messagesIhrFeeNanograms[i],
-				IhrFeeNanogramsLen:    messagesIhrFeeNanogramsLen[i],
-				ImportFeeNanograms:    messagesImportFeeNanograms[i],
-				ImportFeeNanogramsLen: messagesImportFeeNanogramsLen[i],
-				Dest: ton.AddrStd{
-					IsEmpty:     messagesDestIsEmpty[i] == 1,
-					WorkchainId: messagesDestWorkchainId[i],
-					Addr:        messagesDestAddr[i],
-					Anycast:     messagesDestAnycast[i],
-				},
-				Src: ton.AddrStd{
-					IsEmpty:     messagesSrcIsEmpty[i] == 1,
-					WorkchainId: messagesSrcWorkchainId[i],
-					Addr:        messagesSrcAddr[i],
-					Anycast:     messagesSrcAnycast[i],
-				},
-				BodyType:  messagesBodyType[i],
-				BodyValue: messagesBodyValue[i],
-			}
-			if direction == "in" {
-				transaction.InMsg = msg
-			}
-			if direction == "out" {
-				transaction.OutMsgs = append(transaction.OutMsgs, msg)
-			}
-		}
-		transactions = append(transactions, transaction)
-	}
-	rows.Close()
-
-	return transactions, nil
 }
 
 func NewTransactions(conn *sql.DB) *Transactions {

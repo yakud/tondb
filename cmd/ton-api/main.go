@@ -31,25 +31,26 @@ func main() {
 	}
 
 	//blocksStorage := storage.NewBlocks(chConnect)
-	transactionsStorage := storage.NewTransactions(chConnect)
+	//transactionsStorage := storage.NewTransactions(chConnect)
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
+	searchTransactionsQuery := query.NewSearchTransactions(chConnect)
 
 	router := httprouter.New()
-	router.GET("/height/synced", api.NewGetSyncedHeight(syncedHeightQuery).Handler)
-	router.GET("/height/blockchain", api.NewGetBlockchainHeight(blockchainHeightQuery).Handler)
 
-	router.GET("/masterchain/block/:seqNo/shards", api.NewMasterchainBlockShards(shardsDescrStorage).Handler)
-	router.GET("/workchain/block/masterchain", api.NewMasterchainByShard(shardsDescrStorage).Handler)
-	router.GET("/search/transactions", api.NewSearchTransactions(shardsDescrStorage, transactionsStorage).Handler)
+	router.GET("/height/synced", api.BasicAuth(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
+	router.GET("/height/blockchain", api.BasicAuth(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
+	router.GET("/masterchain/block/:seqNo/shards", api.BasicAuth(api.NewMasterchainBlockShards(shardsDescrStorage).Handler))
+	router.GET("/workchain/block/masterchain", api.BasicAuth(api.NewMasterchainByShard(shardsDescrStorage).Handler))
+
+	router.GET("/search/transactions/by/master", api.BasicAuth(api.NewGetSearchTransactionsByMaster(shardsDescrStorage, searchTransactionsQuery).Handler))
 
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
 	}
-
 	log.Println("Start listening", addr)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)

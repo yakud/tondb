@@ -35,45 +35,8 @@ func (t *BulkWriter) Run(ctx context.Context, wg *sync.WaitGroup, onHandle func(
 				return nil
 			}
 
-			if atomic.LoadInt32(&t.isWorking) == 0 {
-				atomic.StoreInt32(&t.isWorking, 1)
-			}
-
-			start := time.Now()
-
-			blocksInsert := make([]*ton.Block, 0, bulk.Length())
-			transactionsInsert := make([]*ton.Transaction, 0, bulk.LengthTransactions())
-			shardsDescr := make([]*ton.ShardDescr, 0, bulk.LengthShardDescr())
-
-			for _, block := range bulk.Blocks() {
-				blocksInsert = append(blocksInsert, block)
-				transactionsInsert = append(transactionsInsert, block.Transactions...)
-				shardsDescr = append(shardsDescr, block.ShardDescr...)
-			}
-
-			if len(blocksInsert) > 0 {
-				if err := t.blocksStorage.InsertMany(blocksInsert); err != nil {
-					// @TODO: retry, no return
-					return errors.WithStack(err)
-				}
-			}
-
-			if len(transactionsInsert) > 0 {
-				if err := t.transactionsStorage.InsertMany(transactionsInsert); err != nil {
-					// @TODO: retry, no return
-					return errors.WithStack(err)
-				}
-			}
-
-			if len(shardsDescr) > 0 {
-				if err := t.shardsDescrStorage.InsertMany(shardsDescr); err != nil {
-					// @TODO: retry, no return
-					return errors.WithStack(err)
-				}
-			}
-
-			if onHandle != nil {
-				onHandle(bulk, time.Now().Sub(start))
+			if err := t.handleBulk(bulk, onHandle); err != nil {
+				return err
 			}
 
 		case <-ctx.Done():
@@ -86,6 +49,51 @@ func (t *BulkWriter) Run(ctx context.Context, wg *sync.WaitGroup, onHandle func(
 			}
 		}
 	}
+}
+
+func (t *BulkWriter) handleBulk(bulk *Bulk, onHandle func(b *Bulk, delay time.Duration)) error {
+	if atomic.LoadInt32(&t.isWorking) == 0 {
+		atomic.StoreInt32(&t.isWorking, 1)
+	}
+
+	start := time.Now()
+
+	blocksInsert := make([]*ton.Block, 0, bulk.Length())
+	transactionsInsert := make([]*ton.Transaction, 0, bulk.LengthTransactions())
+	shardsDescr := make([]*ton.ShardDescr, 0, bulk.LengthShardDescr())
+
+	for _, block := range bulk.Blocks() {
+		blocksInsert = append(blocksInsert, block)
+		transactionsInsert = append(transactionsInsert, block.Transactions...)
+		shardsDescr = append(shardsDescr, block.ShardDescr...)
+	}
+
+	if len(blocksInsert) > 0 {
+		if err := t.blocksStorage.InsertMany(blocksInsert); err != nil {
+			// @TODO: retry, no return
+			return errors.WithStack(err)
+		}
+	}
+
+	if len(transactionsInsert) > 0 {
+		if err := t.transactionsStorage.InsertMany(transactionsInsert); err != nil {
+			// @TODO: retry, no return
+			return errors.WithStack(err)
+		}
+	}
+
+	if len(shardsDescr) > 0 {
+		if err := t.shardsDescrStorage.InsertMany(shardsDescr); err != nil {
+			// @TODO: retry, no return
+			return errors.WithStack(err)
+		}
+	}
+
+	if onHandle != nil {
+		onHandle(bulk, time.Now().Sub(start))
+	}
+
+	return nil
 }
 
 func NewBulkWriter(

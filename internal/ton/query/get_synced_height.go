@@ -10,18 +10,19 @@ const (
 	queryGetSyncedMasterHeightByLastShard = `
 	WITH (
 	    SELECT argMin((Shard, SeqNo), SeqNo) as t FROM (
+			WITH (SELECT max(Time) FROM blocks) as maxTime
 			SELECT 
-				toUInt64(bitOr(ShardPrefix, bitShiftLeft(1, (63 - toUInt64(ShardPfxBits))))) as Shard,
+				Shard,
 				max(SeqNo) as SeqNo
 			FROM blocks
-			WHERE ShardWorkchainId = 0
+			WHERE WorkchainId = 0 AND Time >= maxTime-INTERVAL 1 MINUTE AND Time < maxTime-5
 			GROUP BY Shard
 	   )) as LastSynced
 	SELECT
 	   MasterSeqNo
 	FROM shards_descr
-	WHERE ShardPrefix = LastSynced.1 AND ShardSeqNo >= LastSynced.2
-	ORDER BY MasterSeqNo ASC, ShardPrefix ASC, ShardSeqNo ASC
+	WHERE Shard = LastSynced.1 AND ShardSeqNo >= LastSynced.2
+	ORDER BY MasterSeqNo ASC, Shard ASC, ShardSeqNo ASC
 	LIMIT 1
 `
 )
@@ -40,7 +41,7 @@ func (q *GetSyncedHeight) GetSyncedHeight() (*ton.BlockId, error) {
 
 	return &ton.BlockId{
 		WorkchainId: -1,
-		ShardPrefix: 0,
+		Shard:       0,
 		SeqNo:       syncedMasterHeight,
 	}, nil
 }

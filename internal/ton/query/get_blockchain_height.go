@@ -11,7 +11,7 @@ const (
 	SELECT 
 		max(SeqNo) as SeqNo
 	FROM blocks
-	WHERE ShardWorkchainId = -1
+	WHERE WorkchainId = -1
 `
 )
 
@@ -29,7 +29,7 @@ func (q *GetBlockchainHeight) GetBlockchainHeight() (*ton.BlockId, error) {
 
 	return &ton.BlockId{
 		WorkchainId: -1,
-		ShardPrefix: 0,
+		Shard:       0,
 		SeqNo:       lastMasterHeight,
 	}, nil
 }

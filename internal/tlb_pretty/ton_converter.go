@@ -30,9 +30,9 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 	}
 
 	for _, tr := range block.Transactions {
-		tr.BlockShardWorkchainId = block.Info.ShardWorkchainId
-		tr.BlockShardPrefix = block.Info.ShardPrefix
-		tr.BlockSeqNo = block.Info.SeqNo
+		tr.WorkchainId = block.Info.WorkchainId
+		tr.Shard = block.Info.Shard
+		tr.SeqNo = block.Info.SeqNo
 	}
 
 	sort.SliceStable(block.Transactions, func(i, j int) bool {
@@ -40,14 +40,14 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 	})
 
 	// shard_hashes only for workchain -1
-	if block.Info.ShardWorkchainId == -1 {
+	if block.Info.WorkchainId == -1 {
 		shardsDescr, err := c.extractShardsDescr(node)
 		if err != nil {
 			return nil, err
 		}
 		for _, descr := range shardsDescr {
 			descr.ShardWorkchainId = 0 // todo: can't find workchain field in data
-			descr.MasterShard = block.Info.ShardPrefix
+			descr.MasterShard = block.Info.Shard
 			descr.MasterSeqNo = block.Info.SeqNo
 		}
 		block.ShardDescr = shardsDescr
@@ -88,7 +88,7 @@ func (c *AstTonConverter) extractShardsDescr(node *AstNode) ([]*ton.ShardDescr, 
 			ShardWorkchainId: 0,
 		}
 
-		shardDescr.ShardPrefix, err = leafNode.GetUint64("next_validator_shard")
+		shardDescr.Shard, err = leafNode.GetUint64("next_validator_shard")
 		if err != nil {
 			return err
 		}
@@ -124,15 +124,20 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	}
 
 	// Shard
-	if info.ShardWorkchainId, err = nodeShard.GetInt32("workchain_id"); err != nil {
+	if info.WorkchainId, err = nodeShard.GetInt32("workchain_id"); err != nil {
 		return nil, err
 	}
-	if info.ShardPrefix, err = nodeShard.GetUint64("shard_prefix"); err != nil {
+
+	var shardPrefix uint64
+	var shardPfxBits uint8
+	if shardPrefix, err = nodeShard.GetUint64("shard_prefix"); err != nil {
 		return nil, err
 	}
-	if info.ShardPfxBits, err = nodeShard.GetUint8("shard_pfx_bits"); err != nil {
+	if shardPfxBits, err = nodeShard.GetUint8("shard_pfx_bits"); err != nil {
 		return nil, err
 	}
+	info.Shard = c.ConvertShardPrefixToShard(shardPrefix, shardPfxBits)
+
 	if info.SeqNo, err = nodeInfo.GetUint64("seq_no"); err != nil {
 		return nil, err
 	}
@@ -521,6 +526,10 @@ func (c *AstTonConverter) extractAddrStd(node *AstNode) (addr ton.AddrStd, err e
 	}
 
 	return
+}
+
+func (c *AstTonConverter) ConvertShardPrefixToShard(shardPrefix uint64, shardPfxBits uint8) uint64 {
+	return shardPrefix | (1 << (63 - shardPfxBits))
 }
 
 func NewAstTonConverter() *AstTonConverter {

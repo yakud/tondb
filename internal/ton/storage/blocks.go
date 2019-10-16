@@ -16,9 +16,8 @@ type kv struct {
 }
 
 var blocksFields = []kv{
-	{"ShardWorkchainId", "Int32"},
-	{"ShardPrefix", "UInt64"},
-	{"ShardPfxBits", "UInt8"},
+	{"WorkchainId", "Int32"},
+	{"Shard", "UInt64"},
 	{"SeqNo", "UInt64"},
 	{"Time", "DateTime"},
 
@@ -58,7 +57,7 @@ const (
 	queryCreateTableBloc string = `CREATE TABLE IF NOT EXISTS blocks (%s) 
 	ENGINE MergeTree
 	PARTITION BY toYYYYMM(Time)
-	ORDER BY (ShardWorkchainId, ShardPrefix, SeqNo)
+	ORDER BY (WorkchainId, Shard, SeqNo)
 `
 
 	queryInsertBlock = `INSERT INTO blocks (%s) VALUES (%s);`
@@ -166,9 +165,8 @@ func (c *Blocks) InsertManyExec(rows []*ton.Block, bdTx *sql.Tx) (*sql.Stmt, err
 			row.Info.Prev2Ref = &ton.BlockRef{}
 		}
 		if _, err := stmt.Exec(
-			row.Info.ShardWorkchainId,
-			row.Info.ShardPrefix,
-			row.Info.ShardPfxBits,
+			row.Info.WorkchainId,
+			row.Info.Shard,
 			row.Info.SeqNo,
 			time.Unix(int64(row.Info.GenUtime), 0).UTC(),
 

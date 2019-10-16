@@ -11,61 +11,61 @@ const (
 		MasterShard      UInt64,
 		MasterSeqNo      UInt64,
 		ShardWorkchainId Int32,
-		ShardPrefix      UInt64,
+		Shard            UInt64,
 		ShardSeqNo       UInt64
 	)
 	ENGINE MergeTree
-	ORDER BY (MasterSeqNo, ShardPrefix, ShardSeqNo)
+	ORDER BY (MasterSeqNo, Shard, ShardSeqNo)
 `
 
-	queryInsertShardsDescr = `INSERT INTO shards_descr (MasterShard,MasterSeqNo,ShardWorkchainId,ShardPrefix,ShardSeqNo) VALUES (?,?,?,?,?);`
+	queryInsertShardsDescr = `INSERT INTO shards_descr (MasterShard,MasterSeqNo,ShardWorkchainId,Shard,ShardSeqNo) VALUES (?,?,?,?,?);`
 	queryDropShardsDescr   = `DROP TABLE shards_descr;`
 
 	querySelectShardSeqRangesByMCSeq = `
 	SELECT 
-       ShardPrefix,
+       Shard,
        min(MinShardSeqNo)+1 as StartShardSeqno,
        max(MinShardSeqNo) as EndShardSeqno
    	FROM(
 		SELECT
 		   MasterShard, 
 		   MasterSeqNo, 
-		   ShardPrefix,
+		   Shard,
 		   max(ShardSeqNo) as MinShardSeqNo
 		FROM shards_descr
 		WHERE MasterSeqNo = ?
-		GROUP BY MasterShard, MasterSeqNo, ShardPrefix
-		ORDER BY MasterShard DESC, MasterSeqNo DESC, ShardPrefix DESC
+		GROUP BY MasterShard, MasterSeqNo, Shard
+		ORDER BY MasterShard DESC, MasterSeqNo DESC, Shard DESC
 		
 		UNION ALL 
 		
 		SELECT
 		   MasterShard, 
 		   MasterSeqNo, 
-		   ShardPrefix,
+		   Shard,
 		   max(ShardSeqNo) as MinShardSeqNo
 		FROM shards_descr
-		WHERE MasterSeqNo < ? AND ShardPrefix IN (
+		WHERE MasterSeqNo < ? AND Shard IN (
 			SELECT
-			   ShardPrefix
+			   Shard
 			FROM shards_descr
 			WHERE MasterSeqNo = ?
-			GROUP BY ShardPrefix
+			GROUP BY Shard
 		)
-		GROUP BY MasterShard, MasterSeqNo, ShardPrefix
-		ORDER BY MasterShard DESC, MasterSeqNo DESC, ShardPrefix DESC
-		LIMIT 1 BY ShardPrefix
+		GROUP BY MasterShard, MasterSeqNo, Shard
+		ORDER BY MasterShard DESC, MasterSeqNo DESC, Shard DESC
+		LIMIT 1 BY Shard
 	)
-	GROUP BY ShardPrefix
-	ORDER BY ShardPrefix
+	GROUP BY Shard
+	ORDER BY Shard
 `
 
 	querySelectMCSeqByShardSeq = `
 	SELECT 
 	   MasterSeqNo
 	FROM shards_descr
-	WHERE ShardPrefix = ? AND ShardSeqNo >= ?
-	ORDER BY MasterSeqNo ASC, ShardPrefix ASC, ShardSeqNo ASC
+	WHERE Shard = ? AND ShardSeqNo >= ?
+	ORDER BY MasterSeqNo ASC, Shard ASC, ShardSeqNo ASC
 	LIMIT 1
 `
 )
@@ -143,7 +143,7 @@ func (c *ShardsDescr) InsertManyExec(rows []*ton.ShardDescr, bdTx *sql.Tx) (*sql
 			row.MasterShard,
 			row.MasterSeqNo,
 			row.ShardWorkchainId,
-			row.ShardPrefix,
+			row.Shard,
 			row.ShardSeqNo,
 		); err != nil {
 			return stmt, err
@@ -168,7 +168,9 @@ func (c *ShardsDescr) GetShardsSeqRangeInMCBlock(mcSeqNum uint64) ([]ShardBlocks
 
 	resp := make([]ShardBlocksRange, 0)
 	for rows.Next() {
-		s := ShardBlocksRange{}
+		s := ShardBlocksRange{
+			WorkchainId: 0,
+		}
 		if err := rows.Scan(&s.Shard, &s.FromSeq, &s.ToSeq); err != nil {
 			rows.Close()
 			return nil, err
@@ -190,7 +192,7 @@ func (c *ShardsDescr) GetMCSeqByShardSeq(shard, shardSeq uint64) (*ton.BlockId, 
 
 	resp := &ton.BlockId{
 		WorkchainId: -1,
-		ShardPrefix: 0,
+		Shard:       0,
 	}
 	for rows.Next() {
 		if err := rows.Scan(&resp.SeqNo); err != nil {

@@ -1,9 +1,9 @@
 package ton
 
 type Transaction struct {
-	BlockShardWorkchainId int32  `json:"block_shard_workchain_id"`
-	BlockShardPrefix      uint64 `json:"block_shard_prefix"`
-	BlockSeqNo            uint64 `json:"block_seq_no"`
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	SeqNo       uint64 `json:"seq_no"`
 
 	Type                  string `json:"type"`
 	Lt                    uint64 `json:"lt"`

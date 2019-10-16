@@ -33,7 +33,7 @@ func handler() func(resp []byte) error {
 			log.Fatal(err)
 		}
 
-		fmt.Println(block.Info.ShardWorkchainId, block.Info.ShardPrefix, block.Info.SeqNo)
+		fmt.Println(block.Info.WorkchainId, block.Info.Shard, block.Info.SeqNo)
 		//fmt.Print(".")
 
 		return nil

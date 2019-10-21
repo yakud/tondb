@@ -1,0 +1,517 @@
+---
+consumes:
+- application/json
+info:
+  description: This API provides a number of methods to retrieve historical data across multiple dimensions of the TON blockchain.
+  title: TON Blockchain History APIs
+  version: 1.0.0
+produces:
+- application/json
+schemes:
+- https
+swagger: "2.0"
+basePath: /
+host: 144.76.140.152:8512
+
+securityDefinitions:
+  basicAuth:
+    type: basic
+
+security:
+  - basicAuth: []
+
+definitions:
+  BlockId:
+    description: "Block ID"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      shard:
+        type: integer
+        format: int64
+        description: "Shard DEC"
+      seq_no:
+        type: integer
+        format: int64
+        description: "Sequence number"
+
+  BlockIdString:
+    description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
+    type: string
+
+  ShardBlocksRange:
+    description: "Shard blocks range"
+    type: object
+    properties:
+      master_seq:
+        type: integer
+        format: int64
+        description: "Master block sequence number"
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      shard:
+        type: integer
+        format: int64
+        description: "Shard DEC"
+      from_seq:
+        type: integer
+        format: int64
+        description: "From sequence number"
+      to_seq:
+        type: integer
+        format: int64
+        description: "From sequence number"
+
+  BlockInfo:
+    description: "Block info"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      shard:
+        type: integer
+        format: int64
+        description: "Shard DEC"
+      seq_no:
+        type: integer
+        format: int64
+        description: "Sequence number"
+      min_ref_mc_seqno:
+        type: integer
+        format: int64
+        description: "min_ref_mc_seqno"
+      prev_key_block_seqno:
+        type: integer
+        format: int64
+        description: "prev_key_block_seqno"
+      gen_catchain_seqno:
+        type: integer
+        format: int64
+        description: "gen_catchain_seqno"
+      gen_utime:
+        type: integer
+        format: int64
+        description: "gen_utime"
+      prev1_ref:
+        $ref: "#/definitions/BlockRef"
+        description: "prev1_ref"
+      prev2_ref:
+        $ref: "#/definitions/BlockRef"
+        description: "prev2_ref"
+      master_ref:
+        $ref: "#/definitions/BlockRef"
+        description: "master_ref"
+      start_lt:
+        type: integer
+        format: int64
+        description: "start_lt"
+      end_lt:
+        type: integer
+        format: int64
+        description: "end_lt"
+      version:
+        type: integer
+        format: int32
+        description: "version"
+      flags:
+        type: integer
+        description: "flags"
+      key_block:
+        type: boolean
+        description: "key_block"
+      not_master:
+        type: boolean
+        description: "not_master"
+      want_merge:
+        type: boolean
+        description: "want_merge"
+      want_split:
+        type: boolean
+        description: "want_split"
+      after_merge:
+        type: boolean
+        description: "after_merge"
+      after_split:
+        type: boolean
+        description: "after_split"
+      before_split:
+        type: boolean
+        description: "before_split"
+
+  BlockRef:
+    description: "Block ref"
+    type: object
+    properties:
+      end_lt:
+        type: integer
+        format: int64
+        description: "end_lt"
+      seq_no:
+        type: integer
+        format: int64
+        description: "seq_no"
+      file_hash:
+        type: string
+        description: "file_hash"
+      root_hash:
+        type: string
+        description: "root_hash"
+
+  Transaction:
+    description: "Transaction"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      shard:
+        type: integer
+        format: int64
+        description: "Shard DEC"
+      seq_no:
+        type: integer
+        format: int64
+        description: "Sequence number"
+      type:
+        type: string
+        description: "Transaction type"
+      lt:
+        type: integer
+        format: int64
+        description: "lt"
+      now:
+        type: integer
+        format: int64
+        description: "now"
+      total_fees_nanograms:
+        type: integer
+        format: int64
+        description: "total_fees_nanograms"
+      total_fees_nanograms_len:
+        type: integer
+        format: int32
+        description: "total_fees_nanograms_len"
+      account_addr:
+        type: string
+        description: "account_addr"
+      orig_status:
+        type: string
+        description: "orig_status"
+      end_status:
+        type: string
+        description: "end_status"
+      prev_trans_lt:
+        type: integer
+        format: int64
+        description: "prev_trans_lt"
+      prev_trans_hash:
+        type: string
+        description: "prev_trans_hash"
+      state_update_new_hash:
+        type: string
+        description: "state_update_new_hash"
+      state_update_old_hash:
+        type: string
+        description: "state_update_old_hash"
+      in_msg:
+        $ref: "#/definitions/TransactionMessage"
+        description: "In message"
+      out_msgs:
+        type: array
+        items:
+          $ref: "#/definitions/TransactionMessage"
+        description: "Out messages"
+
+  TransactionMessage:
+    description: "Transaction message"
+    type: object
+    properties:
+      type:
+        type: string
+        description: "Message type"
+      init:
+        type: string
+        description: "init"
+      bounce:
+        type: boolean
+        description: "bounce"
+      bounced:
+        type: boolean
+        description: "bounced"
+      created_at:
+        type: integer
+        format: int64
+        description: "created_at"
+      created_lt:
+        type: integer
+        format: int64
+        description: "created_lt"
+      value_nanograms:
+        type: integer
+        format: int64
+        description: "value_nanograms"
+      value_nanograms_len:
+        type: integer
+        format: int32
+        description: "value_nanograms_len"
+      fwd_fee_nanograms:
+        type: integer
+        format: int64
+        description: "fwd_fee_nanograms"
+      fwd_fee_nanograms_len:
+        type: integer
+        format: int32
+        description: "fwd_fee_nanograms_len"
+      ihr_disabled:
+        type: boolean
+        description: "ihr_disabled"
+      ihr_fee_nanograms:
+        type: integer
+        format: int64
+        description: "ihr_fee_nanograms"
+      ihr_fee_nanograms_len:
+        type: integer
+        format: int32
+        description: "ihr_fee_nanograms_len"
+      import_fee_nanograms:
+        type: integer
+        format: int64
+        description: "import_fee_nanograms"
+      import_fee_nanograms_len:
+        type: integer
+        format: int32
+        description: "import_fee_nanograms_len"
+      dest:
+        $ref: "#/definitions/AddrStd"
+        description: "Dest addr"
+      src:
+        $ref: "#/definitions/AddrStd"
+        description: "Src addr"
+      body_type:
+        type: string
+        description: "Body type"
+      body_value:
+        type: string
+        description: "Body value"
+
+  AddrStd:
+    description: "Addr"
+    type: object
+    properties:
+      is_empty:
+        type: boolean
+        description: "Is empty"
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      addr:
+        type: string
+        description: "Addr HEX"
+      anycast:
+        type: string
+        description: "anycast"
+
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      error:
+        type: boolean
+        description: "Error"
+      message:
+        type: string
+        description: "Error message"
+
+paths:
+  /height/synced:
+    get:
+      summary: "Get synced height"
+      description: "Get synced master height"
+      security:
+        - basicAuth: []
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/BlockId"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /height/blockchain:
+    get:
+      summary: "Get blockchain height"
+      description: "Get master blockchain height"
+      security:
+        - basicAuth: []
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/BlockId"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /master/block/shards/range:
+    get:
+      summary: "Get master block shards range"
+      description: "Get master block shards range. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
+      security:
+        - basicAuth: []
+      parameters:
+        - name: block_master
+          in: query
+          type: string
+          required: true
+          description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ShardBlocksRange"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /workchain/block/master:
+    get:
+      summary: "Get master block by workchain block"
+      description: "Get master block by workchain block."
+      security:
+        - basicAuth: []
+      parameters:
+        - name: block
+          in: query
+          type: string
+          required: true
+          description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BlockId"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /block/info:
+    get:
+      summary: "Get block info"
+      description: >
+        Get block info by filters. <br>
+        <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
+        You can set multiply <b>block</b>'s like:
+        <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
+        You can set multiply <b>block_master</b>'s like:
+        <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
+      security:
+        - basicAuth: []
+      parameters:
+        - name: block
+          in: query
+          type: string
+          description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+        - name: block_master
+          in: query
+          type: string
+          description: "Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block."
+        - name: block_from
+          in: query
+          type: string
+          description: "Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+        - name: block_to
+          in: query
+          type: string
+          description: "Block range to. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BlockInfo"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /block/transactions:
+    get:
+      summary: "Get block transactions"
+      description: >
+        Get block transactions by filters. <br>
+        <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
+        You can set multiply <b>block</b>'s like:
+        <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
+        You can set multiply <b>block_master</b>'s like:
+        <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
+        You can set multiply <b>addr</b>'s like:
+        <pre style='font-size:11px;'>?addr=ADDR_1&addr=ADDR_2</pre>
+      security:
+        - basicAuth: []
+      parameters:
+        - name: block
+          in: query
+          type: string
+          description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+        - name: block_master
+          in: query
+          type: string
+          description: "Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block."
+        - name: block_from
+          in: query
+          type: string
+          description: "Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+        - name: block_to
+          in: query
+          type: string
+          description: "Block range to. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+        - name: dir
+          in: query
+          type: string
+          enum:
+            - in
+            - out
+          description: "Message dir"
+        - name: addr
+          in: query
+          type: string
+          description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiply <b>addr</b>'s."
+        - name: message_type
+          in: query
+          type: string
+          description: "Message type"
+        - name: type
+          in: query
+          type: string
+          description: "Transaction type"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Transaction"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"

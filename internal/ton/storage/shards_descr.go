@@ -49,7 +49,7 @@ const (
 	SELECT 
 	   MasterSeqNo
 	FROM shards_descr
-	WHERE Shard = ? AND ShardSeqNo >= ?
+	WHERE Shard = ? AND ShardSeqNo >= ? AND ShardWorkchainId = ?
 	ORDER BY MasterSeqNo ASC, Shard ASC, ShardSeqNo ASC
 	LIMIT 1
 `
@@ -169,8 +169,8 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 }
 
 // todo: make it faster. sooo slow
-func (c *ShardsDescr) GetMasterSeqByShardSeq(shard, shardSeq uint64) (*ton.BlockId, error) {
-	rows, err := c.conn.Query(querySelectMCSeqByShardSeq, shard, shardSeq)
+func (c *ShardsDescr) GetMasterByShardBlock(shard *ton.BlockId) (*ton.BlockId, error) {
+	rows, err := c.conn.Query(querySelectMCSeqByShardSeq, shard.Shard, shard.SeqNo, shard.WorkchainId)
 	if err != nil {
 		return nil, err
 	}

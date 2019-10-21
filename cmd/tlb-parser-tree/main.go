@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/tlb_pretty"
+	"gitlab.flora.loc/mills/tondb/internal/tlb_pretty"
 )
 
 func PrintAst(node *tlb_pretty.AstNode, spacesCount int) {
@@ -37,8 +37,8 @@ func PrintAst(node *tlb_pretty.AstNode, spacesCount int) {
 
 func main() {
 	// scp akisilev@46.4.4.150:/tmp/testlog.log* /tmp/
-	input := flag.String("in", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample2.pretty", "input tlb pretty")
-	out := flag.String("out", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample.json", "out tlb pretty")
+	input := flag.String("in", "/Users/user/go/src/gitlab.flora.loc/mills/tondb/sample2.pretty", "input tlb pretty")
+	out := flag.String("out", "/Users/user/go/src/gitlab.flora.loc/mills/tondb/sample.json", "out tlb pretty")
 	//input := flag.String("in", "", "input tlb pretty")
 	//out := flag.String("out", "", "out tlb pretty")
 	flag.Parse()

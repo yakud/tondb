@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/utils"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 type kv struct {
@@ -15,7 +15,8 @@ type kv struct {
 	v string
 }
 
-var blocksFields = []kv{
+// read only
+var BlocksFields = []kv{
 	{"WorkchainId", "Int32"},
 	{"Shard", "UInt64"},
 	{"SeqNo", "UInt64"},
@@ -54,7 +55,7 @@ var blocksFields = []kv{
 }
 
 const (
-	queryCreateTableBloc string = `CREATE TABLE IF NOT EXISTS blocks (%s) 
+	queryCreateTableBlocs string = `CREATE TABLE IF NOT EXISTS blocks (%s) 
 	ENGINE MergeTree
 	PARTITION BY toYYYYMM(Time)
 	ORDER BY (WorkchainId, Shard, SeqNo)
@@ -72,17 +73,17 @@ type Blocks struct {
 }
 
 func (c *Blocks) PrepareQueries() {
-	kvCreate := make([]string, 0, len(blocksFields))
-	kInsert := make([]string, 0, len(blocksFields))
-	vInsert := make([]string, 0, len(blocksFields))
+	kvCreate := make([]string, 0, len(BlocksFields))
+	kInsert := make([]string, 0, len(BlocksFields))
+	vInsert := make([]string, 0, len(BlocksFields))
 
-	for _, v := range blocksFields {
+	for _, v := range BlocksFields {
 		kvCreate = append(kvCreate, fmt.Sprintf("%s %s", v.k, v.v))
 		kInsert = append(kInsert, v.k)
 		vInsert = append(vInsert, "?")
 	}
 
-	c.queryCreate = fmt.Sprintf(queryCreateTableBloc, strings.Join(kvCreate, ","))
+	c.queryCreate = fmt.Sprintf(queryCreateTableBlocs, strings.Join(kvCreate, ","))
 	c.queryInsert = fmt.Sprintf(
 		queryInsertBlock,
 		strings.Join(kInsert, ","),

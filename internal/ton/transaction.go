@@ -1,9 +1,7 @@
 package ton
 
 type Transaction struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
+	BlockId
 
 	Type                  string `json:"type"`
 	Lt                    uint64 `json:"lt"`
@@ -20,6 +18,6 @@ type Transaction struct {
 	StateUpdateNewHash string `json:"state_update_new_hash"`
 	StateUpdateOldHash string `json:"state_update_old_hash"`
 
-	InMsg   *TransactionMessage   `json:"in_msg"`
-	OutMsgs []*TransactionMessage `json:"out_msgs"`
+	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
+	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`
 }

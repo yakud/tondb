@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
-// ConvertToBlock AST to ton.block
+// Convert AST to ton.block
 type AstTonConverter struct {
 }
 

@@ -1,15 +1,14 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/utils"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/storage"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -50,15 +49,15 @@ func (m *MasterchainByShard) Handler(w http.ResponseWriter, r *http.Request, p h
 	fmt.Println("shard_hex:", shardHex)
 	fmt.Println("shard_dec:", shardDec)
 
-	mcBlock, err := m.shardsDescrStorage.GetMCSeqByShardSeq(shardDec, seqNo)
+	masterBlock, err := m.shardsDescrStorage.GetMasterSeqByShardSeq(shardDec, seqNo)
 	if err != nil {
-		log.Println("GetMCSeqByShardSeq error:", err)
+		log.Println("GetMasterSeqByShardSeq error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetMCSeqByShardSeq error"}`))
+		w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetMasterSeqByShardSeq error"}`))
 		return
 	}
 
-	resp, err := json.Marshal(mcBlock)
+	resp, err := json.Marshal(masterBlock)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":true,"message":"response json marshaling error"}`))

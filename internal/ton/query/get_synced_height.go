@@ -3,7 +3,7 @@ package query
 import (
 	"database/sql"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 				Shard,
 				max(SeqNo) as SeqNo
 			FROM blocks
-			WHERE WorkchainId = 0 AND Time >= maxTime-INTERVAL 1 MINUTE AND Time < maxTime-5
+			WHERE WorkchainId = 0 AND Time >= maxTime-INTERVAL 10 MINUTE AND Time < maxTime-5
 			GROUP BY Shard
 	   )) as LastSynced
 	SELECT

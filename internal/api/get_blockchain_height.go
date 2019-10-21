@@ -1,12 +1,11 @@
 package api
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/query"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query"
 )
 
 type GetBlockchainHeight struct {

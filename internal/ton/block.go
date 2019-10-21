@@ -1,15 +1,17 @@
 package ton
 
+import (
+	"errors"
+	"strconv"
+	"strings"
+
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+)
+
 const (
 	WorkchainMasterId = -1
 	WorkchainTonId    = 0
 )
-
-type BlockId struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
-}
 
 type Block struct {
 	Info         *BlockInfo     `json:"block_info"`
@@ -18,9 +20,7 @@ type Block struct {
 }
 
 type BlockInfo struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
+	BlockId
 
 	MinRefMcSeqno     uint32    `json:"min_ref_mc_seqno"`
 	PrevKeyBlockSeqno uint32    `json:"prev_key_block_seqno"`
@@ -49,4 +49,36 @@ type BlockRef struct {
 	SeqNo    uint64 `json:"seq_no,omitempty"`
 	FileHash string `json:"file_hash,omitempty"`
 	RootHash string `json:"root_hash,omitempty"`
+}
+
+type BlockId struct {
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	SeqNo       uint64 `json:"seq_no"`
+}
+
+func ParseBlockId(b string) (*BlockId, error) {
+	chunks := strings.Split(strings.Trim(b, "()"), ",")
+	if len(chunks) != 3 {
+		return nil, errors.New("wrong format BlockId. expected like: (WorkchainId,ShardHex,SeqNo)")
+	}
+
+	blockId := &BlockId{}
+
+	// Input data
+	wId, err := strconv.ParseInt(chunks[0], 10, 32)
+	if err != nil {
+		return nil, errors.New("workchain_id parse error")
+	}
+	blockId.WorkchainId = int32(wId)
+
+	if blockId.Shard, err = utils.HexToDec(chunks[1]); err != nil {
+		return nil, errors.New("shard is not hex")
+	}
+	blockId.SeqNo, err = strconv.ParseUint(chunks[2], 10, 64)
+	if err != nil {
+		return nil, errors.New("seq_no parse error")
+	}
+
+	return blockId, nil
 }

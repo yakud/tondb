@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/utils"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 func main() {

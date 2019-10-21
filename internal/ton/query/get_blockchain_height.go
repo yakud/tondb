@@ -3,7 +3,7 @@ package query
 import (
 	"database/sql"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (

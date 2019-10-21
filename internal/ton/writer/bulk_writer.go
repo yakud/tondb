@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/storage"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 )
 
 type BulkWriter struct {

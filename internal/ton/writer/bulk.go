@@ -3,7 +3,7 @@ package writer
 import (
 	"sync"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 // Bulk collect multiply blocks for bulked insert

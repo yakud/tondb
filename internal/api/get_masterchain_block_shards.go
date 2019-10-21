@@ -1,12 +1,12 @@
 package api
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/storage"
+	apiFilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -16,23 +16,30 @@ type MasterchainBlockShards struct {
 }
 
 func (m *MasterchainBlockShards) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	seqNoStr := p.ByName("seqNo")
-	seqNo, err := strconv.ParseUint(seqNoStr, 10, 64)
+	// block_master
+	blockMasterFilter, err := apiFilter.BlockFilterFromRequest(r, "block_master", maxBlocksPerRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"seqNo parse error"}`))
+		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	} else if blockMasterFilter == nil {
+		http.Error(w, `{"error":true,"message":"empty block_master"}`, http.StatusBadRequest)
 		return
 	}
 
-	shardsBlocks, err := m.shardsDescrStorage.GetShardsSeqRangeInMCBlock(seqNo)
-	if err != nil {
-		log.Println("GetShardsSeqRangeInMCBlock error:", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMCBlock error"}`))
-		return
+	respShardsBlocks := make([]storage.ShardBlocksRange, 0)
+	for _, masterBlockId := range blockMasterFilter.Blocks() {
+		shardsBlocks, err := m.shardsDescrStorage.GetShardsSeqRangeInMasterBlock(masterBlockId.SeqNo)
+		if err != nil {
+			log.Println("GetShardsSeqRangeInMasterBlock error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
+			return
+		}
+
+		respShardsBlocks = append(respShardsBlocks, shardsBlocks...)
 	}
 
-	resp, err := json.Marshal(shardsBlocks)
+	resp, err := json.Marshal(respShardsBlocks)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":true,"message":"response json marshaling error"}`))
@@ -43,7 +50,7 @@ func (m *MasterchainBlockShards) Handler(w http.ResponseWriter, r *http.Request,
 	w.Write(resp)
 }
 
-func NewMasterchainBlockShards(shardsDescrStorage *storage.ShardsDescr) *MasterchainBlockShards {
+func NewMasterBlockShardsRange(shardsDescrStorage *storage.ShardsDescr) *MasterchainBlockShards {
 	return &MasterchainBlockShards{
 		shardsDescrStorage: shardsDescrStorage,
 	}

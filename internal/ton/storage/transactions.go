@@ -7,9 +7,9 @@ import (
 
 	"github.com/mailru/go-clickhouse"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/utils"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (
@@ -30,7 +30,6 @@ const (
 		StateUpdateNewHash    FixedString(64),
 		StateUpdateOldHash    FixedString(64),
 		
-
 		Messages Nested
     	(
 			Direction             LowCardinality(String),
@@ -266,7 +265,7 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			messagesBodyValue = append(messagesBodyValue, tr.InMsg.BodyValue)
 		}
 
-		// in order like blocksFields
+		// in order like BlocksFields
 		if _, err := stmt.Exec(
 			tr.WorkchainId,
 			tr.Shard,

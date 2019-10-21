@@ -5,12 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/query"
-
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ch"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/storage"
-
-	"github.com/yakud/ton-blocks-stream-receiver/internal/api"
+	"gitlab.flora.loc/mills/tondb/internal/api"
+	"gitlab.flora.loc/mills/tondb/internal/ch"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -37,15 +35,16 @@ func main() {
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
 	searchTransactionsQuery := query.NewSearchTransactions(chConnect)
+	getBlockInfoQuery := query.NewGetBlockInfo(chConnect)
 
 	router := httprouter.New()
 
 	router.GET("/height/synced", api.BasicAuth(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
 	router.GET("/height/blockchain", api.BasicAuth(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
-	router.GET("/masterchain/block/:seqNo/shards", api.BasicAuth(api.NewMasterchainBlockShards(shardsDescrStorage).Handler))
+	router.GET("/master/block/shards/range", api.BasicAuth(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
 	router.GET("/workchain/block/masterchain", api.BasicAuth(api.NewMasterchainByShard(shardsDescrStorage).Handler))
-
-	router.GET("/search/transactions/by/master", api.BasicAuth(api.NewGetSearchTransactionsByMaster(shardsDescrStorage, searchTransactionsQuery).Handler))
+	router.GET("/block/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
+	router.GET("/block/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
 
 	srv := &http.Server{
 		Addr:    addr,

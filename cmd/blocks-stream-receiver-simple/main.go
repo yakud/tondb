@@ -6,9 +6,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/tlb_pretty"
+	"gitlab.flora.loc/mills/tondb/internal/tlb_pretty"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/blocks_receiver"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_receiver"
 )
 
 var tlbParser = tlb_pretty.NewParser()

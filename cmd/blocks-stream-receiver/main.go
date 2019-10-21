@@ -10,14 +10,14 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/writer"
+	"gitlab.flora.loc/mills/tondb/internal/ton/writer"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/storage"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ch"
-	"github.com/yakud/ton-blocks-stream-receiver/internal/tlb_pretty"
+	"gitlab.flora.loc/mills/tondb/internal/ch"
+	"gitlab.flora.loc/mills/tondb/internal/tlb_pretty"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/blocks_receiver"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_receiver"
 )
 
 var tlbParser = tlb_pretty.NewParser()
@@ -31,26 +31,26 @@ func handler() func(resp []byte) error {
 		return nil
 	}
 }
-func worker(buffer *writer.BulkBuffer) error {
-	var node *tlb_pretty.AstNode
+func workerBlocksHandler(buffer *writer.BulkBuffer) error {
+	var astPretty *tlb_pretty.AstNode
 	var err error
 
-	for resp := range blocksChan {
-		node = tlbParser.Parse(resp)
-		node, err = treeSimplifier.Simplify(node)
+	for blockPretty := range blocksChan {
+		astPretty = tlbParser.Parse(blockPretty)
+		astPretty, err = treeSimplifier.Simplify(astPretty)
 		if err != nil {
-			log.Fatal(err, "block size:", len(resp), string(resp))
+			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
 			continue
 		}
 
-		block, err := astTonConverter.ConvertToBlock(node)
+		block, err := astTonConverter.ConvertToBlock(astPretty)
 		if err != nil {
-			log.Fatal(err, "block size:", len(resp), string(resp))
+			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
 			continue
 		}
 
 		if err := buffer.Add(block); err != nil {
-			log.Fatal(err, "block size:", len(resp), string(resp))
+			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
 			continue
 		}
 
@@ -155,7 +155,7 @@ func main() {
 	workers := 4
 	for i := 0; i < workers; i++ {
 		go func() {
-			if err := worker(buffer); err != nil {
+			if err := workerBlocksHandler(buffer); err != nil {
 				log.Fatal(err)
 			}
 		}()

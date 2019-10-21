@@ -3,7 +3,7 @@ package storage
 import (
 	"database/sql"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (
@@ -23,41 +23,26 @@ const (
 
 	querySelectShardSeqRangesByMCSeq = `
 	SELECT 
+	   ? as MasterSeqNo,
+	   ShardWorkchainId,
        Shard,
-       min(MinShardSeqNo)+1 as StartShardSeqno,
-       max(MinShardSeqNo) as EndShardSeqno
-   	FROM(
+       min(ShardSeqNo)+1 as StartShardSeqno,
+       max(ShardSeqNo) as EndShardSeqno
+   	FROM (
 		SELECT
 		   MasterShard, 
 		   MasterSeqNo, 
+		   ShardWorkchainId,
 		   Shard,
-		   max(ShardSeqNo) as MinShardSeqNo
+		   ShardSeqNo
 		FROM shards_descr
-		WHERE MasterSeqNo = ?
-		GROUP BY MasterShard, MasterSeqNo, Shard
-		ORDER BY MasterShard DESC, MasterSeqNo DESC, Shard DESC
-		
-		UNION ALL 
-		
-		SELECT
-		   MasterShard, 
-		   MasterSeqNo, 
-		   Shard,
-		   max(ShardSeqNo) as MinShardSeqNo
-		FROM shards_descr
-		WHERE MasterSeqNo < ? AND Shard IN (
-			SELECT
-			   Shard
-			FROM shards_descr
-			WHERE MasterSeqNo = ?
-			GROUP BY Shard
-		)
-		GROUP BY MasterShard, MasterSeqNo, Shard
-		ORDER BY MasterShard DESC, MasterSeqNo DESC, Shard DESC
-		LIMIT 1 BY Shard
-	)
-	GROUP BY Shard
-	ORDER BY Shard
+		WHERE MasterSeqNo <= ? AND MasterSeqNo >= ?-50 AND Shard IN (SELECT Shard FROM shards_descr WHERE MasterSeqNo = ?)
+		ORDER BY MasterSeqNo DESC, Shard DESC, ShardSeqNo DESC
+		LIMIT 2 BY Shard
+	) 
+	GROUP BY MasterSeqNo,
+	   ShardWorkchainId,
+       Shard
 `
 
 	querySelectMCSeqByShardSeq = `
@@ -154,24 +139,23 @@ func (c *ShardsDescr) InsertManyExec(rows []*ton.ShardDescr, bdTx *sql.Tx) (*sql
 }
 
 type ShardBlocksRange struct {
+	MasterSeq   uint64 `json:"master_seq"`
 	WorkchainId int32  `json:"workchain_id"`
 	Shard       uint64 `json:"shard"`
 	FromSeq     uint64 `json:"from_seq"`
 	ToSeq       uint64 `json:"to_seq"`
 }
 
-func (c *ShardsDescr) GetShardsSeqRangeInMCBlock(mcSeqNum uint64) ([]ShardBlocksRange, error) {
-	rows, err := c.conn.Query(querySelectShardSeqRangesByMCSeq, mcSeqNum, mcSeqNum, mcSeqNum)
+func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardBlocksRange, error) {
+	rows, err := c.conn.Query(querySelectShardSeqRangesByMCSeq, masterSeq, masterSeq, masterSeq, masterSeq)
 	if err != nil {
 		return nil, err
 	}
 
 	resp := make([]ShardBlocksRange, 0)
 	for rows.Next() {
-		s := ShardBlocksRange{
-			WorkchainId: 0,
-		}
-		if err := rows.Scan(&s.Shard, &s.FromSeq, &s.ToSeq); err != nil {
+		s := ShardBlocksRange{}
+		if err := rows.Scan(&s.MasterSeq, &s.WorkchainId, &s.Shard, &s.FromSeq, &s.ToSeq); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -184,7 +168,8 @@ func (c *ShardsDescr) GetShardsSeqRangeInMCBlock(mcSeqNum uint64) ([]ShardBlocks
 	return resp, nil
 }
 
-func (c *ShardsDescr) GetMCSeqByShardSeq(shard, shardSeq uint64) (*ton.BlockId, error) {
+// todo: make it faster. sooo slow
+func (c *ShardsDescr) GetMasterSeqByShardSeq(shard, shardSeq uint64) (*ton.BlockId, error) {
 	rows, err := c.conn.Query(querySelectMCSeqByShardSeq, shard, shardSeq)
 	if err != nil {
 		return nil, err

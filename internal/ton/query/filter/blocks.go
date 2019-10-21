@@ -4,11 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 type Blocks struct {
 	blocks []*ton.BlockId
+}
+
+func (f *Blocks) Blocks() []*ton.BlockId {
+	return f.blocks
 }
 
 func (f *Blocks) Build() (string, []interface{}, error) {

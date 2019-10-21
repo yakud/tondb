@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const DefaultBulkSize = 5000

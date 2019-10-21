@@ -3,12 +3,11 @@ package query
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton/query/filter"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
-	"github.com/yakud/ton-blocks-stream-receiver/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (
@@ -102,6 +101,7 @@ const (
 		FROM transactions
 		ARRAY JOIN Messages as Message
 		WHERE %s
+	    LIMIT 1000
 	) GROUP BY WorkchainId,Shard,SeqNo,Type,Lt,Time,TotalFeesNanograms,TotalFeesNanogramsLen,AccountAddr,OrigStatus,EndStatus,PrevTransLt,PrevTransHash,StateUpdateNewHash,StateUpdateOldHash
 `
 )
@@ -110,48 +110,15 @@ type SearchTransactions struct {
 	conn *sql.DB
 }
 
-func (s *SearchTransactions) SearchByFilter(filters ...filter.Builder) ([]*ton.Transaction, error) {
-	filtersSql := make([]string, 0, len(filters))
-	filtersArgs := make([]interface{}, 0)
-	for _, f := range filters {
-		filterSql, filterArgs, err := f.Build()
-		if err != nil {
-			return nil, err
-		}
-		filtersSql = append(filtersSql, filterSql)
-		filtersArgs = append(filtersArgs, filterArgs...)
+func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction, error) {
+	fmt.Println(f.Build())
+
+	query, args, err := filter.RenderQuery(querySelectTransactionsByFilter, f)
+	if err != nil {
+		return nil, err
 	}
 
-	queryWhere := strings.Join(filtersSql, " AND ")
-	return s.GetTransactionsByFilter(queryWhere, filtersArgs)
-}
-
-//func (s *SearchTransactions) SearchByBlock(blocksFilter ...*ton.BlockId) ([]*ton.Transaction, error) {
-//	// todo: make it faster
-//	filters := make([]string, 0, len(blocksFilter))
-//	for _, b := range blocksFilter {
-//		filters = append(filters, fmt.Sprintf(
-//			"(%d,%d,%d)",
-//			b.WorkchainId,
-//			b.Shard,
-//			b.SeqNo,
-//		))
-//	}
-//
-//	filter := fmt.Sprintf(
-//		"(WorkchainId, Shard, SeqNo) IN (%s)",
-//		strings.Join(filters, ","),
-//	)
-//
-//	fmt.Println(filter)
-//
-//	return s.GetTransactionsByFilter(filter)
-//}
-
-// TODO: filter struct instead string
-func (s *SearchTransactions) GetTransactionsByFilter(filter string, args []interface{}) ([]*ton.Transaction, error) {
-	fmt.Println(fmt.Sprintf(querySelectTransactionsByFilter, filter))
-	rows, err := s.conn.Query(fmt.Sprintf(querySelectTransactionsByFilter, filter), args...)
+	rows, err := s.conn.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

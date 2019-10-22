@@ -14,7 +14,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-const maxBlocksPerRequest = 100
+const maxBlocksPerRequest = 1000
 
 type GetBlockInfo struct {
 	q                  *query.GetBlockInfo

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -24,6 +26,13 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		return nil, err
 	}
 
+	// Block header
+	blockHeader, err := c.extractBlockHeader(node)
+	if err != nil {
+		return nil, err
+	}
+	block.Info.BlockHeader = *blockHeader
+
 	// Transactions
 	if err = c.extractTransactions(node, &block.Transactions); err != nil {
 		return nil, err
@@ -33,6 +42,10 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		tr.WorkchainId = block.Info.WorkchainId
 		tr.Shard = block.Info.Shard
 		tr.SeqNo = block.Info.SeqNo
+	}
+
+	if err := c.extractTransactionsHash(node, &block.Transactions); err != nil {
+		return nil, err
 	}
 
 	sort.SliceStable(block.Transactions, func(i, j int) bool {
@@ -107,6 +120,26 @@ func (c *AstTonConverter) extractShardsDescr(node *AstNode) ([]*ton.ShardDescr, 
 	}
 
 	return shardDescrs, nil
+}
+
+func (c *AstTonConverter) extractBlockHeader(node *AstNode) (*ton.BlockHeader, error) {
+	var err error
+	header := &ton.BlockHeader{}
+
+	nodeHeader, err := node.GetNode("header")
+	if err != nil {
+		return header, nil
+	}
+
+	if header.RootHash, err = nodeHeader.GetString("root_hash"); err != nil {
+		return nil, err
+	}
+
+	if header.FileHash, err = nodeHeader.GetString("file_hash"); err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error) {
@@ -413,6 +446,35 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 	return nil
 }
 
+func (c *AstTonConverter) extractTransactionsHash(node *AstNode, transaction *[]*ton.Transaction) error {
+	transactionsHashNode, err := node.GetNode("transactions_hash")
+	if err != nil && len(*transaction) > 0 {
+		return fmt.Errorf("not found transactions hashes: %w", err)
+	}
+	if transactionsHashNode == nil {
+		if len(*transaction) > 0 {
+			return fmt.Errorf("empty transactions_hash")
+		}
+		return nil
+	}
+
+	for _, tr := range *transaction {
+		accLtHashNode, err := transactionsHashNode.GetNode(strings.TrimLeft(tr.AccountAddr, "x"))
+		if err != nil {
+			return fmt.Errorf("not found lthash node for account %s: %w", tr.AccountAddr, err)
+		}
+
+		trHash, err := accLtHashNode.GetString(strconv.FormatUint(tr.Lt, 10))
+		if err != nil {
+			return fmt.Errorf("not found tr hash for account: %s lt: %d: %w", tr.AccountAddr, tr.Lt, err)
+		}
+
+		tr.Hash = trHash
+	}
+
+	return nil
+}
+
 func (c *AstTonConverter) extractMessage(node *AstNode) (*ton.TransactionMessage, error) {
 	if !node.IsType("message") {
 		tp, _ := node.Type()
@@ -477,7 +539,7 @@ func (c *AstTonConverter) extractMessage(node *AstNode) (*ton.TransactionMessage
 		}
 
 	default:
-		return nil, fmt.Errorf("undefined transaction message type: %s", msg.Type)
+		//return nil, fmt.Errorf("undefined transaction message type: %s", msg.Type)
 	}
 
 	if init, err := msgInfoNode.GetString("init"); err == nil {

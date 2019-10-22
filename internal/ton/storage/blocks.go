@@ -22,6 +22,9 @@ var BlocksFields = []kv{
 	{"SeqNo", "UInt64"},
 	{"Time", "DateTime"},
 
+	{"RootHash", "FixedString(64)"},
+	{"FileHash", "FixedString(64)"},
+
 	{"MinRefMcSeqno", "UInt32"},
 	{"PrevKeyBlockSeqno", "UInt32"},
 	{"GenCatchainSeqno", "UInt32"},
@@ -170,6 +173,9 @@ func (c *Blocks) InsertManyExec(rows []*ton.Block, bdTx *sql.Tx) (*sql.Stmt, err
 			row.Info.Shard,
 			row.Info.SeqNo,
 			time.Unix(int64(row.Info.GenUtime), 0).UTC(),
+
+			row.Info.RootHash,
+			row.Info.FileHash,
 
 			row.Info.MinRefMcSeqno,
 			row.Info.PrevKeyBlockSeqno,

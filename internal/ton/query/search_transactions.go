@@ -2,7 +2,6 @@ package query
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -17,6 +16,7 @@ const (
 		WorkchainId,
 		Shard,
 		SeqNo,
+		Hash,
 		Type,
 		Lt,
 		Time,
@@ -102,7 +102,7 @@ const (
 		ARRAY JOIN Messages as Message
 		WHERE %s
 	    LIMIT 1000
-	) GROUP BY WorkchainId,Shard,SeqNo,Type,Lt,Time,TotalFeesNanograms,TotalFeesNanogramsLen,AccountAddr,OrigStatus,EndStatus,PrevTransLt,PrevTransHash,StateUpdateNewHash,StateUpdateOldHash
+	) GROUP BY WorkchainId,Shard,SeqNo,Hash,Type,Lt,Time,TotalFeesNanograms,TotalFeesNanogramsLen,AccountAddr,OrigStatus,EndStatus,PrevTransLt,PrevTransHash,StateUpdateNewHash,StateUpdateOldHash
 `
 )
 
@@ -111,8 +111,6 @@ type SearchTransactions struct {
 }
 
 func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction, error) {
-	fmt.Println(f.Build())
-
 	query, args, err := filter.RenderQuery(querySelectTransactionsByFilter, f)
 	if err != nil {
 		return nil, err
@@ -159,6 +157,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&transaction.WorkchainId,
 			&transaction.Shard,
 			&transaction.SeqNo,
+			&transaction.Hash,
 			&transaction.Type,
 			&transaction.Lt,
 			&trTime,

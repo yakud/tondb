@@ -21,6 +21,7 @@ type Block struct {
 
 type BlockInfo struct {
 	BlockId
+	BlockHeader
 
 	MinRefMcSeqno     uint32    `json:"min_ref_mc_seqno"`
 	PrevKeyBlockSeqno uint32    `json:"prev_key_block_seqno"`
@@ -42,6 +43,11 @@ type BlockInfo struct {
 	AfterMerge  bool  `json:"after_merge"`
 	AfterSplit  bool  `json:"after_split"`
 	BeforeSplit bool  `json:"before_split"`
+}
+
+type BlockHeader struct {
+	RootHash string `json:"root_hash"`
+	FileHash string `json:"file_hash"`
 }
 
 type BlockRef struct {

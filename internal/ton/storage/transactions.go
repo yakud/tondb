@@ -17,6 +17,8 @@ const (
 		WorkchainId           Int32,
 		Shard                 UInt64,
 		SeqNo                 UInt64,
+		
+		Hash                  FixedString(64),
 		Type                  LowCardinality(String),
 		Lt                    UInt64,
 		Time                  DateTime, -- field Now
@@ -68,6 +70,7 @@ const (
 	WorkchainId,
 	Shard,
 	SeqNo,
+	Hash,
 	Type,
 	Lt,
 	Time,
@@ -106,7 +109,7 @@ const (
 	Messages.SrcAnycast,
 	Messages.BodyType,
 	Messages.BodyValue
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropTransactions = `DROP TABLE transactions;`
 )
@@ -270,6 +273,7 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			tr.WorkchainId,
 			tr.Shard,
 			tr.SeqNo,
+			strings.TrimLeft(tr.Hash, "x"),
 			tr.Type,
 			tr.Lt,
 			time.Unix(int64(tr.Now), 0).UTC(),

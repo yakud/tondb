@@ -2,7 +2,6 @@ package query
 
 import (
 	"database/sql"
-	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -16,6 +15,8 @@ const (
 		Shard,
 		SeqNo,
 		toUInt64(Time),
+		RootHash,
+		FileHash,
 		MinRefMcSeqno,
 		PrevKeyBlockSeqno,
 		GenCatchainSeqno,
@@ -53,8 +54,6 @@ type GetBlockInfo struct {
 }
 
 func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
-	fmt.Println(f.Build())
-
 	query, args, err := filter.RenderQuery(queryGetBlockInfo, f)
 	if err != nil {
 		return nil, err
@@ -79,6 +78,8 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 			&blockInfo.Shard,
 			&blockInfo.SeqNo,
 			&blockInfo.GenUtime,
+			&blockInfo.RootHash,
+			&blockInfo.FileHash,
 			&blockInfo.MinRefMcSeqno,
 			&blockInfo.PrevKeyBlockSeqno,
 			&blockInfo.GenCatchainSeqno,

@@ -3,6 +3,7 @@ package ton
 type Transaction struct {
 	BlockId
 
+	Hash                  string `json:"hash"`
 	Type                  string `json:"type"`
 	Lt                    uint64 `json:"lt"`
 	Now                   uint64 `json:"now"`

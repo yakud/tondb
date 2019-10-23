@@ -60,6 +60,7 @@ const (
 			WorkchainId,
 			Shard,
 			SeqNo,
+		    Hash,
 			Type,
 			Lt,
 			Time,

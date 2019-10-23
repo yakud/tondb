@@ -48,7 +48,7 @@ func main() {
 	//	}
 	//}()
 
-	tcpServer := blocks_receiver.NewTcpReceiver()
+	tcpServer := blocks_receiver.NewTcpReceiver("0.0.0.0:8188")
 
 	ctx, _ := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}

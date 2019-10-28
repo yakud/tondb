@@ -15,9 +15,16 @@ nohup /tmp/blocks-stream-receiver >> /data/ton/log/stream-receiver.log &
 nohup /tmp/tmp.aTNqJUNFUq/build/blocks-stream/blocks-stream-reader \
   /data/ton/ton-stream/blocks.log \
   /data/ton/ton-stream/blocks.log.index \
-  12749000 \
   "0.0.0.0"\
   7315 \
+  >> /data/ton/log/stream-reader.log &
+
+nohup /tmp/tmp.aTNqJUNFUq/build/blocks-stream/blocks-stream-reader \
+  --streamfile /data/ton/ton-stream/blocks.log \
+  --indexfile /data/ton/ton-stream/blocks.log.index \
+  --host "0.0.0.0"\
+  --port 7315 \
+  --workers 3 \
   >> /data/ton/log/stream-reader.log &
 
 nohup /tmp/ton-api >> /data/ton/log/api.log &

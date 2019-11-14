@@ -61,14 +61,11 @@ CH_ADDR=http://user:pass@127.0.0.1:8123/default?max_query_size=3145728000 - ст
 После, запускаем blocks-stream-reader. Пример:
 
 blocks-stream-reader \
-  /FOLDER/ton-stream/blocks.log \
-  /FOLDER/ton-stream/blocks.log.index \
-  "0.0.0.0" 7315
-
-Первый параметр - файл со стримом блоков.
-Второй параметр - файл с индексом стрима.
-Третий параметр - ip blocks-stream-receiver'a
-Четвертый параметр - port blocks-stream-receiver'a
+  --streamfile /FOLDER/ton-stream/blocks.log  \
+  --indexfile /FOLDER/ton-stream/blocks.log.index \
+  --host "0.0.0.0"\
+  --port 7315 \
+  --workers 3
 
 После успешного запуска начинается стриминт.
 Будет создан файл /FOLDER/ton-stream/blocks.log.index.seek в нем хранится смещение последней прочитанной строчки индекса.
@@ -81,8 +78,8 @@ ADDR=0.0.0.0:8512 - rest endpoint
 CH_ADDR=http://user:pass@127.0.0.1:8123/default?max_query_size=3145728000 - строка подключения к Clickhouse
 ------------------------------------------------------------------------
 Алгоритм остановки строго по очереди:
-1. Посылаем SIGTERM в blocks-stream-reader, дожидаемся остановки
-2. Посылаем SIGTERM в blocks-stream-receiver, дожидаемся остановки
-3. Посылаем SIGTERM в ton-api, дожидаемся остановки
-4. Посылаем SIGTERM в validator-engine, дожидаемся остановки
+1. Посылаем SIGTERM в validator-engine, дожидаемся остановки
+2. Посылаем SIGTERM в blocks-stream-reader, дожидаемся остановки
+3. Посылаем SIGTERM в blocks-stream-receiver, дожидаемся остановки
+4. Посылаем SIGTERM в ton-api, дожидаемся остановки
 

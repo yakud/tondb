@@ -329,6 +329,27 @@ definitions:
         type: string
         description: "anycast"
 
+  TimeseriesBlocksByWorkchain:
+    description: "Timeseries TON blocks count by workchains. 30 sec step last 3 hours."
+    type: object
+    properties:
+      time:
+        description: "array of timestamps with 30 sec step"
+        $ref: "#/definitions/int64Array"
+      masterchain:
+        description: "array count blocks in masterchain"
+        $ref: "#/definitions/int64Array"
+      workchain0:
+        description: "array count blocks in workchain 0"
+        $ref: "#/definitions/int64Array"
+
+  int64Array:
+    description: "Int64 array type"
+    type: array
+    items:
+      type: integer
+      format: int64
+
   error:
     type: object
     required:
@@ -346,6 +367,8 @@ paths:
     get:
       summary: "Get synced height"
       description: "Get synced master height"
+      tags:
+        - core
       security:
         - basicAuth: []
       responses:
@@ -362,6 +385,8 @@ paths:
     get:
       summary: "Get blockchain height"
       description: "Get master blockchain height"
+      tags:
+        - core
       security:
         - basicAuth: []
       responses:
@@ -378,6 +403,8 @@ paths:
     get:
       summary: "Get master block shards range"
       description: "Get master block shards range. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
+      tags:
+        - core
       security:
         - basicAuth: []
       parameters:
@@ -402,6 +429,8 @@ paths:
     get:
       summary: "Get master block by workchain block"
       description: "Get master block by workchain block."
+      tags:
+        - core
       security:
         - basicAuth: []
       parameters:
@@ -425,6 +454,8 @@ paths:
   /block/info:
     get:
       summary: "Get block info"
+      tags:
+        - core
       description: >
         Get block info by filters. <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
@@ -466,6 +497,8 @@ paths:
   /block/transactions:
     get:
       summary: "Get block transactions"
+      tags:
+        - core
       description: >
         Get block transactions by filters. <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
@@ -524,3 +557,9 @@ paths:
           description: generic error response
           schema:
             $ref: "#/definitions/error"
+
+tags:
+  - name: core
+    description: The Core methods.
+  - name: timeseries
+    description: The Core methods.

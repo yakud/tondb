@@ -6,6 +6,10 @@ GOOS=linux GOARCH=amd64 go build -o ./ton-api ./cmd/ton-api/ && \
   scp ./ton-api root@144.76.140.152:/tmp/ton-api && \
   rm ./ton-api
 
+GOOS=linux GOARCH=amd64 go build -o ./ton-api-site ./cmd/ton-api-site/ && \
+  scp ./ton-api-site root@144.76.140.152:/tmp/ton-api-site && \
+  rm ./ton-api-site
+
 
 scp yakud@95.216.33.209:/home/yakud/swagger/swagger-linux /tmp/swagger-linux
 scp /tmp/swagger-linux root@144.76.140.152:/tmp/swagger-linux

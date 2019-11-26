@@ -19,6 +19,8 @@ type Block struct {
 	Transactions []*Transaction `json:"transactions"` // starts from extra.account_blocks
 }
 
+type WorkchainId int32
+
 type BlockInfo struct {
 	BlockId
 	BlockHeader

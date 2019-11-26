@@ -27,37 +27,13 @@ type BlocksByWorkchain struct {
 }
 
 func (t *BlocksByWorkchain) CreateTable() error {
-	bdTx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	if _, err := bdTx.Exec(createTsBlocksByWorkchain); err != nil {
-		return err
-	}
-
-	if err := bdTx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := t.conn.Exec(createTsBlocksByWorkchain)
+	return err
 }
 
 func (t *BlocksByWorkchain) DropTable() error {
-	bdTx, err := t.conn.Begin()
-	if err != nil {
-		return err
-	}
-
-	if _, err := bdTx.Exec(dropTsBlocksByWorkchain); err != nil {
-		return err
-	}
-
-	if err := bdTx.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := t.conn.Exec(dropTsBlocksByWorkchain)
+	return err
 }
 
 func NewBlocksByWorkchain(conn *sql.DB) *BlocksByWorkchain {

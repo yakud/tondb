@@ -2,13 +2,13 @@ package timeseries
 
 import (
 	"database/sql"
-	"sync"
 	"time"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
 const (
-	selectBlocksCountByWorkchain = `
-	SELECT 
+	selectBlocksCountByWorkchain = `SELECT 
 	   groupArray(Time),
 	   groupArray(BlocksMaster),
 	   groupArray(BlocksWorkchain0)
@@ -32,23 +32,16 @@ type BlocksByWorkchain struct {
 }
 
 type GetBlocksByWorkchain struct {
-	conn *sql.DB
-
-	resultCache *BlocksByWorkchain
-	lastUpdate  time.Time
-	m           *sync.RWMutex
+	conn        *sql.DB
+	resultCache *cache.WithTimer
 }
 
 func (q *GetBlocksByWorkchain) GetBlocksByWorkchain() (*BlocksByWorkchain, error) {
-	var fromCache bool
-	q.m.RLock()
-	if q.resultCache != nil && time.Now().Sub(q.lastUpdate) <= time.Second {
-		fromCache = true
-	}
-	q.m.RUnlock()
-
-	if fromCache {
-		return q.resultCache, nil
+	if res, ok := q.resultCache.Get(); ok {
+		switch res.(type) {
+		case *BlocksByWorkchain:
+			return res.(*BlocksByWorkchain), nil
+		}
 	}
 
 	row := q.conn.QueryRow(selectBlocksCountByWorkchain, []byte("INTERVAL 8 MINUTE"))
@@ -63,17 +56,14 @@ func (q *GetBlocksByWorkchain) GetBlocksByWorkchain() (*BlocksByWorkchain, error
 		return nil, err
 	}
 
-	q.m.Lock()
-	q.resultCache = resp
-	q.lastUpdate = time.Now()
-	q.m.Unlock()
+	q.resultCache.Set(resp)
 
 	return resp, nil
 }
 
 func NewGetBlocksByWorkchain(conn *sql.DB) *GetBlocksByWorkchain {
 	return &GetBlocksByWorkchain{
-		conn: conn,
-		m:    &sync.RWMutex{},
+		conn:        conn,
+		resultCache: cache.NewWithTimer(time.Second),
 	}
 }

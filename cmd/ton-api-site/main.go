@@ -45,6 +45,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	tsVolumeByGrams := timeseriesV.NewVolumeByGrams(chConnect)
+	if err := tsVolumeByGrams.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	tsMessagesOrdCount := timeseriesV.NewMessagesOrdCount(chConnect)
+	if err := tsMessagesOrdCount.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	messagesFeedGlobal := feed.NewMessagesFeedGlobal(chConnect)
 	if err := messagesFeedGlobal.CreateTable(); err != nil {
 		log.Fatal(err)
@@ -58,10 +68,12 @@ func main() {
 	router := httprouter.New()
 	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
 	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)
+	router.GET("/timeseries/volume-by-grams", timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler)
+	router.GET("/timeseries/messages-ord-count", timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler)
 	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
 	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
 
-	handler := cors.Default().Handler(router)
+	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: handler,

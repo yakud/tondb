@@ -399,24 +399,24 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 
 		// In message extract
 		if inMsgNode, err := transactionNode.GetNode("value_0", "in_msg", "value"); err != nil {
-			if inMsgStr, err := transactionNode.GetString("value_0", "in_msg"); err != nil {
-				return err
-			} else if inMsgStr != "hme_empty" && inMsgStr != "nothing" {
-				return errors.New("undefined in_msg type:" + inMsgStr)
-			}
+			//if inMsgStr, err := transactionNode.GetString("value_0", "in_msg"); err != nil {
+			//	return err
+			//} else if inMsgStr != "hme_empty" && inMsgStr != "nothing" {
+			//	return errors.New("undefined in_msg type:" + inMsgStr)
+			//}
 		} else {
 			if tr.InMsg, err = c.extractMessage(inMsgNode); err != nil {
-				return fmt.Errorf("in_msg err: %+v", err)
+				//return fmt.Errorf("in_msg err: %+v", err)
 			}
 		}
 
 		// Out message extract
 		if outMsgNode, err := transactionNode.GetNode("value_0", "out_msgs"); err != nil {
-			if outMsgsStr, err := transactionNode.GetString("value_0", "out_msgs"); err != nil {
-				return err
-			} else if outMsgsStr != "hme_empty" && outMsgsStr != "nothing" {
-				return errors.New("undefined out_msgs type")
-			}
+			//if outMsgsStr, err := transactionNode.GetString("value_0", "out_msgs"); err != nil {
+			//	return err
+			//} else if outMsgsStr != "hme_empty" && outMsgsStr != "nothing" {
+			//	return errors.New("undefined out_msgs type")
+			//}
 		} else {
 			err = outMsgNode.EachNode(func(i int, el *AstNode) error {
 				outMsgValueNode, err := el.GetNode("value")
@@ -434,7 +434,7 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 			}, "leafs")
 
 			if err != nil {
-				return fmt.Errorf("out_msgs err: %+v", err)
+				//return fmt.Errorf("out_msgs err: %+v", err)
 			}
 		}
 

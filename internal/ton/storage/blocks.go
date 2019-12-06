@@ -25,6 +25,10 @@ var BlocksFields = []kv{
 	{"RootHash", "FixedString(64)"},
 	{"FileHash", "FixedString(64)"},
 
+	// TODO: global_id
+	// TODO: validator_list_hash_short
+	// TODO: vert_seqno
+	// TODO: vert_seqno_incr
 	{"MinRefMcSeqno", "UInt32"},
 	{"PrevKeyBlockSeqno", "UInt32"},
 	{"GenCatchainSeqno", "UInt32"},

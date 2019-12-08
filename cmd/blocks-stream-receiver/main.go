@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gitlab.flora.loc/mills/tondb/internal/ton/writer"
 
@@ -108,6 +110,12 @@ func main() {
 	//shardsDescrStorage.DropTable()
 	if err := shardsDescrStorage.CreateTable(); err != nil {
 		log.Fatal("shardsDescrStorage CreateTable", err)
+	}
+
+	indexTransactionBlock := index.NewIndexTransactionBlock(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexTransactionBlock.CreateTable(); err != nil {
+		log.Fatal("indexTransactionBlock CreateTable", err)
 	}
 
 	writeBulksChan := make(chan *writer.Bulk, 10)

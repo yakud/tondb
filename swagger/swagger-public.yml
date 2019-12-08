@@ -5,13 +5,16 @@ info:
   description: TON public api
   title: TON public APIs
   version: 0.0.1
+  x-logo:
+    url: "https://explorer.tengram.com/TENGRAM_logo.svg"
+    altText: "Tengram"
 produces:
 - application/json
 schemes:
-- http
+- https
 swagger: "2.0"
 basePath: /
-host: 144.76.140.152:8512
+host: public-api.tongram.com
 
 definitions:
   AddrTopByMessageCountResponse:

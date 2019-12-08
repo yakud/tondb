@@ -47,6 +47,7 @@ func main() {
 	router.GET("/workchain/block/master", api.BasicAuth(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
 	router.GET("/block/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
 	router.GET("/block/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
+	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

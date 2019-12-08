@@ -24,6 +24,7 @@ nohup /tmp/tmp.aTNqJUNFUq/build/blocks-stream/blocks-stream-reader \
   >> /data/ton/log/stream-reader.log &
 
 CH_ADDR=http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton2?max_query_size=3145728000 \
+  ADDR=192.168.100.3:8512 \
   nohup /tmp/ton-api >> /data/ton/log/api.log &
 
 CH_ADDR=http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton2?max_query_size=3145728000 \

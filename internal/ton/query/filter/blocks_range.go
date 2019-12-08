@@ -2,7 +2,6 @@ package filter
 
 import (
 	"errors"
-	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -13,7 +12,7 @@ type BlocksRange struct {
 }
 
 func (f *BlocksRange) Build() (string, []interface{}, error) {
-	filter := fmt.Sprintf("(WorkchainId = ? AND Shard = ? AND SeqNo >= ? AND SeqNo <= ?)")
+	filter := "(WorkchainId = ? AND Shard = ? AND SeqNo >= ? AND SeqNo <= ?)"
 	args := []interface{}{
 		f.blockFrom.WorkchainId,
 		f.blockFrom.Shard,

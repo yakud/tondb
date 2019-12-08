@@ -124,11 +124,19 @@ func (m *GetBlockTransactions) Handler(w http.ResponseWriter, r *http.Request, p
 		getTransactionsFilter.And(typeFilter)
 	}
 
+	// hash
+	if hashFilter, err := apiFilter.HashFromRequest(r); err != nil {
+		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
+		return
+	} else if hashFilter != nil {
+		getTransactionsFilter.And(hashFilter)
+	}
+
 	// Make query
 	blocksTransactions, err := m.q.SearchByFilter(getTransactionsFilter)
 	if err != nil {
-		log.Println(fmt.Errorf("query GetBlockInfo error: %w", err))
-		http.Error(w, `{"error":true,"message":"GetBlockInfo query error"}`, http.StatusBadRequest)
+		log.Println(fmt.Errorf("query SearchByFilter error: %w", err))
+		http.Error(w, `{"error":true,"message":"SearchByFilter query error"}`, http.StatusBadRequest)
 		return
 	}
 

@@ -36,7 +36,7 @@ const (
 
 	querySelectLastNMessages = `SELECT 
 	WorkchainId,
-	Shard,
+	hex(Shard),
 	SeqNo,
 	Lt,
 	toUInt64(Time),
@@ -55,7 +55,7 @@ LIMIT ?
 
 type MessageFeedGlobal struct {
 	WorkchainId   int32  `json:"workchain_id"`
-	Shard         uint64 `json:"shard"`
+	Shard         string `json:"shard"`
 	SeqNo         uint64 `json:"seq_no"`
 	Lt            uint64 `json:"lt"`
 	Time          uint64 `json:"time"`

@@ -160,6 +160,10 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 			return nil, err
 		}
 
+		if s.FromSeq > s.ToSeq {
+			s.FromSeq = s.ToSeq
+		}
+
 		resp = append(resp, s)
 	}
 

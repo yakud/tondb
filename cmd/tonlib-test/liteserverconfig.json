@@ -24,6 +24,6 @@
   },
   "keystore_type": {
     "@type": "keyStoreTypeDirectory",
-    "directory": "/tmp/tonlib-test/"
+    "directory": "/tmp/tonlib-test"
   }
 }

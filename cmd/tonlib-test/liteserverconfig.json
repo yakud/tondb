@@ -18,9 +18,9 @@
         }
       }
     },
-    "blockchain_name": "my-chain",
+    "blockchain_name": "testnet2",
     "use_callbacks_for_network": false,
-    "ignore_cache": true
+    "ignore_cache": false
   },
   "keystore_type": {
     "@type": "keyStoreTypeDirectory",

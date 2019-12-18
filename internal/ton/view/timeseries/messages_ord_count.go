@@ -24,9 +24,7 @@ const (
 	ARRAY JOIN Messages
 	WHERE 
 		Type = 'trans_ord' AND 
-		Messages.ValueNanograms > 0 AND 
-		Messages.Direction = 'in' AND 
-		Messages.DestAddr != '3333333333333333333333333333333333333333333333333333333333333333'
+		Messages.ValueNanograms > 0
 	GROUP BY Time, WorkchainId
 `
 	dropTsMessagesOrdCount = `DROP TABLE _view_ts_MessagesOrdCount`

@@ -5,7 +5,8 @@ nohup /tmp/tmp.aTNqJUNFUq/build/validator-engine/validator-engine \
     --ip 144.76.140.152:8269 \
     -l /data/ton/ton-work/log/ton.log \
     -t 8 \
-    --streamfile "/data/ton/ton-stream/blocks.log" \
+    --streamblocksfile "/data/ton/ton-stream/blocks.log" \
+    --streamstatefile "/data/ton/ton-stream/state.log" \
     >> /data/ton/log/validator.log &
 
 tail -f /data/ton/log/validator.log
@@ -16,8 +17,10 @@ CH_ADDR=http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton2?max_query_size=3
   nohup /tmp/blocks-stream-receiver >> /data/ton/log/stream-receiver.log &
 
 nohup /tmp/tmp.aTNqJUNFUq/build/blocks-stream/blocks-stream-reader \
-  --streamfile /data/ton/ton-stream/blocks.log \
-  --indexfile /data/ton/ton-stream/blocks.log.index \
+  --streamblocksfile /data/ton/ton-stream/blocks.log \
+  --streamblocksindexfile /data/ton/ton-stream/blocks.log.index \
+  --streamstatefile /data/ton/ton-stream/state.log \
+  --streamstateindexfile /data/ton/ton-stream/state.log.index \
   --host "127.0.0.1" \
   --port 7315 \
   --workers 3 \

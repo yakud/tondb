@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,25 +44,33 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 		astPretty, err = treeSimplifier.Simplify(astPretty)
 		if err != nil {
 			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
-			continue
 		}
 
-		block, err := astTonConverter.ConvertToBlock(astPretty)
-		if err != nil {
-			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
-			continue
-		}
+		if t, err := astPretty.Type(); err == nil && t == "account_state" {
+			st, err := astTonConverter.ConvertToState(astPretty)
+			if err != nil {
+				log.Fatal(err, "state:", string(blockPretty))
+			}
 
-		if err := buffer.Add(block); err != nil {
-			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
-			continue
-		}
+			if err := buffer.AddState(st); err != nil {
+				log.Fatal(err, "state:", string(blockPretty))
+			}
+		} else {
+			block, err := astTonConverter.ConvertToBlock(astPretty)
+			if err != nil {
+				log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			}
 
-		//fmt.Println(block.Info.ShardWorkchainId, block.Info.SeqNo)
-		fmt.Print(".")
+			if err := buffer.AddBlock(block); err != nil {
+				log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			}
 
-		if block.Info.WorkchainId == -1 {
-			fmt.Print("(-1;", block.Info.SeqNo, ")")
+			//fmt.Println(block.Info.ShardWorkchainId, block.Info.SeqNo)
+			fmt.Print(".")
+
+			if block.Info.WorkchainId == -1 {
+				fmt.Print("(-1;", block.Info.SeqNo, ")")
+			}
 		}
 	}
 
@@ -100,6 +110,12 @@ func main() {
 		log.Fatal("blocksStorage CreateTable", err)
 	}
 
+	accountState := storage.NewAccountState(chConnect)
+	//accountState.DropTable()
+	if err := accountState.CreateTable(); err != nil {
+		log.Fatal("accountState CreateTable", err)
+	}
+
 	transactionsStorage := storage.NewTransactions(chConnect)
 	//transactionsStorage.DropTable()
 	if err := transactionsStorage.CreateTable(); err != nil {
@@ -118,6 +134,12 @@ func main() {
 		log.Fatal("indexTransactionBlock CreateTable", err)
 	}
 
+	stateAccountState := state.NewAccountState(chConnect)
+	//stateAccountState.DropTable()
+	if err := stateAccountState.CreateTable(); err != nil {
+		log.Fatal("stateAccountState CreateTable", err)
+	}
+
 	writeBulksChan := make(chan *writer.Bulk, 10)
 	buffer := writer.NewBulkBuffer(writeBulksChan)
 
@@ -131,6 +153,7 @@ func main() {
 		blocksStorage,
 		transactionsStorage,
 		shardsDescrStorage,
+		accountState,
 		writeBulksChan,
 	)
 

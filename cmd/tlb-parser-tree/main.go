@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -37,10 +36,10 @@ func PrintAst(node *tlb_pretty.AstNode, spacesCount int) {
 
 func main() {
 	// scp akisilev@46.4.4.150:/tmp/testlog.log* /tmp/
-	input := flag.String("in", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample_custom1.pretty", "input tlb pretty")
-	out := flag.String("out", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample_custom.json", "out tlb pretty")
+	input := flag.String("in", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample.pretty", "input tlb pretty")
+	out := flag.String("out", "/Users/user/go/src/github.com/yakud/ton-blocks-stream-receiver/sample_custom.json", "out json")
 	//input := flag.String("in", "", "input tlb pretty")
-	//out := flag.String("out", "", "out tlb pretty")
+	//out := flag.String("out", "", "out json")
 	flag.Parse()
 
 	data, err := ioutil.ReadFile(*input)
@@ -62,27 +61,28 @@ func main() {
 	}
 	fmt.Println("Simplified for:", time.Since(since))
 
-	since = time.Now()
-	block, errOrig := tlb_pretty.NewAstTonConverter().ConvertToBlock(newNode)
-	if errOrig != nil {
-		dd, err := newNode.ToJSON()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		if err := ioutil.WriteFile(*out, dd, 0600); err != nil {
-			log.Fatal(err)
-		}
-
-		log.Fatal("converter err: ", errOrig)
-	}
-	fmt.Println("Converted for:", time.Since(since))
-
-	dd, err := json.Marshal(block)
+	//since = time.Now()
+	state, err := tlb_pretty.NewAstTonConverter().ConvertToState(newNode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("%+v\n", state)
+	//if errOrig != nil {
+	//	dd, err := newNode.ToJSON()
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	if err := ioutil.WriteFile(*out, dd, 0600); err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	log.Fatal("converter err: ", errOrig)
+	//}
+	//fmt.Println("Converted for:", time.Since(since))
+
+	dd, _ := newNode.ToJSON()
 	if err := ioutil.WriteFile(*out, dd, 0600); err != nil {
 		log.Fatal(err)
 	}

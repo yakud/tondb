@@ -11,8 +11,8 @@ const (
 	createMessagesFeedGlobal = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobal
 	ENGINE = MergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (Time, Lt)
+	PARTITION BY toYYYYMM(Time)
+	ORDER BY (Time, Lt, MessageLt)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
 	POPULATE 
 	AS
@@ -22,8 +22,11 @@ const (
 		SeqNo,
 		Lt,
 		Time,
+	    Messages.CreatedLt as MessageLt, 
 	    Messages.Direction as Direction, 
+		Messages.SrcWorkchainId AS SrcWorkchainId, 
 		Messages.SrcAddr AS Src, 
+		Messages.DestWorkchainId AS DestWorkchainId, 
 		Messages.DestAddr AS Dest, 
 		Messages.ValueNanograms as ValueNanograms,
 	    Messages.FwdFeeNanograms + Messages.IhrFeeNanograms + Messages.ImportFeeNanograms as TotalFeeNanograms, 
@@ -46,9 +49,8 @@ const (
 	toDecimal128(ValueNanograms, 10) * toDecimal128(0.000000001, 10) as ValueGrams,
 	toDecimal128(TotalFeeNanograms, 10) * toDecimal128(0.000000001, 10) as TotalFeeGrams,
 	Bounce
-FROM ton2._view_feed_MessagesFeedGlobal
-WHERE Dest != '3333333333333333333333333333333333333333333333333333333333333333'
-ORDER BY Time DESC, Lt DESC
+FROM ".inner._view_feed_MessagesFeedGlobal"
+ORDER BY Time DESC, Lt DESC, MessageLt DESC
 LIMIT ?
 `
 )

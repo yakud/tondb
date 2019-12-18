@@ -24,6 +24,107 @@ security:
   - basicAuth: []
 
 definitions:
+  Account:
+    description: "Account"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+      shard:
+        type: integer
+        format: int64
+      seq_no:
+        type: integer
+        format: int64
+      addr:
+        type: string
+      status:
+        type: string
+      balance_nanogram:
+        type: integer
+        format: int64
+      tick:
+        type: integer
+        format: int64
+      tock:
+        type: integer
+        format: int64
+      storage_used_bits:
+        type: integer
+        format: int64
+      storage_used_cells:
+        type: integer
+        format: int64
+      storage_used_public_cells:
+        type: integer
+        format: int64
+      last_trans_hash:
+        type: string
+      last_trans_lt:
+        type: integer
+        format: int64
+      last_trans_lt_storage:
+        type: integer
+        format: int64
+      last_paid:
+        type: integer
+        format: int64
+
+  AccountTransaction:
+    description: "Account transaction"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+      shard:
+        type: string
+      seq_no:
+        type: integer
+        format: int64
+      account_addr:
+        type: string
+      lt:
+        type: integer
+        format: int64
+      time:
+        type: integer
+        format: int64
+      type:
+        type: string
+      message_type:
+        type: string
+      message_lt:
+        type: integer
+        format: int64
+      direction:
+        type: string
+      src_workchain_id:
+        type: integer
+        format: int32
+      src:
+        type: string
+      dest_workchain_id:
+        type: integer
+        format: int32
+      dest:
+        type: string
+      value_nanograms:
+        type: string
+      fwd_fee_nanograms:
+        type: string
+      ihr_fee_nanograms:
+        type: string
+      import_fee_nanograms:
+        type: string
+      bounce:
+        type: integer
+        format: int32
+      bounced:
+        type: integer
+        format: int32
+
   BlockId:
     description: "Block ID"
     type: object
@@ -586,6 +687,67 @@ paths:
             type: array
             items:
               $ref: "#/definitions/Transaction"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /account:
+    get:
+      summary: "Get account"
+      tags:
+        - core
+      description: >
+        Get account by address. Support only raw address format yet. Another formats soon...
+      security:
+        - basicAuth: []
+      parameters:
+        - name: address
+          in: query
+          type: string
+          required: true
+          description: "Account address"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/Account"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /account/transactions:
+    get:
+      summary: "Get account transactions"
+      tags:
+        - core
+      description: >
+        Get account transactions
+      security:
+        - basicAuth: []
+      parameters:
+        - name: address
+          in: query
+          type: string
+          required: true
+          description: "Account address"
+        - name: before_lt
+          in: query
+          type: integer
+          description: "Get transactions before lt"
+        - name: limit
+          in: query
+          type: integer
+          default: 30
+          description: "Limit transactions"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/AccountTransaction"
         default:
           description: generic error response
           schema:

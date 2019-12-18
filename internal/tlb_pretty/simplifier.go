@@ -97,7 +97,6 @@ func (t *TreeSimplifier) edgeExtractLeafs(node *AstNode, edgeType string, forkTy
 	if err != nil {
 		return nil, err
 	}
-
 	leafs := make([]*AstNode, 0)
 
 	if nodeField.IsType(forkType) {
@@ -128,6 +127,11 @@ func (t *TreeSimplifier) edgeExtractLeafs(node *AstNode, edgeType string, forkTy
 		if err != nil {
 			return nil, err
 		}
+
+		//labelField, err := node.GetNode("label")
+		//if err != nil {
+		//	return nil, err
+		//}
 
 		// leaf value is bt tree with forks and leafs
 		leafValueNode, err := nodeSimplifiedField.GetNode("value")

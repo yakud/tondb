@@ -8,17 +8,26 @@ import (
 
 // Bulk collect multiply blocks for bulked insert
 type Bulk struct {
-	closed bool
-	mutex  *sync.Mutex
-	blocks []*ton.Block
+	closed        bool
+	mutex         *sync.Mutex
+	blocks        []*ton.Block
+	accountStates []*ton.AccountState
 }
 
-func (t *Bulk) Add(blocks ...*ton.Block) {
+func (t *Bulk) AddBlocks(blocks ...*ton.Block) {
 	t.blocks = append(t.blocks, blocks...)
+}
+
+func (t *Bulk) AddAccountState(state ...*ton.AccountState) {
+	t.accountStates = append(t.accountStates, state...)
 }
 
 func (t *Bulk) Length() int {
 	return len(t.blocks)
+}
+
+func (t *Bulk) LengthAccountStates() int {
+	return len(t.accountStates)
 }
 
 func (t *Bulk) LengthTransactions() int {
@@ -43,6 +52,10 @@ func (t *Bulk) Blocks() []*ton.Block {
 	return t.blocks
 }
 
+func (t *Bulk) AccountStates() []*ton.AccountState {
+	return t.accountStates
+}
+
 func (t *Bulk) Close() {
 	t.closed = true
 }
@@ -61,7 +74,8 @@ func (t *Bulk) Mutex() *sync.Mutex {
 
 func NewBulk(size int) *Bulk {
 	return &Bulk{
-		mutex:  &sync.Mutex{},
-		blocks: make([]*ton.Block, 0, size),
+		mutex:         &sync.Mutex{},
+		blocks:        make([]*ton.Block, 0, size),
+		accountStates: make([]*ton.AccountState, 0, size),
 	}
 }

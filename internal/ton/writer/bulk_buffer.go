@@ -36,16 +36,39 @@ func (t *BulkBuffer) Out() chan *Bulk {
 	return t.out
 }
 
-func (t *BulkBuffer) Add(block *ton.Block) error {
+func (t *BulkBuffer) AddBlock(block *ton.Block) error {
 	bulk := t.bulk
 
 	bulk.Mutex().Lock()
 	if !bulk.IsOpen() {
 		bulk.Mutex().Unlock()
-		return t.Add(block)
+		return t.AddBlock(block)
 	}
 
-	bulk.Add(block)
+	bulk.AddBlocks(block)
+
+	t.lastOp = time.Now()
+	if t.firstOp.IsZero() {
+		t.firstOp = t.lastOp
+	}
+
+	if bulk.Length() >= t.bulkSize {
+		t.Reduce(bulk)
+	}
+	bulk.Mutex().Unlock()
+
+	return nil
+}
+func (t *BulkBuffer) AddState(state *ton.AccountState) error {
+	bulk := t.bulk
+
+	bulk.Mutex().Lock()
+	if !bulk.IsOpen() {
+		bulk.Mutex().Unlock()
+		return t.AddState(state)
+	}
+
+	bulk.AddAccountState(state)
 
 	t.lastOp = time.Now()
 	if t.firstOp.IsZero() {
@@ -61,7 +84,7 @@ func (t *BulkBuffer) Add(block *ton.Block) error {
 }
 
 func (t *BulkBuffer) Reduce(b *Bulk) error {
-	log.Printf("Reduce bulk: blocks: %d; transactions: %d", b.Length(), b.LengthTransactions())
+	log.Printf("Reduce bulk: blocks: %d; transactions: %d; states: %d", b.Length(), b.LengthTransactions(), b.LengthAccountStates())
 
 	b.Close()
 	t.out <- b

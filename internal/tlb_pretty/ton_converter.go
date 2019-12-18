@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	errors2 "github.com/pkg/errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
@@ -584,6 +586,7 @@ func (c *AstTonConverter) extractAddrStd(node *AstNode) (addr ton.AddrStd, err e
 		return
 	}
 	if addr.WorkchainId, err = node.GetInt32("workchain_id"); err != nil {
+		err = errors2.Wrap(err, "node addr std workchain_id")
 		return
 	}
 
@@ -592,6 +595,95 @@ func (c *AstTonConverter) extractAddrStd(node *AstNode) (addr ton.AddrStd, err e
 
 func (c *AstTonConverter) ConvertShardPrefixToShard(shardPrefix uint64, shardPfxBits uint8) uint64 {
 	return shardPrefix | (1 << (63 - shardPfxBits))
+}
+
+func (c *AstTonConverter) ConvertToState(node *AstNode) (*ton.AccountState, error) {
+	if !node.IsType("account_state") {
+		return nil, errors.New("node is not account_state type")
+	}
+
+	state := &ton.AccountState{}
+
+	var err error
+	//node.
+
+	nodeBlock, err := node.GetNode("block")
+	if err != nil {
+		return nil, err
+	}
+
+	if state.BlockId.WorkchainId, err = nodeBlock.GetInt32("workchain"); err != nil {
+		return nil, errors2.Wrap(err, "nodeBlock workchain")
+	}
+	if state.BlockId.Shard, err = nodeBlock.GetUint64("shard"); err != nil {
+		return nil, err
+	}
+	if state.BlockId.SeqNo, err = nodeBlock.GetUint64("seqno"); err != nil {
+		return nil, err
+	}
+	if state.BlockHeader.FileHash, err = nodeBlock.GetString("file_hash"); err != nil {
+		return nil, err
+	}
+	if state.BlockHeader.RootHash, err = nodeBlock.GetString("root_hash"); err != nil {
+		return nil, err
+	}
+
+	addrNode, err := node.GetNode("value_0", "account", "addr")
+	if err != nil {
+		return nil, err
+	}
+
+	if addrStd, err := c.extractAddrStd(addrNode); err != nil {
+		return nil, err
+	} else {
+		state.Addr = addrStd.Addr
+		state.Anycast = addrStd.Anycast
+	}
+
+	storageNode, err := node.GetNode("value_0", "account", "storage")
+	if err != nil {
+		return nil, err
+	}
+
+	stateNode, err := storageNode.GetNode("state")
+	if err != nil {
+		if state.Status, err = storageNode.GetString("state"); err != nil {
+			return nil, err
+		}
+	} else {
+		if state.Status, err = stateNode.Type(); err != nil {
+			return nil, err
+		}
+	}
+
+	if state.LastTransLtStorage, err = storageNode.GetUint64("last_trans_lt"); err != nil {
+		return nil, err
+	}
+
+	state.BalanceNanogram, err = storageNode.GetUint64("balance", "grams", "amount", "value")
+	if err != nil {
+		return nil, err
+	}
+
+	state.Tick, _ = storageNode.GetUint64("state", "value_0", "special", "value", "tick")
+	state.Tock, _ = storageNode.GetUint64("state", "value_0", "special", "value", "tock")
+
+	if nodeStorageStat, err := node.GetNode("value_0", "account", "storage_stat"); err == nil {
+		state.StorageUsedBits, _ = nodeStorageStat.GetUint64("used", "bits", "value")
+		state.StorageUsedCells, _ = nodeStorageStat.GetUint64("used", "cells", "value")
+		state.StorageUsedPublicCells, _ = nodeStorageStat.GetUint64("used", "public_cells", "value")
+		state.LastPaid, _ = nodeStorageStat.GetUint64("last_paid")
+	}
+
+	if state.LastTransHash, err = node.GetString("value_0", "last_trans_hash"); err != nil {
+		return nil, err
+	}
+
+	if state.LastTransLt, err = node.GetUint64("value_0", "last_trans_lt"); err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }
 
 func NewAstTonConverter() *AstTonConverter {

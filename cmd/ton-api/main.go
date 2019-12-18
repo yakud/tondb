@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"os"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+
 	"github.com/rs/cors"
 
 	"gitlab.flora.loc/mills/tondb/internal/api"
@@ -33,6 +36,8 @@ func main() {
 	//blocksStorage := storage.NewBlocks(chConnect)
 	//transactionsStorage := storage.NewTransactions(chConnect)
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
+	accountState := state.NewAccountState(chConnect)
+	accountTransactions := feed.NewAccountTransactions(chConnect)
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
@@ -48,6 +53,9 @@ func main() {
 	router.GET("/block/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
 	router.GET("/block/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
 	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
+
+	router.GET("/account", api.BasicAuth(api.NewGetAccount(accountState).Handler))
+	router.GET("/account/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

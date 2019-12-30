@@ -38,6 +38,7 @@ func main() {
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
 	accountState := state.NewAccountState(chConnect)
 	accountTransactions := feed.NewAccountTransactions(chConnect)
+	blocksFeed := feed.NewBlocksFeed(chConnect)
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
@@ -52,8 +53,8 @@ func main() {
 	router.GET("/workchain/block/master", api.BasicAuth(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
 	router.GET("/block/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
 	router.GET("/block/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
+	router.GET("/blocks/feed", api.BasicAuth(api.NewGetBlocksFeed(blocksFeed).Handler))
 	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
-
 	router.GET("/account", api.BasicAuth(api.NewGetAccount(accountState).Handler))
 	router.GET("/account/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
 

@@ -30,6 +30,7 @@ const (
 		SeqNo,
 		RootHash,
 		FileHash,
+		Time,
 		Addr,
 		Anycast,
 		Status,
@@ -43,7 +44,7 @@ const (
 		LastTransLt,
 		LastTransLtStorage,
 		LastPaid
-	FROM ".inner._view_state_AccountState"
+	FROM ".inner._view_state_AccountState" FINAL
 	WHERE %s
 `
 )
@@ -77,6 +78,7 @@ func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {
 		&res.BlockId.SeqNo,
 		&res.RootHash,
 		&res.FileHash,
+		&res.Time,
 		&res.Addr,
 		&res.Anycast,
 		&res.Status,

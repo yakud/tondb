@@ -14,9 +14,19 @@ schemes:
 - https
 swagger: "2.0"
 basePath: /
-host: public-api.tongram.com
+host: public-api.tengram.com
 
 definitions:
+  AccountWhale:
+    description: ""
+    type: object
+    properties:
+      addr:
+        type: string
+      balance_gram:
+        type: string
+
+
   AddrTopByMessageCountResponse:
     description: ""
     type: object
@@ -265,6 +275,22 @@ paths:
           description: OK
           schema:
             $ref: "#/definitions/AddrTopByMessageCountResponse"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /top/whales:
+    get:
+      summary: "Top whales account by gram amount"
+      description: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/AccountWhale"
         default:
           description: generic error response
           schema:

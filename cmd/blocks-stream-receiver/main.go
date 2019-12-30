@@ -55,6 +55,7 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 			if err := buffer.AddState(st); err != nil {
 				log.Fatal(err, "state:", string(blockPretty))
 			}
+
 		} else {
 			block, err := astTonConverter.ConvertToBlock(astPretty)
 			if err != nil {

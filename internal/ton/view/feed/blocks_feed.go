@@ -2,9 +2,9 @@ package feed
 
 import (
 	"database/sql"
+	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
-	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (
@@ -44,7 +44,7 @@ const (
 		WorkchainId,
 		Shard,
 		SeqNo,
-		Time,
+		toUInt64(Time),
 	    StartLt,
 	    EndLt
 	FROM ".inner._view_feed_BlocksFeed"
@@ -54,37 +54,33 @@ const (
 `
 )
 
-type BlockStat struct {
-	WorkchainId   int32  `json:"workchain_id"`
-	Shard         string `json:"shard"`
-	SeqNo         uint64 `json:"seq_no"`
-	Lt            uint64 `json:"lt"`
-	Time          uint64 `json:"time"`
-	Direction     string `json:"direction"`
-	Src           string `json:"src"`
-	Dest          string `json:"dest"`
-	ValueGrams    string `json:"value_grams"`
-	TotalFeeGrams string `json:"total_fee_grams"`
-	Bounce        bool   `json:"bounce"`
+type BlockInFeed struct {
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	SeqNo       uint64 `json:"seq_no"`
+	Time        uint64 `json:"time"`
+	StartLt     uint64 `json:"start_lt"`
+	EndLt       uint64 `json:"end_lt"`
 }
 
-type BlocksStats struct {
+type BlocksFeed struct {
 	view.View
 	conn *sql.DB
 }
 
-func (t *BlocksStats) CreateTable() error {
-	_, err := t.conn.Exec(createFeedAccountTransactions)
+func (t *BlocksFeed) CreateTable() error {
+	_, err := t.conn.Exec(createBlocksFeed)
 	return err
 }
 
-func (t *BlocksStats) DropTable() error {
-	_, err := t.conn.Exec(dropFeedAccountTransactions)
+func (t *BlocksFeed) DropTable() error {
+	_, err := t.conn.Exec(dropBlocksFeed)
 	return err
 }
 
-func (t *BlocksStats) SelectLatestMessages(count int) ([]*MessageFeedGlobal, error) {
-	rows, err := t.conn.Query(querySelectLastNMessages, count)
+func (t *BlocksFeed) SelectBlocks(limit int16, beforeTime time.Time) ([]*BlockInFeed, error) {
+	beforeTimeInt := beforeTime.Unix()
+	rows, err := t.conn.Query(queryBlocksFeed, beforeTimeInt, beforeTimeInt, limit)
 	if err != nil {
 		if rows != nil {
 			rows.Close()
@@ -93,28 +89,21 @@ func (t *BlocksStats) SelectLatestMessages(count int) ([]*MessageFeedGlobal, err
 		return nil, err
 	}
 
-	res := make([]*MessageFeedGlobal, 0, count)
+	res := make([]*BlockInFeed, 0, limit)
 	for rows.Next() {
-		row := &MessageFeedGlobal{}
+		row := &BlockInFeed{}
 		err := rows.Scan(
 			&row.WorkchainId,
 			&row.Shard,
 			&row.SeqNo,
-			&row.Lt,
 			&row.Time,
-			&row.Direction,
-			&row.Src,
-			&row.Dest,
-			&row.ValueGrams,
-			&row.TotalFeeGrams,
-			&row.Bounce,
+			&row.StartLt,
+			&row.EndLt,
 		)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
-		row.ValueGrams = utils.TruncateRightZeros(row.ValueGrams)
-		row.TotalFeeGrams = utils.TruncateRightZeros(row.TotalFeeGrams)
 
 		res = append(res, row)
 	}
@@ -126,8 +115,8 @@ func (t *BlocksStats) SelectLatestMessages(count int) ([]*MessageFeedGlobal, err
 	return res, err
 }
 
-func NewBlocksStats(conn *sql.DB) *BlocksStats {
-	return &BlocksStats{
+func NewBlocksFeed(conn *sql.DB) *BlocksFeed {
+	return &BlocksFeed{
 		conn: conn,
 	}
 }

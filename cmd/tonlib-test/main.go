@@ -40,13 +40,47 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	accState, err := cln.GetAccountState("kQCIUuaay7U5Sum5NPtF0e3iAAAvcR_IkOdtMP8MPNiysXJS")
+	ACCCC, err := cln.WalletGetAddress("C6499EF17AD4DEF321A39398834CBDCFBED920715684378D76186D5695DCD6FE")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Ton get wallet address error: %v. ", err)
 	}
 
-	fmt.Println("SUPER BALANCE:", accState.Balance)
-	fmt.Println("SUPER BALANCE:", accState)
+	fmt.Println("--------------------------------------------------------------------------------------------------------")
+	fmt.Println(ACCCC.GetHEXAddress())
+	fmt.Println("--------------------------------------------------------------------------------------------------------")
 
-	fmt.Println("EEEEEEEEE")
+	ACCCC, err = cln.WalletGetAddress("C6499EF17AD4DEF321A39398834CBDCFBED920715684378D76186D5695DCD6FE")
+	if err != nil {
+		log.Fatalf("Ton get wallet address error: %v. ", err)
+	}
+
+	fmt.Println("--------------------------------------------------------------------------------------------------------")
+	fmt.Println(ACCCC.GetHEXAddress())
+	fmt.Println("--------------------------------------------------------------------------------------------------------")
+
+	//accState, err := cln.GetAccountState("0f-s3htrVM_AQenUc-8rfZ8XW4aQTbPFgRJQWitaGSHONJgG")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//fmt.Println("SUPER BALANCE:", accState.Balance)
+	//fmt.Println("SUPER BALANCE:", accState)
+	//
+	//fmt.Println("EEEEEEEEE")
+	//
+	//accState, err = cln.GetAccountState("0f-s3htrVM_AQenUc-8rfZ8XW4aQTbPFgRJQWitaGSHONJgG")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//gramMul, err := decimal.NewFromString("0.000000001")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//fmt.Println("SUPER BALANCE:", accState.Balance.Mul(gramMul).String())
+	//fmt.Println("SUPER BALANCE:", accState)
+	//
+	//fmt.Println("EEEEEEEEE")
+
+	//cln.SendMessage()
 }

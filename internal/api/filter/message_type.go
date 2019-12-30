@@ -15,7 +15,7 @@ func MessageTypeFromRequest(r *http.Request) (filter.Filter, error) {
 	orFilter := filter.NewOr()
 	for _, v := range messageTypeQuery {
 		orFilter.Or(
-			filter.NewKV("MessageType", v),
+			filter.NewArrayHas("Messages.Type", v),
 		)
 	}
 

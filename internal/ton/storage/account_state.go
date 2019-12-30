@@ -14,6 +14,7 @@ const (
 		SeqNo       UInt64,
 		RootHash    FixedString(64),
 		FileHash    FixedString(64),
+		Time                   DateTime,
 		Addr                   FixedString(64),
 		Anycast                LowCardinality(String),
 		Status                 String,
@@ -38,6 +39,7 @@ const (
 	SeqNo,
 	RootHash,
 	FileHash,
+	Time,
 	Addr,
 	Anycast,
 	Status,
@@ -51,7 +53,7 @@ const (
 	LastTransLt,
 	LastTransLtStorage,
 	LastPaid
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropAccountState = `DROP TABLE account_state;`
 )
@@ -132,6 +134,7 @@ func (s *AccountState) InsertManyExec(states []*ton.AccountState, bdTx *sql.Tx) 
 			st.SeqNo,
 			strings.TrimLeft(st.RootHash, "x"),
 			strings.TrimLeft(st.FileHash, "x"),
+			st.Time,
 			strings.TrimLeft(st.Addr, "x"),
 			st.Anycast,
 			st.Status,

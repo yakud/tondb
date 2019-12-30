@@ -3,9 +3,9 @@
     "config": {
       "liteservers": [{
         "@type":"liteserver.desc",
-        "ip":-1874031464,
-        "port":"8270",
-        "id":{"@type":"pub.ed25519","key":"HkvTuJZhRViR15xDeUn/UyhTNYijG2TdoAqMmAllbwg="}
+        "ip":1137658550,
+        "port":"4924",
+        "id":{"@type":"pub.ed25519","key":"peJTw/arlRfssgTuf9BMypJzqOi7SXEqSPSWiEw2U1M="}
       }],
       "validator": {
         "@type": "validator.config.global",
@@ -18,7 +18,7 @@
         }
       }
     },
-    "blockchain_name": "my-chain",
+    "blockchain_name": "testnet2",
     "use_callbacks_for_network": false,
     "ignore_cache": false
   },

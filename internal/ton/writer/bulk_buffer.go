@@ -10,7 +10,7 @@ import (
 )
 
 const DefaultBulkSize = 5000
-const DefaultBulkTimeout = time.Second * 2
+const DefaultBulkTimeout = time.Second
 
 // IS NOT SAFE FOR CONCURRENCY!!!
 type BulkBuffer struct {
@@ -99,7 +99,7 @@ func (t *BulkBuffer) Timeout(ctx context.Context, wg *sync.WaitGroup) {
 
 	var lastBulkLenght = 0
 
-	percentFromMaxSize := 0.05
+	percentFromMaxSize := 0.10
 	ticker := time.NewTicker(t.bulkTimeout)
 	for {
 		select {

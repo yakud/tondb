@@ -14,7 +14,7 @@ schemes:
 - https
 swagger: "2.0"
 basePath: /
-host: api.tongram.com
+host: api.tengram.com
 
 securityDefinitions:
   basicAuth:
@@ -68,6 +68,29 @@ definitions:
         type: integer
         format: int64
       last_paid:
+        type: integer
+        format: int64
+
+  BlockInFeed:
+    description: "Block in feed"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+      shard:
+        type: integer
+        format: int64
+      seq_no:
+        type: integer
+        format: int64
+      time:
+        type: integer
+        format: int64
+      start_lt:
+        type: integer
+        format: int64
+      end_lt:
         type: integer
         format: int64
 
@@ -654,6 +677,11 @@ paths:
           in: query
           type: string
           description: "Transaction hash"
+        - name: lt
+          in: query
+          type: integer
+          format: int64
+          description: "Logical Time"
       responses:
         200:
           description: OK
@@ -748,6 +776,38 @@ paths:
             type: array
             items:
               $ref: "#/definitions/AccountTransaction"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /blocks/feed:
+    get:
+      summary: "Get blocks feed"
+      tags:
+        - core
+      description: >
+        Get blocks feed
+      security:
+        - basicAuth: []
+      parameters:
+        - name: before_time
+          in: query
+          type: integer
+          default: 0
+          description: "Get blocks before time"
+        - name: limit
+          in: query
+          type: integer
+          default: 30
+          description: "Limit blocks"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BlockInFeed"
         default:
           description: generic error response
           schema:

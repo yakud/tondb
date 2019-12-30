@@ -31,7 +31,12 @@ type BlockInfo struct {
 	GenUtime          uint32    `json:"gen_utime"`
 	Prev1Ref          *BlockRef `json:"prev1_ref"`
 	Prev2Ref          *BlockRef `json:"prev2_ref"`
-	MasterRef         *BlockRef `json:"master_ref,omitempty"`
+
+	// todo: vert_seqno_incr
+	// todo: prev_vert_ref
+	// todo: vert_seq_no
+
+	MasterRef *BlockRef `json:"master_ref,omitempty"`
 
 	StartLt uint64 `json:"start_lt"`
 	EndLt   uint64 `json:"end_lt"`
@@ -66,7 +71,7 @@ type BlockId struct {
 }
 
 func ParseBlockId(b string) (*BlockId, error) {
-	chunks := strings.Split(strings.Trim(b, "()"), ",")
+	chunks := strings.Split(strings.Trim(b, "() "), ",")
 	if len(chunks) != 3 {
 		return nil, errors.New("wrong format BlockId. expected like: (WorkchainId,ShardHex,SeqNo)")
 	}

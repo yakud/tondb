@@ -44,7 +44,9 @@ const (
 	Lt,
 	toUInt64(Time),
 	Direction,
+	SrcWorkchainId,
 	Src,
+	DestWorkchainId,
 	Dest,
 	toDecimal128(ValueNanograms, 10) * toDecimal128(0.000000001, 10) as ValueGrams,
 	toDecimal128(TotalFeeNanograms, 10) * toDecimal128(0.000000001, 10) as TotalFeeGrams,
@@ -53,20 +55,24 @@ FROM ".inner._view_feed_MessagesFeedGlobal"
 ORDER BY Time DESC, Lt DESC, MessageLt DESC
 LIMIT ?
 `
+
+//-- WHERE Dest != '3333333333333333333333333333333333333333333333333333333333333333'
 )
 
 type MessageFeedGlobal struct {
-	WorkchainId   int32  `json:"workchain_id"`
-	Shard         string `json:"shard"`
-	SeqNo         uint64 `json:"seq_no"`
-	Lt            uint64 `json:"lt"`
-	Time          uint64 `json:"time"`
-	Direction     string `json:"direction"`
-	Src           string `json:"src"`
-	Dest          string `json:"dest"`
-	ValueGrams    string `json:"value_grams"`
-	TotalFeeGrams string `json:"total_fee_grams"`
-	Bounce        bool   `json:"bounce"`
+	WorkchainId     int32  `json:"workchain_id"`
+	Shard           string `json:"shard"`
+	SeqNo           uint64 `json:"seq_no"`
+	Lt              uint64 `json:"lt"`
+	Time            uint64 `json:"time"`
+	Direction       string `json:"direction"`
+	SrcWorkchainId  int32  `json:"src_workchain_id"`
+	Src             string `json:"src"`
+	DestWorkchainId int32  `json:"dest_workchain_id"`
+	Dest            string `json:"dest"`
+	ValueGrams      string `json:"value_grams"`
+	TotalFeeGrams   string `json:"total_fee_grams"`
+	Bounce          bool   `json:"bounce"`
 }
 
 type MessagesFeedGlobal struct {
@@ -104,7 +110,9 @@ func (t *MessagesFeedGlobal) SelectLatestMessages(count int) ([]*MessageFeedGlob
 			&row.Lt,
 			&row.Time,
 			&row.Direction,
+			&row.SrcWorkchainId,
 			&row.Src,
+			&row.DestWorkchainId,
 			&row.Dest,
 			&row.ValueGrams,
 			&row.TotalFeeGrams,

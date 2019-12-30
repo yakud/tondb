@@ -15,8 +15,8 @@ func MessageAddrFromRequest(r *http.Request) (filter.Filter, error) {
 	orFilter := filter.NewOr()
 	for _, v := range addrQuery {
 		orFilter.Or(
-			filter.NewKV("MessageSrcAddr", v),
-			filter.NewKV("MessageDestAddr", v),
+			filter.NewArrayHas("Messages.SrcAddr", v),
+			filter.NewArrayHas("Messages.DestAddr", v),
 		)
 	}
 

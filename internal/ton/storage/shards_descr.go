@@ -55,6 +55,14 @@ const (
 `
 )
 
+type ShardBlocksRange struct {
+	MasterSeq   uint64 `json:"master_seq"`
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	FromSeq     uint64 `json:"from_seq"`
+	ToSeq       uint64 `json:"to_seq"`
+}
+
 type ShardsDescr struct {
 	conn *sql.DB
 }
@@ -138,14 +146,6 @@ func (c *ShardsDescr) InsertManyExec(rows []*ton.ShardDescr, bdTx *sql.Tx) (*sql
 	return stmt, nil
 }
 
-type ShardBlocksRange struct {
-	MasterSeq   uint64 `json:"master_seq"`
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	FromSeq     uint64 `json:"from_seq"`
-	ToSeq       uint64 `json:"to_seq"`
-}
-
 func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardBlocksRange, error) {
 	rows, err := c.conn.Query(querySelectShardSeqRangesByMCSeq, masterSeq, masterSeq, masterSeq, masterSeq)
 	if err != nil {
@@ -161,7 +161,7 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 		}
 
 		if s.FromSeq > s.ToSeq {
-			s.FromSeq = s.ToSeq
+			continue
 		}
 
 		resp = append(resp, s)

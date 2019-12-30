@@ -21,6 +21,58 @@ func (m *GetAccount) Handler(w http.ResponseWriter, r *http.Request, p httproute
 		return
 	}
 
+	//// block
+	//blockFilter, err := apiFilter.BlockFilterFromRequest(r, "block", maxBlocksPerRequest)
+	//if err != nil {
+	//	http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
+	//	return
+	//} else if blockFilter != nil {
+	//	blocksFilter.Or(blockFilter)
+	//}
+	//
+	//// block_master
+	//blockMasterFilter, err := apiFilter.BlockFilterFromRequest(r, "block_master", maxBlocksPerRequest)
+	//if err != nil {
+	//	http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
+	//	return
+	//} else if blockMasterFilter != nil {
+	//	for _, masterBlockId := range blockMasterFilter.Blocks() {
+	//		shardsBlocks, err := m.shardsDescrStorage.GetShardsSeqRangeInMasterBlock(masterBlockId.SeqNo)
+	//		if err != nil {
+	//			log.Println("GetShardsSeqRangeInMasterBlock error:", err)
+	//			w.WriteHeader(http.StatusInternalServerError)
+	//			w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
+	//			return
+	//		}
+	//
+	//		for _, shardsBlock := range shardsBlocks {
+	//			blocksRange, err := filter.NewBlocksRange(
+	//				&ton.BlockId{
+	//					WorkchainId: shardsBlock.WorkchainId,
+	//					Shard:       shardsBlock.Shard,
+	//					SeqNo:       shardsBlock.FromSeq,
+	//				},
+	//				&ton.BlockId{
+	//					WorkchainId: shardsBlock.WorkchainId,
+	//					Shard:       shardsBlock.Shard,
+	//					SeqNo:       shardsBlock.ToSeq,
+	//				},
+	//			)
+	//			if err != nil {
+	//				log.Println("NewBlocksRange error:", err)
+	//				w.WriteHeader(http.StatusInternalServerError)
+	//				w.Write([]byte(`{"error":true,"message":"NewBlocksRange error"}`))
+	//				return
+	//			}
+	//			blocksFilter.Or(blocksRange)
+	//		}
+	//	}
+	//}
+	//if blockFilter == nil && blockRangeFilter == nil && blockMasterFilter == nil {
+	//	http.Error(w, `{"error":true,"message":"you should set block or block_from+block_to or block_master filter"}`, http.StatusBadRequest)
+	//	return
+	//}
+
 	accountState, err := m.s.GetAccount(accountFilter)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error fetch account: `+err.Error()+`"}`, http.StatusBadRequest)

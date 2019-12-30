@@ -15,6 +15,7 @@ import (
 	"github.com/rs/cors"
 	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
 	"gitlab.flora.loc/mills/tondb/internal/ch"
+	statsQ "gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
 	timeseriesQ "gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 )
@@ -65,6 +66,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
+
 	router := httprouter.New()
 	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
 	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)
@@ -72,6 +75,7 @@ func main() {
 	router.GET("/timeseries/messages-ord-count", timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler)
 	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
 	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
+	router.GET("/top/whales", site.NewGetTopWhales(qGetTopWhales).Handler)
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

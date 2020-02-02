@@ -116,6 +116,6 @@ func (t *MessagesOrdCount) GetMessagesOrdCount() (*MessagesOrdCountResult, error
 func NewMessagesOrdCount(conn *sql.DB) *MessagesOrdCount {
 	return &MessagesOrdCount{
 		conn:        conn,
-		resultCache: cache.NewWithTimer(time.Second),
+		resultCache: cache.NewWithTimer(time.Second * 5),
 	}
 }

@@ -32,7 +32,7 @@ type TransactionMessage struct {
 
 type AddrStd struct {
 	IsEmpty     bool   `json:"is_empty"`
-	WorkchainId int32  `json:"workchain_id,omitempty"`
-	Addr        string `json:"addr,omitempty"`
-	Anycast     string `json:"anycast,omitempty"`
+	WorkchainId int32  `json:"workchain_id"`
+	Addr        string `json:"addr"`
+	Anycast     string `json:"anycast"`
 }

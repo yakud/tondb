@@ -28,7 +28,7 @@ const (
     WorkchainId,
     Addr,
     sum(Count) AS cnt
-FROM _view_stats_AddrMessagesCountTop
+FROM ".inner._view_stats_AddrMessagesCountTop"
 GROUP BY
     Direction,
     Addr,

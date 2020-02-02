@@ -5,6 +5,11 @@ import (
 	"net/http"
 	"os"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
+
+	"gitlab.flora.loc/mills/tondb/internal/api/site"
+	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
 
@@ -16,6 +21,10 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
 	"github.com/julienschmidt/httprouter"
+
+	statsQ "gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
+	timeseriesQ "gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
+	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 )
 
 func main() {
@@ -33,19 +42,35 @@ func main() {
 		log.Fatal(err)
 	}
 
+	router := httprouter.New()
+
+	// Core API
 	//blocksStorage := storage.NewBlocks(chConnect)
 	//transactionsStorage := storage.NewTransactions(chConnect)
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
+	if err := shardsDescrStorage.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	accountState := state.NewAccountState(chConnect)
+	if err := accountState.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	accountTransactions := feed.NewAccountTransactions(chConnect)
+	if err := accountTransactions.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	blocksFeed := feed.NewBlocksFeed(chConnect)
+	if err := blocksFeed.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
 	searchTransactionsQuery := query.NewSearchTransactions(chConnect)
 	getBlockInfoQuery := query.NewGetBlockInfo(chConnect)
-
-	router := httprouter.New()
 
 	router.GET("/height/synced", api.BasicAuth(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
 	router.GET("/height/blockchain", api.BasicAuth(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
@@ -57,6 +82,48 @@ func main() {
 	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
 	router.GET("/account", api.BasicAuth(api.NewGetAccount(accountState).Handler))
 	router.GET("/account/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
+
+	// Main API
+	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
+	if err := vBlocksByWorkchain.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+	qBlocksByWorkchain := timeseriesQ.NewGetBlocksByWorkchain(chConnect)
+
+	tsMessagesByType := timeseriesV.NewMessagesByType(chConnect)
+	if err := tsMessagesByType.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	tsVolumeByGrams := timeseriesV.NewVolumeByGrams(chConnect)
+	if err := tsVolumeByGrams.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	tsMessagesOrdCount := timeseriesV.NewMessagesOrdCount(chConnect)
+	if err := tsMessagesOrdCount.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	messagesFeedGlobal := feed.NewMessagesFeedGlobal(chConnect)
+	if err := messagesFeedGlobal.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	addrMessagesCount := stats.NewAddrMessagesCount(chConnect)
+	if err := addrMessagesCount.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
+
+	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
+	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)
+	router.GET("/timeseries/volume-by-grams", timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler)
+	router.GET("/timeseries/messages-ord-count", timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler)
+	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
+	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
+	router.GET("/top/whales", site.NewGetTopWhales(qGetTopWhales).Handler)
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

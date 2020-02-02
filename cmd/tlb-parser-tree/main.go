@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -62,13 +63,19 @@ func main() {
 	fmt.Println("Simplified for:", time.Since(since))
 
 	//since = time.Now()
-	state, err := tlb_pretty.NewAstTonConverter().ConvertToState(newNode)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Printf("%+v\n", state)
-	//if errOrig != nil {
+	//block, err := tlb_pretty.NewAstTonConverter().ConvertToBlock(newNode)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	// since = time.Now()
+	//state, err := tlb_pretty.NewAstTonConverter().ConvertToState(newNode)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//fmt.Printf("%+v\n", state)
+	//if err != nil {
 	//	dd, err := newNode.ToJSON()
 	//	if err != nil {
 	//		log.Fatal(err)
@@ -80,12 +87,16 @@ func main() {
 	//
 	//	log.Fatal("converter err: ", errOrig)
 	//}
-	//fmt.Println("Converted for:", time.Since(since))
+	fmt.Println("Converted for:", time.Since(since))
 
-	dd, _ := newNode.ToJSON()
+	dd, _ := json.Marshal(newNode.PureFields())
 	if err := ioutil.WriteFile(*out, dd, 0600); err != nil {
 		log.Fatal(err)
 	}
+	//dd, _ := newNode.ToJSON()
+	//if err := ioutil.WriteFile(*out, dd, 0600); err != nil {
+	//	log.Fatal(err)
+	//}
 	//
 	////////
 	//dd, err = newNode.ToJSON()

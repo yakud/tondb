@@ -29,6 +29,51 @@ const (
 		PrevTransHash,
 		StateUpdateNewHash,
 		StateUpdateOldHash,
+		ActionPhaseExists,
+		ActionPhaseSuccess,
+		ActionPhaseValid,
+		ActionPhaseNoFunds,
+		ActionPhaseCodeChanged,
+		ActionPhaseActionListInvalid,
+		ActionPhaseAccDeleteReq,
+		ActionPhaseAccStatusChange,
+		ActionPhaseTotalFwdFees,
+		ActionPhaseTotalActionFees,
+		ActionPhaseResultCode,
+		ActionPhaseResultArg,
+		ActionPhaseTotActions,
+		ActionPhaseSpecActions,
+		ActionPhaseSkippedActions,
+		ActionPhaseMsgsCreated,
+		ActionPhaseRemainingBalance,
+		ActionPhaseReservedBalance,
+		ActionPhaseEndLt,
+		ActionPhaseTotMsgBits,
+		ActionPhaseTotMsgCells,
+		ComputePhaseExists,
+		ComputePhaseSkipped,
+		ComputePhaseSkippedReason,
+		ComputePhaseAccountActivated,
+		ComputePhaseSuccess,
+		ComputePhaseMsgStateUsed,
+		ComputePhaseOutOfGas,
+		ComputePhaseAccepted,
+		ComputePhaseExitArg,
+		ComputePhaseExitCode,
+		ComputePhaseMode,
+		ComputePhaseVmSteps,
+		ComputePhaseGasUsed,
+		ComputePhaseGasMax,
+		ComputePhaseGasCredit,
+		ComputePhaseGasLimit,
+		ComputePhaseGasFees,
+		StoragePhaseExists,
+		StoragePhaseStatus,
+		StoragePhaseFeesCollected,
+		StoragePhaseFeesDue,
+		CreditPhaseExists,
+		CreditPhaseDueFeesCollected,
+		CreditPhaseCreditNanograms,
 		Messages.Direction as MessagesDirection,
 		Messages.Type as MessagesType,
 		Messages.Init as MessagesInit,
@@ -108,6 +153,12 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyType := make([]string, 0)
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
+		actionPhase := &ton.ActionPhase{}
+		computePhase := &ton.ComputePhase{}
+		storagePhase := &ton.StoragePhase{}
+		creditPhase := &ton.CreditPhase{}
+		var actionPhaseExists, computePhaseExists, storagePhaseExists, creditPhaseExists bool
+
 		err = rows.Scan(
 			&transaction.WorkchainId,
 			&transaction.Shard,
@@ -125,6 +176,51 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&transaction.PrevTransHash,
 			&transaction.StateUpdateNewHash,
 			&transaction.StateUpdateOldHash,
+			&actionPhaseExists,
+			&actionPhase.Success,
+			&actionPhase.Valid,
+			&actionPhase.NoFunds,
+			&actionPhase.CodeChanged,
+			&actionPhase.ActionListInvalid,
+			&actionPhase.AccDeleteReq,
+			&actionPhase.AccStatusChange,
+			&actionPhase.TotalFwdFees,
+			&actionPhase.TotalActionFees,
+			&actionPhase.ResultCode,
+			&actionPhase.ResultArg,
+			&actionPhase.TotActions,
+			&actionPhase.SpecActions,
+			&actionPhase.SkippedActions,
+			&actionPhase.MsgsCreated,
+			&actionPhase.RemainingBalance,
+			&actionPhase.ReservedBalance,
+			&actionPhase.EndLt,
+			&actionPhase.TotMsgBits,
+			&actionPhase.TotMsgCells,
+			&computePhaseExists,
+			&computePhase.Skipped,
+			&computePhase.SkippedReason,
+			&computePhase.AccountActivated,
+			&computePhase.Success,
+			&computePhase.MsgStateUsed,
+			&computePhase.OutOfGas,
+			&computePhase.Accepted,
+			&computePhase.ExitArg,
+			&computePhase.ExitCode,
+			&computePhase.Mode,
+			&computePhase.VmSteps,
+			&computePhase.GasUsed,
+			&computePhase.GasMax,
+			&computePhase.GasCredit,
+			&computePhase.GasLimit,
+			&computePhase.GasFees,
+			&storagePhaseExists,
+			&storagePhase.Status,
+			&storagePhase.FeesCollected,
+			&storagePhase.FeesDue,
+			&creditPhaseExists,
+			&creditPhase.DueFeesCollected,
+			&creditPhase.CreditNanograms,
 			&messagesDirection,
 			&messagesType,
 			&messagesInit,
@@ -155,6 +251,30 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		if err != nil {
 			rows.Close()
 			return nil, err
+		}
+
+		if actionPhaseExists {
+			transaction.ActionPhase = actionPhase
+		} else {
+			transaction.ActionPhase = nil
+		}
+
+		if computePhaseExists {
+			transaction.ComputePhase = computePhase
+		} else {
+			transaction.ComputePhase = nil
+		}
+
+		if storagePhaseExists {
+			transaction.StoragePhase = storagePhase
+		} else {
+			transaction.StoragePhase = nil
+		}
+
+		if creditPhaseExists {
+			transaction.CreditPhase = creditPhase
+		} else {
+			transaction.CreditPhase = nil
 		}
 
 		transaction.Now = uint64(trTime.Unix())

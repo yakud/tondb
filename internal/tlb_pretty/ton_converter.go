@@ -3,6 +3,7 @@ package tlb_pretty
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,8 @@ import (
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
+
+const NOTHING = "nothing"
 
 // Convert AST to ton.block
 type AstTonConverter struct {
@@ -390,276 +393,47 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.TotalFeesNanogramsLen, err = transactionNode.GetUint8("total_fees", "grams", "amount", "len"); err != nil {
 			return err
 		}
-		/*
 
-			// Description and phases
-			descriptionNode, err := transactionNode.GetNode("description")
-			if err != nil {
-				return err
+		// Description and phases
+		descriptionNode, err := transactionNode.GetNode("description")
+		if err != nil {
+			return err
+		}
+
+		if tr.Aborted, err = descriptionNode.GetBool("aborted"); err != nil {
+			return err
+		}
+
+		if tr.Destroyed, err = descriptionNode.GetBool("destroyed"); err != nil {
+			return err
+		}
+
+		tr.IsTock, _ = descriptionNode.GetBool("is_tock")
+
+		if err = c.extractTransactionActionPhase(descriptionNode, tr); err != nil {
+			return err
+		}
+
+		if err = c.extractTransactionComputePhase(descriptionNode, tr); err != nil {
+			return err
+		}
+
+		if err = c.extractTransactionStoragePhase(descriptionNode, tr); err != nil {
+			return err
+		}
+
+		if err = c.extractTransactionCreditPhase(descriptionNode, tr); err != nil {
+			return err
+		}
+
+		if bouncePhNode, err := descriptionNode.GetNode("bounce"); err == nil {
+			log.Println("\n\nNON EMPTY BOUNCE PHASE FOUND!")
+			if bouncePhNodeJson, err := bouncePhNode.ToJSON(); err != nil {
+				log.Println(fmt.Sprintf("But it's marshalling returned an error: %s\nPrinting pure fields map:\n%v", err, bouncePhNode.Fields))
+			} else {
+				log.Println(fmt.Sprintf("Bounce phase node json: %s\n", bouncePhNodeJson))
 			}
-			//
-			//if aborted, err := descriptionNode.GetBool("aborted"); err != nil {
-			//	return err
-			//}
-			//
-			//if destroyed, err := descriptionNode.GetBool("destroyed"); err != nil {
-			//	return err
-			//}
-			//
-			//if is_tock, err := descriptionNode.GetBool("is_tock"); err != nil {
-			//	return err
-			//}
-			//
-			//bounce, err := descriptionNode.GetString("bounce")
-			//if err != nil {
-			//	return err
-			//}
-
-			// actionPhase
-			type ActionPhase struct {
-				Success           bool   `json:"success"`
-				Valid             bool   `json:"valid"`
-				NoFunds           bool   `json:"no_funds"`
-				CodeChanged       bool   `json:"code_changed"`
-				ActionListInvalid bool   `json:"action_list_invalid"`
-				AccDeleteReq      bool   `json:"acc_delete_req"`
-				AccStatusChange   string `json:"acc_status_change"`
-				TotalFwdFees      uint64 `json:"total_fwd_fees"`
-				TotalActionFees   uint64 `json:"total_action_fees"`
-				ResultCode        int32  `json:"result_code"`
-				ResultArg         int32  `json:"result_arg"`
-				TotActions        uint32 `json:"tot_actions"`
-				SpecActions       uint32 `json:"spec_actions"`
-				SkippedActions    uint32 `json:"skipped_actions"`
-				MsgsCreated       uint32 `json:"msgs_created"`
-
-				RemainingBalance uint64 `json:"remaining_balance"`
-				ReservedBalance  uint64 `json:"reserved_balance"`
-				EndLt            uint64 `json:"end_lt"`
-				TotMsgBits       uint64 `json:"tot_msg_bits"`
-				TotMsgCells      uint64 `json:"tot_msg_cells"`
-			}
-
-			// TODO: THAT FIELDS!!!!!
-			actionPhase := &ActionPhase{
-				CodeChanged:       false,
-				ActionListInvalid: false,
-				AccDeleteReq:      false,
-				RemainingBalance:  0,
-				ReservedBalance:   0,
-				EndLt:             0,
-			}
-
-			actionNode, err := descriptionNode.GetNode("actionPhase", "value")
-			if err != nil {
-				return err
-			}
-
-			if actionPhase.MsgsCreated, err = actionNode.GetUint32("msgs_created"); err != nil {
-				return err
-			}
-
-			if actionPhase.TotActions, err = actionNode.GetUint32("tot_actions"); err != nil {
-				return err
-			}
-
-			if actionPhase.NoFunds, err = actionNode.GetBool("no_funds"); err != nil {
-				return err
-			}
-
-			if actionPhase.ResultArg, err = actionNode.GetInt32("result_arg", "value"); err != nil {
-				return err
-			}
-
-			if actionPhase.Success, err = actionNode.GetBool("success"); err != nil {
-				return err
-			}
-
-			if actionPhase.Valid, err = actionNode.GetBool("valid"); err != nil {
-				return err
-			}
-
-			if actionPhase.ResultCode, err = actionNode.GetInt32("result_code"); err != nil {
-				return err
-			}
-
-			if actionPhase.SkippedActions, err = actionNode.GetUint32("skipped_actions"); err != nil {
-				return err
-			}
-
-			if actionPhase.SpecActions, err = actionNode.GetUint32("spec_actions"); err != nil {
-				return err
-			}
-
-			if actionPhase.TotMsgBits, err = actionNode.GetUint64("tot_msg_size", "bits", "value"); err != nil {
-				return err
-			}
-
-			if actionPhase.TotMsgCells, err = actionNode.GetUint64("tot_msg_size", "cells", "value"); err != nil {
-				return err
-			}
-
-			if actionPhase.TotalActionFees, err = actionNode.GetUint64("total_action_fees", "amount", "value"); err != nil {
-				return err
-			}
-
-			if actionPhase.TotalFwdFees, err = actionNode.GetUint64("total_fwd_fees", "amount", "value"); err != nil {
-				return err
-			}
-
-			if actionPhase.AccStatusChange, err = actionNode.GetString("status_change"); err != nil {
-				return err
-			}
-
-			// compute_ph
-			type ComputePhase struct {
-				AccountActivated bool   `json:"account_activated"`
-				Success          bool   `json:"success"`
-				MsgStateUsed     bool   `json:"msg_state_used"`
-				OutOfGas         bool   `json:"out_of_gas"`
-				Accepted         bool   `json:"accepted"`
-				ExitArg          int32  `json:"exit_arg"`
-				ExitCode         int32  `json:"exit_code"`
-				Mode             int32  `json:"mode"`
-				VmSteps          uint32 `json:"vm_steps"`
-
-				GasUsed   uint64 `json:"gas_used"`
-				GasMax    uint64 `json:"gas_max"`
-				GasCredit uint64 `json:"gas_credit"`
-				GasLimit  uint64 `json:"gas_limit"`
-				GasFees   uint64 `json:"gas_fees"`
-			}
-
-			// TODO: THAT FIELDS!!!!!
-			computePhase := &ComputePhase{
-				OutOfGas: false,
-				Accepted: false,
-				GasMax:   0,
-			}
-
-			computePh, err := descriptionNode.GetNode("compute_ph")
-			if err != nil {
-				return err
-			}
-
-			if computePhase.AccountActivated, err = computePh.GetBool("account_activated"); err != nil {
-				return err
-			}
-
-			if computePhase.Success, err = computePh.GetBool("success"); err != nil {
-				return err
-			}
-
-			if computePhase.GasFees, err = computePh.GetUint64("gas_fees", "amount", "value"); err != nil {
-				return err
-			}
-
-			if computePhase.MsgStateUsed, err = computePh.GetBool("msg_state_used"); err != nil {
-				return err
-			}
-
-			computePhValue, err := computePh.GetNode("value_0")
-			if err != nil {
-				return err
-			}
-
-			if computePhase.ExitArg, err = computePhValue.GetInt32("exit_arg"); err != nil {
-				return err
-			}
-
-			if computePhase.ExitCode, err = computePhValue.GetInt32("exit_code"); err != nil {
-				return err
-			}
-
-			if computePhase.GasCredit, err = computePhValue.GetUint64("gas_credit", "value"); err != nil {
-				return err
-			}
-
-			if computePhase.GasLimit, err = computePhValue.GetUint64("gas_limit", "value"); err != nil {
-				return err
-			}
-
-			if computePhase.GasUsed, err = computePhValue.GetUint64("gas_used", "value"); err != nil {
-				return err
-			}
-			if computePhase.Mode, err = computePhValue.GetInt32("mode"); err != nil {
-				return err
-			}
-			if computePhase.VmSteps, err = computePhValue.GetUint32("vm_steps"); err != nil {
-				return err
-			}
-
-			// storage_ph
-			type StoragePhase struct {
-				Status        string `json:"status"`
-				FeesCollected uint64 `json:"fees_collected"`
-				FeesDue       uint64 `json:"fees_due"`
-			}
-			storagePhase := &StoragePhase{}
-
-			storagePh, err := descriptionNode.GetNode("storage_ph")
-			if err != nil {
-				return err
-			}
-			if storagePhase.Status, err = storagePh.GetString("status_change"); err != nil {
-				return err
-			}
-			if storagePhase.FeesCollected, err = storagePh.GetUint64("storage_fees_collected", "amount", "value"); err != nil {
-				return err
-			}
-			if storagePhase.FeesDue, err = storagePh.GetUint64("storage_fees_due", "amount", "value"); err != nil {
-				return err
-			}
-
-			// TODO:::!!!!!!!
-			type CreditPhase struct {
-				DueFeesCollected uint64 `json:"due_fees_collected"`
-				Credit           uint64 `json:"credit"`
-			}
-			creditPhase := &CreditPhase{}
-
-			creditPh, err := descriptionNode.GetNode("credit_ph", "value")
-			if err != nil {
-				return err
-			}
-
-			if creditPhase.Credit, err = creditPh.GetUint64("credit", "grams", "amount", "value"); err != nil {
-				return err
-			}
-
-			if creditPhase.DueFeesCollected, err = creditPh.GetUint64("due_fees_collected", "amount", "value"); err != nil {
-				return err
-			}
-
-			//struct CreditPhase {
-			//	td::RefInt256 due_fees_collected;
-			//	block::CurrencyCollection credit;
-			//	td::RefInt256 credit;
-			//	Ref<vm::Cell> credit_extra;
-			//};
-
-			//
-			//fmt.Println("actionStatusChange: ", actionStatusChange)
-
-			//descriptionNode
-
-			//if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
-			//	return err
-			//}
-			//destroyed
-
-			// actionPhase
-			// compute_ph
-			// storage_ph
-		*/
-		//switch tr.Type {
-		//case "trans_ord":
-		//	if tr.Type, err = transactionNode.GetString("description", "actionPhase"); err != nil {
-		//		return err
-		//	}
-		//case "trans_tick_tock":
-		//
-		//}
+		}
 
 		// In message extract
 		if inMsgNode, err := transactionNode.GetNode("value_0", "in_msg", "value"); err != nil {
@@ -708,6 +482,253 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 	}
 
 	return nil
+}
+
+func (c *AstTonConverter) extractTransactionActionPhase(node *AstNode, transaction *ton.Transaction) (err error) {
+	if actionNode, err := c.getTransactionPhaseNode(node, "action"); err == nil && actionNode != nil {
+
+		// TODO: There are these these fields in TON sources, but they were not found in blocks at the moment of implementation
+		actionPhase := &ton.ActionPhase{
+			CodeChanged:       false,
+			ActionListInvalid: false,
+			AccDeleteReq:      false,
+			RemainingBalance:  0,
+			ReservedBalance:   0,
+			EndLt:             0,
+		}
+
+		if actionPhase.MsgsCreated, err = actionNode.GetUint32("msgs_created"); err != nil {
+			return err
+		}
+
+		if actionPhase.TotActions, err = actionNode.GetUint32("tot_actions"); err != nil {
+			return err
+		}
+
+		if actionPhase.NoFunds, err = actionNode.GetBool("no_funds"); err != nil {
+			return err
+		}
+
+		if actionPhase.ResultArg, err = c.getValueOrNothingInt32(actionNode, "result_arg"); err != nil {
+			return err
+		}
+
+		if actionPhase.Success, err = actionNode.GetBool("success"); err != nil {
+			return err
+		}
+
+		if actionPhase.Valid, err = actionNode.GetBool("valid"); err != nil {
+			return err
+		}
+
+		if actionPhase.ResultCode, err = actionNode.GetInt32("result_code"); err != nil {
+			return err
+		}
+
+		if actionPhase.SkippedActions, err = actionNode.GetUint32("skipped_actions"); err != nil {
+			return err
+		}
+
+		if actionPhase.SpecActions, err = actionNode.GetUint32("spec_actions"); err != nil {
+			return err
+		}
+
+		if actionPhase.TotMsgBits, err = actionNode.GetUint64("tot_msg_size", "bits", "value"); err != nil {
+			return err
+		}
+
+		if actionPhase.TotMsgCells, err = actionNode.GetUint64("tot_msg_size", "cells", "value"); err != nil {
+			return err
+		}
+
+		if actionPhase.TotalActionFees, err = c.getValueOrNothingUint64(actionNode,"total_action_fees", "value", "amount"); err != nil {
+			if actionPhase.TotalActionFees, err = c.getValueOrNothingUint64(actionNode,"total_action_fees", "amount"); err != nil {
+				return err
+			}
+		}
+
+		if actionPhase.TotalFwdFees, err = c.getValueOrNothingUint64(actionNode, "total_fwd_fees", "value", "amount"); err != nil {
+			if actionPhase.TotalFwdFees, err = c.getValueOrNothingUint64(actionNode, "total_fwd_fees", "amount"); err != nil {
+				return err
+			}
+		}
+
+		if actionPhase.AccStatusChange, err = actionNode.GetString("status_change"); err != nil {
+			return err
+		}
+
+		transaction.ActionPhase = actionPhase
+	}
+
+	return err
+}
+
+func (c *AstTonConverter) extractTransactionComputePhase(node *AstNode, transaction *ton.Transaction) (err error) {
+	if computePhNode, err := c.getTransactionPhaseNode(node, "compute_ph"); err == nil && computePhNode != nil {
+
+		// TODO: There are these these fields in TON sources, but they were not found in blocks at the moment of implementation
+		computePhase := &ton.ComputePhase{
+			OutOfGas: false,
+			Accepted: false,
+			GasMax:   0,
+		}
+
+		if computePhaseType, err := computePhNode.GetString("@type"); err != nil {
+			return fmt.Errorf("couldn't get compute phase type")
+		} else if computePhaseType == "tr_phase_compute_skipped" {
+
+			computePhase.Skipped = true
+			reason, err := computePhNode.GetString("reason")
+			if err != nil {
+				return err
+			}
+
+			computePhase.SkippedReason = reason
+		} else {
+
+			if computePhase.AccountActivated, err = computePhNode.GetBool("account_activated"); err != nil {
+				return err
+			}
+
+			if computePhase.Success, err = computePhNode.GetBool("success"); err != nil {
+				return err
+			}
+
+			if computePhase.GasFees, err = c.getValueOrNothingUint64(computePhNode, "gas_fees", "amount"); err != nil {
+				return err
+			}
+
+			if computePhase.MsgStateUsed, err = computePhNode.GetBool("msg_state_used"); err != nil {
+				return err
+			}
+
+			computePhValue, err := computePhNode.GetNode("value_0")
+			if err != nil {
+				return err
+			}
+
+			if computePhase.ExitArg, err = computePhValue.GetInt32("exit_arg"); err != nil {
+				if exitArgStr, err := computePhValue.GetString("exit_arg"); err == nil && exitArgStr == NOTHING {
+					// maybe we should set it to some special value if it is nothing? Also, it's zero by default.
+					computePhase.ExitArg = 0
+				} else {
+					return err
+				}
+			}
+
+			if computePhase.ExitCode, err = computePhValue.GetInt32("exit_code"); err != nil {
+				return err
+			}
+
+			if computePhase.GasCredit, err = c.getValueOrNothingUint64(computePhValue, "gas_credit", "value"); err != nil {
+				if computePhase.GasCredit, err = c.getValueOrNothingUint64(computePhValue, "gas_credit"); err != nil {
+					return err
+				}
+			}
+
+			if computePhase.GasLimit, err = c.getValueOrNothingUint64(computePhValue, "gas_limit"); err != nil {
+				if computePhase.GasLimit, err = c.getValueOrNothingUint64(computePhValue, "gas_limit", "value"); err != nil {
+					return err
+				}
+			}
+
+			if computePhase.GasUsed, err = c.getValueOrNothingUint64(computePhValue, "gas_used"); err != nil {
+				if computePhase.GasUsed, err = c.getValueOrNothingUint64(computePhValue, "gas_used", "value"); err != nil {
+					return err
+				}
+			}
+
+			if computePhase.Mode, err = computePhValue.GetInt32("mode"); err != nil {
+				return err
+			}
+
+			if computePhase.VmSteps, err = computePhValue.GetUint32("vm_steps"); err != nil {
+				return err
+			}
+		}
+
+		transaction.ComputePhase = computePhase
+	}
+
+	return nil
+}
+
+func (c *AstTonConverter) extractTransactionStoragePhase(node *AstNode, transaction *ton.Transaction) (err error) {
+	if storagePhNode, err := c.getTransactionPhaseNode(node, "storage_ph"); err == nil && storagePhNode != nil {
+		storagePhase := &ton.StoragePhase{}
+
+		if storagePhase.Status, err = storagePhNode.GetString("status_change"); err != nil {
+			return err
+		}
+
+		if storagePhase.FeesCollected, err = c.getValueOrNothingUint64(storagePhNode, "storage_fees_collected", "amount"); err != nil {
+			return err
+		}
+
+		if storagePhase.FeesDue, err = c.getValueOrNothingUint64(storagePhNode, "storage_fees_due", "amount"); err != nil {
+			return err
+		}
+
+		transaction.StoragePhase = storagePhase
+	}
+
+	return nil
+}
+
+func (c *AstTonConverter) extractTransactionCreditPhase(node *AstNode, transaction *ton.Transaction) (err error) {
+	if creditPhNode, err := c.getTransactionPhaseNode(node, "credit_ph"); err == nil && creditPhNode != nil {
+		creditPhase := &ton.CreditPhase{}
+
+		if creditPhase.CreditNanograms, err = c.getValueOrNothingUint64(creditPhNode, "credit", "grams", "amount"); err != nil {
+			return err
+		}
+
+		if creditPhase.DueFeesCollected, err = c.getValueOrNothingUint64(creditPhNode, "due_fees_collected", "amount"); err != nil {
+			return err
+		}
+
+		transaction.CreditPhase = creditPhase
+	}
+
+	return nil
+}
+
+func (c *AstTonConverter) getTransactionPhaseNode(node *AstNode, phaseName string) (phaseNode *AstNode, err error) {
+	if phaseNode, err = node.GetNode(phaseName, "value"); err != nil {
+		if phaseNode, err = node.GetNode(phaseName); err != nil {
+			if phaseStr, err := node.GetString(phaseName); err != nil {
+				return nil, fmt.Errorf(fmt.Sprintf("there is no %s in transaction description", phaseName))
+			} else if phaseStr == NOTHING {
+				// It's ok. Sometimes even phases can be "nothing" or even don't exist (i.e. bounce phase)
+			} else {
+				return nil, fmt.Errorf(phaseName + " is neither \"nothing\" nor *AstNode")
+			}
+		}
+	}
+
+	return phaseNode, nil
+}
+
+func (c *AstTonConverter) getValueOrNothingInt32(node *AstNode, key ...string) (value int32, err error) {
+	key = append(key, "value")
+	if value, err = node.GetInt32(key...); err != nil {
+		if resultArgStr, err := node.GetString(key[0]); err != nil || resultArgStr != NOTHING {
+			return 0, err
+		}
+	}
+
+	return value, nil
+}
+
+func (c *AstTonConverter) getValueOrNothingUint64(node *AstNode, key ...string) (value uint64, err error) {
+	key = append(key, "value")
+	if value, err = node.GetUint64(key...); err != nil {
+		if resultArgStr, err := node.GetString(key[0]); err != nil || resultArgStr != NOTHING {
+			return 0, err
+		}
+	}
+
+	return value, nil
 }
 
 func (c *AstTonConverter) extractTransactionsHash(node *AstNode, transaction *[]*ton.Transaction) error {

@@ -19,6 +19,17 @@ type Transaction struct {
 	StateUpdateNewHash string `json:"state_update_new_hash"`
 	StateUpdateOldHash string `json:"state_update_old_hash"`
 
+	Aborted     bool   `json:"aborted"`
+	Destroyed   bool   `json:"destroyed"`
+	IsTock      bool   `json:"is_tock"`
+	CreditFirst bool   `json:"credit_first"`
+
+	ActionPhase  *ActionPhase  `json:"action_phase,omitempty"`
+	ComputePhase *ComputePhase `json:"compute_phase,omitempty"`
+	StoragePhase *StoragePhase `json:"storage_phase,omitempty"`
+	CreditPhase  *CreditPhase  `json:"credit_phase,omitempty"`
+	BouncePhase  *BouncePhase  `json:"bounce_phase,omitempty"`
+
 	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
 	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`
 }

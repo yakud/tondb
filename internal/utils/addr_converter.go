@@ -81,15 +81,13 @@ func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 	}
 
 	// set addr bytes
-	for i, v := range addrBytes[:addrRawBytesLength] {
-		addrUfBytes[2+i] = v
-	}
+	copy(addrUfBytes[2:], addrBytes[:addrRawBytesLength])
 
 	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
 
 	// crc16 put
 	addrUfBytes[34] = byte(checksum >> 8)
-	addrUfBytes[35] = byte(checksum)
+	addrUfBytes[35] = byte(checksum & 0xff)
 
 	return base64.RawURLEncoding.EncodeToString(addrUfBytes), nil
 }

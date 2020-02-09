@@ -13,7 +13,6 @@ import (
 )
 
 const (
-
 	queryCreateTableTransactions string = `CREATE TABLE IF NOT EXISTS transactions (
 		WorkchainId           Int32,
 		Shard                 UInt64,
@@ -65,7 +64,7 @@ const (
 		ComputePhaseAccepted         UInt8,
 		ComputePhaseExitArg          Int32,
 		ComputePhaseExitCode         Int32,
-		ComputePhaseMode             Int32,
+		ComputePhaseMode             Int8,
 		ComputePhaseVmSteps          UInt32,
 		ComputePhaseGasUsed          UInt64,
 		ComputePhaseGasMax           UInt64,

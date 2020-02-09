@@ -34,7 +34,7 @@ type ComputePhase struct {
 	Accepted         bool   `json:"accepted"`
 	ExitArg          int32  `json:"exit_arg"`
 	ExitCode         int32  `json:"exit_code"`
-	Mode             int32  `json:"mode"`
+	Mode             int8   `json:"mode"`
 	VmSteps          uint32 `json:"vm_steps"`
 
 	GasUsed   uint64 `json:"gas_used"`
@@ -57,5 +57,4 @@ type CreditPhase struct {
 
 // TODO; Could't find examples of bounce phase in blocks. If there were some they were empty.
 type BouncePhase struct {
-
 }

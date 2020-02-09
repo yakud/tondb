@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const NOTHING = "nothing"
+
 type AstNode struct {
 	Parent    *AstNode               `json:"-"`
 	Fields    map[string]interface{} `json:"data"`
@@ -191,6 +193,36 @@ func (t *AstNode) GetInt32(key ...string) (int32, error) {
 		return 0, err
 	} else {
 		return int32(v), nil
+	}
+}
+
+func (t *AstNode) GetValueOrNothingInt32(key ...string) (value int32, err error) {
+	key = append(key, "value")
+	if value, err = t.GetInt32(key...); err != nil {
+		if resultArgStr, err := t.GetString(key[0]); err != nil || resultArgStr != NOTHING {
+			return 0, err
+		}
+	}
+
+	return value, nil
+}
+
+func (t *AstNode) GetValueOrNothingUint64(key ...string) (value uint64, err error) {
+	key = append(key, "value")
+	if value, err = t.GetUint64(key...); err != nil {
+		if resultArgStr, err := t.GetString(key[0]); err != nil || resultArgStr != NOTHING {
+			return 0, err
+		}
+	}
+
+	return value, nil
+}
+
+func (t *AstNode) GetInt8(key ...string) (int8, error) {
+	if v, err := t.GetInt(8, key...); err != nil {
+		return 0, err
+	} else {
+		return int8(v), nil
 	}
 }
 

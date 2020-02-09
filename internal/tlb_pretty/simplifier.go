@@ -6,11 +6,14 @@ import (
 )
 
 const (
+	//  HashmapAug, hashmap with an extra value
+	//   (augmentation) of type Y at every node
 	AhmeRoot = "ahme_root"
 	AhmnFork = "ahmn_fork"
 	AhmEdge  = "ahm_edge"
 	AhmnLeaf = "ahmn_leaf"
 
+	// ordinary Hashmap / HashmapE, with fixed length keys
 	HmeRoot = "hme_root"
 	HmEdge  = "hm_edge"
 	HmnFork = "hmn_fork"

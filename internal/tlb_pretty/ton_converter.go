@@ -14,8 +14,6 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
-const NOTHING = "nothing"
-
 // Convert AST to ton.block
 type AstTonConverter struct {
 }
@@ -509,7 +507,7 @@ func (c *AstTonConverter) extractTransactionActionPhase(node *AstNode, transacti
 			return err
 		}
 
-		if actionPhase.ResultArg, err = c.getValueOrNothingInt32(actionNode, "result_arg"); err != nil {
+		if actionPhase.ResultArg, err = actionNode.GetValueOrNothingInt32("result_arg"); err != nil {
 			return err
 		}
 
@@ -541,14 +539,14 @@ func (c *AstTonConverter) extractTransactionActionPhase(node *AstNode, transacti
 			return err
 		}
 
-		if actionPhase.TotalActionFees, err = c.getValueOrNothingUint64(actionNode,"total_action_fees", "value", "amount"); err != nil {
-			if actionPhase.TotalActionFees, err = c.getValueOrNothingUint64(actionNode,"total_action_fees", "amount"); err != nil {
+		if actionPhase.TotalActionFees, err = actionNode.GetValueOrNothingUint64("total_action_fees", "value", "amount"); err != nil {
+			if actionPhase.TotalActionFees, err = actionNode.GetValueOrNothingUint64("total_action_fees", "amount"); err != nil {
 				return err
 			}
 		}
 
-		if actionPhase.TotalFwdFees, err = c.getValueOrNothingUint64(actionNode, "total_fwd_fees", "value", "amount"); err != nil {
-			if actionPhase.TotalFwdFees, err = c.getValueOrNothingUint64(actionNode, "total_fwd_fees", "amount"); err != nil {
+		if actionPhase.TotalFwdFees, err = actionNode.GetValueOrNothingUint64("total_fwd_fees", "value", "amount"); err != nil {
+			if actionPhase.TotalFwdFees, err = actionNode.GetValueOrNothingUint64("total_fwd_fees", "amount"); err != nil {
 				return err
 			}
 		}
@@ -594,7 +592,7 @@ func (c *AstTonConverter) extractTransactionComputePhase(node *AstNode, transact
 				return err
 			}
 
-			if computePhase.GasFees, err = c.getValueOrNothingUint64(computePhNode, "gas_fees", "amount"); err != nil {
+			if computePhase.GasFees, err = computePhNode.GetValueOrNothingUint64("gas_fees", "amount"); err != nil {
 				return err
 			}
 
@@ -620,25 +618,25 @@ func (c *AstTonConverter) extractTransactionComputePhase(node *AstNode, transact
 				return err
 			}
 
-			if computePhase.GasCredit, err = c.getValueOrNothingUint64(computePhValue, "gas_credit", "value"); err != nil {
-				if computePhase.GasCredit, err = c.getValueOrNothingUint64(computePhValue, "gas_credit"); err != nil {
+			if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit", "value"); err != nil {
+				if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit"); err != nil {
 					return err
 				}
 			}
 
-			if computePhase.GasLimit, err = c.getValueOrNothingUint64(computePhValue, "gas_limit"); err != nil {
-				if computePhase.GasLimit, err = c.getValueOrNothingUint64(computePhValue, "gas_limit", "value"); err != nil {
+			if computePhase.GasLimit, err = computePhValue.GetValueOrNothingUint64("gas_limit"); err != nil {
+				if computePhase.GasLimit, err = computePhValue.GetValueOrNothingUint64("gas_limit", "value"); err != nil {
 					return err
 				}
 			}
 
-			if computePhase.GasUsed, err = c.getValueOrNothingUint64(computePhValue, "gas_used"); err != nil {
-				if computePhase.GasUsed, err = c.getValueOrNothingUint64(computePhValue, "gas_used", "value"); err != nil {
+			if computePhase.GasUsed, err = computePhValue.GetValueOrNothingUint64("gas_used"); err != nil {
+				if computePhase.GasUsed, err = computePhValue.GetValueOrNothingUint64("gas_used", "value"); err != nil {
 					return err
 				}
 			}
 
-			if computePhase.Mode, err = computePhValue.GetInt32("mode"); err != nil {
+			if computePhase.Mode, err = computePhValue.GetInt8("mode"); err != nil {
 				return err
 			}
 
@@ -661,11 +659,11 @@ func (c *AstTonConverter) extractTransactionStoragePhase(node *AstNode, transact
 			return err
 		}
 
-		if storagePhase.FeesCollected, err = c.getValueOrNothingUint64(storagePhNode, "storage_fees_collected", "amount"); err != nil {
+		if storagePhase.FeesCollected, err = storagePhNode.GetValueOrNothingUint64("storage_fees_collected", "amount"); err != nil {
 			return err
 		}
 
-		if storagePhase.FeesDue, err = c.getValueOrNothingUint64(storagePhNode, "storage_fees_due", "amount"); err != nil {
+		if storagePhase.FeesDue, err = storagePhNode.GetValueOrNothingUint64("storage_fees_due", "amount"); err != nil {
 			return err
 		}
 
@@ -679,11 +677,11 @@ func (c *AstTonConverter) extractTransactionCreditPhase(node *AstNode, transacti
 	if creditPhNode, err := c.getTransactionPhaseNode(node, "credit_ph"); err == nil && creditPhNode != nil {
 		creditPhase := &ton.CreditPhase{}
 
-		if creditPhase.CreditNanograms, err = c.getValueOrNothingUint64(creditPhNode, "credit", "grams", "amount"); err != nil {
+		if creditPhase.CreditNanograms, err = creditPhNode.GetValueOrNothingUint64("credit", "grams", "amount"); err != nil {
 			return err
 		}
 
-		if creditPhase.DueFeesCollected, err = c.getValueOrNothingUint64(creditPhNode, "due_fees_collected", "amount"); err != nil {
+		if creditPhase.DueFeesCollected, err = creditPhNode.GetValueOrNothingUint64("due_fees_collected", "amount"); err != nil {
 			return err
 		}
 
@@ -707,28 +705,6 @@ func (c *AstTonConverter) getTransactionPhaseNode(node *AstNode, phaseName strin
 	}
 
 	return phaseNode, nil
-}
-
-func (c *AstTonConverter) getValueOrNothingInt32(node *AstNode, key ...string) (value int32, err error) {
-	key = append(key, "value")
-	if value, err = node.GetInt32(key...); err != nil {
-		if resultArgStr, err := node.GetString(key[0]); err != nil || resultArgStr != NOTHING {
-			return 0, err
-		}
-	}
-
-	return value, nil
-}
-
-func (c *AstTonConverter) getValueOrNothingUint64(node *AstNode, key ...string) (value uint64, err error) {
-	key = append(key, "value")
-	if value, err = node.GetUint64(key...); err != nil {
-		if resultArgStr, err := node.GetString(key[0]); err != nil || resultArgStr != NOTHING {
-			return 0, err
-		}
-	}
-
-	return value, nil
 }
 
 func (c *AstTonConverter) extractTransactionsHash(node *AstNode, transaction *[]*ton.Transaction) error {

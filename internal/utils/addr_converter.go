@@ -110,11 +110,10 @@ func ConvertUserFriendlyToRaw(ufAddr string) (string, error) {
 		return "", fmt.Errorf("mismatch first byte")
 	}
 
-	wc := int8(addrUfBytes[1])
-	addr := addrUfBytes[2:34]
-	addrHex := strings.ToUpper(hex.EncodeToString(addr))
+	wc := strconv.FormatInt(int64(int8(addrUfBytes[1])), 10)
+	addrHex := strings.ToUpper(hex.EncodeToString(addrUfBytes[2:34]))
 
-	return fmt.Sprintf("%d:%s", wc, addrHex), nil
+	return wc + ":" + addrHex, nil
 }
 
 func ParseAccountAddress(addr string) (int32, string, error) {

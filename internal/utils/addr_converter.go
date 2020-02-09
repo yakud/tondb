@@ -51,6 +51,8 @@ const (
 	addrUserFriendlyBytesLength = 36
 )
 
+var defaultBase64 = base64.RawURLEncoding
+
 func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 	wid, addr, err := ParseAccountAddress(rawAddr)
 	if err != nil {
@@ -89,7 +91,30 @@ func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 	addrUfBytes[34] = byte(checksum >> 8)
 	addrUfBytes[35] = byte(checksum & 0xff)
 
-	return base64.RawURLEncoding.EncodeToString(addrUfBytes), nil
+	return defaultBase64.EncodeToString(addrUfBytes), nil
+}
+
+func ConvertUserFriendlyToRaw(ufAddr string) (string, error) {
+	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
+	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(ufAddr)); err != nil {
+		return "", err
+	}
+
+	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
+
+	if addrUfBytes[34] != uint8(checksum>>8) || addrUfBytes[35] != uint8(checksum&0xff) {
+		return "", fmt.Errorf("mismatch checksum")
+	}
+
+	if (addrUfBytes[0] & 0x3f) != 0x11 {
+		return "", fmt.Errorf("mismatch first byte")
+	}
+
+	wc := int8(addrUfBytes[1])
+	addr := addrUfBytes[2:34]
+	addrHex := strings.ToUpper(hex.EncodeToString(addr))
+
+	return fmt.Sprintf("%d:%s", wc, addrHex), nil
 }
 
 func ParseAccountAddress(addr string) (int32, string, error) {
@@ -117,6 +142,28 @@ func ParseAccountAddress(addr string) (int32, string, error) {
 }
 
 /*
+
+bool unpack_std_smc_addr(const char packed[48], ton::WorkchainId& wc, ton::StdSmcAddress& addr, bool& bounceable,
+                         bool& testnet) {
+  unsigned char buffer[36];
+  wc = ton::workchainInvalid;
+  if (!buff_base64_decode(td::MutableSlice{buffer, 36}, td::Slice{packed, 48}, true)) {
+    return false;
+  }
+  unsigned crc = td::crc16(td::Slice{buffer, 34});
+  if (buffer[34] != (unsigned char)(crc >> 8) || buffer[35] != (unsigned char)(crc & 0xff)) {
+    return false;
+  }
+  if ((buffer[0] & 0x3f) != 0x11) {
+    return false;
+  }
+  testnet = (buffer[0] & 0x80);
+  bounceable = !(buffer[0] & 0x40);
+  wc = (td::int8)buffer[1];
+  std::memcpy(addr.data(), buffer + 2, 32);
+  return true;
+}
+
 
 def raw_to_userfriendly(address, tag=0x11):
     workchain_id, key = address.split(':')

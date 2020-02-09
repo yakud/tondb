@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -33,6 +33,22 @@ func TestConvertRawToUserFriendly(t *testing.T) {
 			t.Fatalf("error expected: %s actual: %s", uf, ufAddr)
 		}
 
-		fmt.Println("RESULT:", ufAddr)
+		raw2, err := ConvertUserFriendlyToRaw(ufAddr)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if strings.ToUpper(raw) != raw2 {
+			t.Fatalf("error raw addr expected: %s actual: %s", raw, raw2)
+		}
+
+		raw2, err = ConvertUserFriendlyToRaw(uf)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if strings.ToUpper(raw) != raw2 {
+			t.Fatalf("error raw addr expected: %s actual: %s", raw, raw2)
+		}
 	}
 }

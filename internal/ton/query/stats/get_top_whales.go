@@ -2,6 +2,7 @@ package stats
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
@@ -19,7 +20,8 @@ const (
 )
 
 type Whale struct {
-	Addr        string `json:"addr"`
+	AddrRaw     string `json:"addr_raw"`
+	AddrUf      string `json:"addr_uf"`
 	BalanceGram string `json:"balance_gram"`
 }
 
@@ -47,7 +49,11 @@ func (q *GetTopWhales) GetTopWhales() (*TopWhales, error) {
 	for rows.Next() {
 		whale := Whale{}
 
-		if err := rows.Scan(&whale.Addr, &whale.BalanceGram); err != nil {
+		if err := rows.Scan(&whale.AddrRaw, &whale.BalanceGram); err != nil {
+			return nil, err
+		}
+		if whale.AddrUf, err = utils.ConvertRawToUserFriendly(whale.AddrRaw, utils.DefaultTag); err != nil {
+			// Maybe we shouldn't fail here?
 			return nil, err
 		}
 

@@ -34,5 +34,6 @@ type AddrStd struct {
 	IsEmpty     bool   `json:"is_empty"`
 	WorkchainId int32  `json:"workchain_id"`
 	Addr        string `json:"addr"`
+	AddrUf      string `json:"addr_uf"`
 	Anycast     string `json:"anycast"`
 }

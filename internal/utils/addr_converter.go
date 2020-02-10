@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -42,6 +43,7 @@ const (
 	AddrTagBounceable    = 0x11
 	AddrTagNonBounceable = 0x51
 	AddrTagDebugAddr     = 0x80
+	DefaultTag           = AddrTagBounceable
 
 	Workchain0Byte  = 0x00
 	MasterchainByte = 0xff
@@ -54,7 +56,7 @@ const (
 var defaultBase64 = base64.RawURLEncoding
 
 func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
-	wid, addr, err := ParseAccountAddress(rawAddr)
+	wid, addr, err := parseAccountAddressRaw(rawAddr)
 	if err != nil {
 		return "", err
 	}
@@ -95,25 +97,11 @@ func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 }
 
 func ConvertUserFriendlyToRaw(ufAddr string) (string, error) {
-	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
-	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(ufAddr)); err != nil {
+	if wc, addrHex, err := parseAccountAddressUserFriendly(ufAddr); err != nil {
 		return "", err
+	} else {
+		return strconv.FormatInt(int64(wc), 10) + ":" + addrHex, nil
 	}
-
-	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
-
-	if addrUfBytes[34] != uint8(checksum>>8) || addrUfBytes[35] != uint8(checksum&0xff) {
-		return "", fmt.Errorf("mismatch checksum")
-	}
-
-	if (addrUfBytes[0] & 0x3f) != 0x11 {
-		return "", fmt.Errorf("mismatch first byte")
-	}
-
-	wc := strconv.FormatInt(int64(int8(addrUfBytes[1])), 10)
-	addrHex := strings.ToUpper(hex.EncodeToString(addrUfBytes[2:34]))
-
-	return wc + ":" + addrHex, nil
 }
 
 func ParseAccountAddress(addr string) (int32, string, error) {
@@ -123,6 +111,21 @@ func ParseAccountAddress(addr string) (int32, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
+
+	match, err := regexp.MatchString(`[-]?\d:\S{64}`, addr)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if match {
+		return parseAccountAddressRaw(addr)
+	} else {
+		return parseAccountAddressUserFriendly(addr)
+	}
+}
+
+func parseAccountAddressRaw(addr string) (int32, string, error) {
+	var err error
 
 	parts := strings.Split(addr, ":")
 	if len(parts) != 2 {
@@ -138,6 +141,28 @@ func ParseAccountAddress(addr string) (int32, string, error) {
 	Addr := strings.ToUpper(parts[1])
 
 	return WorkchainId, Addr, nil
+}
+
+func parseAccountAddressUserFriendly(addr string) (int32, string, error) {
+	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
+	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
+		return 0, "", err
+	}
+
+	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
+
+	if addrUfBytes[34] != uint8(checksum>>8) || addrUfBytes[35] != uint8(checksum&0xff) {
+		return 0, "", fmt.Errorf("mismatch checksum")
+	}
+
+	if (addrUfBytes[0] & 0x3f) != 0x11 {
+		return 0, "", fmt.Errorf("mismatch first byte")
+	}
+
+	wc := int32(int8(addrUfBytes[1]))
+	addrHex := strings.ToUpper(hex.EncodeToString(addrUfBytes[2:34]))
+
+	return wc, addrHex, nil
 }
 
 /*

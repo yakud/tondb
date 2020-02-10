@@ -2,6 +2,8 @@ package stats
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+	"strconv"
 )
 
 const (
@@ -43,6 +45,7 @@ LIMIT ? BY Direction
 type AddrCount struct {
 	WorkchainId int32  `json:"workchain_id"`
 	Addr        string `json:"addr"`
+	AddrUf      string `json:"addr_uf"`
 	Count       int64  `json:"count"`
 }
 
@@ -84,6 +87,11 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 		)
 		if err != nil {
 			rows.Close()
+			return nil, nil, err
+		}
+
+		if row.AddrUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(row.WorkchainId)) + ":" + row.Addr, utils.DefaultTag); err != nil {
+			// Maybe we shouldn't fail here
 			return nil, nil, err
 		}
 

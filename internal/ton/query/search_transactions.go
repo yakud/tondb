@@ -2,6 +2,8 @@ package query
 
 import (
 	"database/sql"
+	"fmt"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -157,9 +159,35 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			return nil, err
 		}
 
+		transaction.AccountAddrUf, err = utils.ConvertRawToUserFriendly(
+			fmt.Sprintf("%d:%s", transaction.WorkchainId, transaction.AccountAddr), utils.DefaultTag)
+		if err != nil {
+			return nil, err
+		}
+
 		transaction.Now = uint64(trTime.Unix())
 		for i, _ := range messagesDirection {
 			direction := messagesDirection[i]
+			var srcUf, destUf string
+
+			if messagesDestIsEmpty[i] != 1 {
+				destUf, err = utils.ConvertRawToUserFriendly(
+					fmt.Sprintf("%d:%s", messagesDestWorkchainId[i], messagesDestAddr[i]), utils.DefaultTag)
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
+			if messagesSrcIsEmpty[i] != 1 {
+				srcUf, err = utils.ConvertRawToUserFriendly(
+					fmt.Sprintf("%d:%s", messagesSrcWorkchainId[i], messagesSrcAddr[i]), utils.DefaultTag)
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
 			msg := &ton.TransactionMessage{
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
@@ -180,12 +208,14 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 					IsEmpty:     messagesDestIsEmpty[i] == 1,
 					WorkchainId: messagesDestWorkchainId[i],
 					Addr:        messagesDestAddr[i],
+					AddrUf:      destUf,
 					Anycast:     messagesDestAnycast[i],
 				},
 				Src: ton.AddrStd{
 					IsEmpty:     messagesSrcIsEmpty[i] == 1,
 					WorkchainId: messagesSrcWorkchainId[i],
 					Addr:        messagesSrcAddr[i],
+					AddrUf:      srcUf,
 					Anycast:     messagesSrcAnycast[i],
 				},
 				BodyType:  messagesBodyType[i],

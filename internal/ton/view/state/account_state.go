@@ -2,6 +2,8 @@ package state
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+	"strconv"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 
@@ -94,6 +96,11 @@ func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {
 		&res.LastPaid,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	if res.AddrUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(res.WorkchainId)) + ":" + res.Addr, utils.DefaultTag); err != nil {
+		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err
 	}
 

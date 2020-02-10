@@ -10,6 +10,7 @@ type Transaction struct {
 	TotalFeesNanograms    uint64 `json:"total_fees_nanograms"`
 	TotalFeesNanogramsLen uint8  `json:"total_fees_nanograms_len"`
 	AccountAddr           string `json:"account_addr"`
+	AccountAddrUf         string `json:"account_addr_uf"`
 	OrigStatus            string `json:"orig_status"`
 	EndStatus             string `json:"end_status"`
 

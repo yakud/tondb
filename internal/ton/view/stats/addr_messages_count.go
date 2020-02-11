@@ -90,7 +90,7 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 			return nil, nil, err
 		}
 
-		if row.AddrUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(row.WorkchainId)) + ":" + row.Addr, utils.DefaultTag); err != nil {
+		if row.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(row.WorkchainId, row.Addr); err != nil {
 			// Maybe we shouldn't fail here
 			return nil, nil, err
 		}

@@ -2,8 +2,6 @@ package feed
 
 import (
 	"database/sql"
-	"strconv"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
@@ -125,11 +123,11 @@ func (t *MessagesFeedGlobal) SelectLatestMessages(count int) ([]*MessageFeedGlob
 			rows.Close()
 			return nil, err
 		}
-		if row.SrcUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(row.SrcWorkchainId)) + ":" + row.Src, utils.DefaultTag); err != nil {
+		if row.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(row.SrcWorkchainId, row.Src); err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, err
 		}
-		if row.DestUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(row.DestWorkchainId)) + ":" + row.Dest, utils.DefaultTag); err != nil {
+		if row.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(row.DestWorkchainId, row.Dest); err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, err
 		}

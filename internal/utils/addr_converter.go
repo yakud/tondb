@@ -40,10 +40,10 @@ kf_8uRo6OBbQ97jCx2EIuKm8Wmt6Vb15-KsQHFLbKSMiYIny (base64url)
 */
 
 const (
-	AddrTagBounceable    = 0x11
-	AddrTagNonBounceable = 0x51
-	AddrTagDebugAddr     = 0x80
-	DefaultTag           = AddrTagBounceable
+	AddrTagBounceable          = 0x11
+	AddrTagNonBounceable       = 0x51
+	AddrTagDebugAddr           = 0x80
+	UserFriendlyAddrDefaultTag = AddrTagBounceable
 
 	Workchain0Byte  = 0x00
 	MasterchainByte = 0xff
@@ -54,6 +54,10 @@ const (
 )
 
 var defaultBase64 = base64.RawURLEncoding
+
+func ComposeRawAndConvertToUserFriendly(wcId int32, addr string) (string, error) {
+	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId)) + ":" + addr, UserFriendlyAddrDefaultTag)
+}
 
 func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 	wid, addr, err := parseAccountAddressRaw(rawAddr)
@@ -112,10 +116,8 @@ func ParseAccountAddress(addr string) (int32, string, error) {
 		return 0, "", err
 	}
 
-	match, err := regexp.MatchString(`[-]?\d:\S{64}`, addr)
-	if err != nil {
-		return 0, "", err
-	}
+	rawAddrMatcher := regexp.MustCompile(`[-]?\d:\S{64}`)
+	match := rawAddrMatcher.MatchString(addr)
 
 	if match {
 		return parseAccountAddressRaw(addr)

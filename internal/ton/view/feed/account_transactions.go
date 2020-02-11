@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
-	"gitlab.flora.loc/mills/tondb/internal/utils"
-	"strconv"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (
@@ -178,21 +176,21 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 			&accTrans.Bounced,
 		)
 
-		accTrans.AccountAddrUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(accTrans.WorkchainId))+":"+accTrans.AccountAddr, utils.DefaultTag)
+		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.WorkchainId, accTrans.AccountAddr)
 		if err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, err
 		}
 
 		if accTrans.MessageType != "ext_in_msg_info" {
-			accTrans.SrcUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(accTrans.SrcWorkchainId))+":"+accTrans.Src, utils.DefaultTag)
+			accTrans.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.SrcWorkchainId, accTrans.Src)
 			if err != nil {
 				// Maybe we shouldn't fail here?
 				return nil, err
 			}
 		}
 
-		accTrans.DestUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(accTrans.DestWorkchainId))+":"+accTrans.Dest, utils.DefaultTag)
+		accTrans.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.DestWorkchainId, accTrans.Dest)
 		if err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, err

@@ -2,7 +2,6 @@ package query
 
 import (
 	"database/sql"
-	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
 
@@ -159,8 +158,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			return nil, err
 		}
 
-		transaction.AccountAddrUf, err = utils.ConvertRawToUserFriendly(
-			fmt.Sprintf("%d:%s", transaction.WorkchainId, transaction.AccountAddr), utils.DefaultTag)
+		transaction.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(transaction.WorkchainId, transaction.AccountAddr)
 		if err != nil {
 			return nil, err
 		}
@@ -171,8 +169,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			var srcUf, destUf string
 
 			if messagesDestIsEmpty[i] != 1 {
-				destUf, err = utils.ConvertRawToUserFriendly(
-					fmt.Sprintf("%d:%s", messagesDestWorkchainId[i], messagesDestAddr[i]), utils.DefaultTag)
+				destUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesDestWorkchainId[i], messagesDestAddr[i])
 				if err != nil {
 					// Maybe we shouldn't fail here?
 					return nil, err
@@ -180,8 +177,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			}
 
 			if messagesSrcIsEmpty[i] != 1 {
-				srcUf, err = utils.ConvertRawToUserFriendly(
-					fmt.Sprintf("%d:%s", messagesSrcWorkchainId[i], messagesSrcAddr[i]), utils.DefaultTag)
+				srcUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesSrcWorkchainId[i], messagesSrcAddr[i])
 				if err != nil {
 					// Maybe we shouldn't fail here?
 					return nil, err

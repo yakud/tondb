@@ -52,7 +52,7 @@ func (q *GetTopWhales) GetTopWhales() (*TopWhales, error) {
 		if err := rows.Scan(&whale.AddrRaw, &whale.BalanceGram); err != nil {
 			return nil, err
 		}
-		if whale.AddrUf, err = utils.ConvertRawToUserFriendly(whale.AddrRaw, utils.DefaultTag); err != nil {
+		if whale.AddrUf, err = utils.ConvertRawToUserFriendly(whale.AddrRaw, utils.UserFriendlyAddrDefaultTag); err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, err
 		}

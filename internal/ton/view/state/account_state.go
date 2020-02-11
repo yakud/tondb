@@ -99,7 +99,7 @@ func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {
 		return nil, err
 	}
 
-	if res.AddrUf, err = utils.ConvertRawToUserFriendly(strconv.Itoa(int(res.WorkchainId)) + ":" + res.Addr, utils.DefaultTag); err != nil {
+	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(res.WorkchainId, res.Addr); err != nil {
 		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err
 	}

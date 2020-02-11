@@ -27,6 +27,11 @@ import (
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 )
 
+var (
+	blocksRootAliases = [...]string{"/blocks", "/block", "/b"}
+	addressRootAliases = [...]string{"/address", "/account", "/a"}
+)
+
 func main() {
 	addr := os.Getenv("ADDR")
 	if addr == "" {
@@ -76,12 +81,20 @@ func main() {
 	router.GET("/height/blockchain", api.BasicAuth(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
 	router.GET("/master/block/shards/range", api.BasicAuth(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
 	router.GET("/workchain/block/master", api.BasicAuth(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
-	router.GET("/block/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
-	router.GET("/block/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
-	router.GET("/blocks/feed", api.BasicAuth(api.NewGetBlocksFeed(blocksFeed).Handler))
 	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
-	router.GET("/account", api.BasicAuth(api.NewGetAccount(accountState).Handler))
-	router.GET("/account/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
+
+	// Block routes
+	for _, blockRoot := range blocksRootAliases {
+		router.GET(blockRoot + "/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
+		router.GET(blockRoot + "/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
+		router.GET(blockRoot + "/feed", api.BasicAuth(api.NewGetBlocksFeed(blocksFeed).Handler))
+	}
+
+	// Address (account) routes
+	for _, addrRoot := range addressRootAliases {
+		router.GET(addrRoot, api.BasicAuth(api.NewGetAccount(accountState).Handler))
+		router.GET(addrRoot + "/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
+	}
 
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)

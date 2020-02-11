@@ -763,6 +763,7 @@ paths:
         - core
       description: >
         Get block info by filters. <br>
+        This method is available by following paths: /block/info, /blocks/info, /b/info <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
@@ -806,6 +807,7 @@ paths:
         - core
       description: >
         Get block transactions by filters. <br>
+        This method is available by following paths: /block/transactions, /blocks/transactions, /b/transactions <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
@@ -904,7 +906,8 @@ paths:
       tags:
         - core
       description: >
-        Get account by address. Both raw and user-friendly addresses formats supported.
+        Get account by address. Both raw and user-friendly addresses formats supported. <br>
+        This method is available by following paths: /account, /address, /a
       security:
         - basicAuth: []
       parameters:
@@ -929,7 +932,8 @@ paths:
       tags:
         - core
       description: >
-        Get account transactions
+        Get account transactions <br>
+        This method is available by following paths: /account/transactions, /address/transactions, /a/transactions
       security:
         - basicAuth: []
       parameters:
@@ -959,13 +963,14 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /blocks/feed:
+  /block/feed:
     get:
       summary: "Get blocks feed"
       tags:
         - core
       description: >
-        Get blocks feed
+        Get blocks feed <br>
+        This method is available by following paths: /block/feed, /blocks/feed, /b/feed
       security:
         - basicAuth: []
       parameters:

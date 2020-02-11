@@ -3,7 +3,6 @@ package state
 import (
 	"database/sql"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
-	"strconv"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 

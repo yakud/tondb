@@ -35,7 +35,9 @@ const (
 			SELECT 
 			   Time
 			FROM ".inner._view_feed_BlocksFeed"
-			PREWHERE if(? != 0, Time < toDateTime(?), 1 == 1)
+			PREWHERE
+			     if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId == ?, 1 == 1)
+			     AND if(? != 0, Time < toDateTime(?), 1 == 1)
 			ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
 			LIMIT ?
 		)
@@ -49,7 +51,8 @@ const (
 	    EndLt
 	FROM ".inner._view_feed_BlocksFeed"
 	PREWHERE 
-		(Time >= TimeRange.1 AND Time <= TimeRange.2)
+		if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId == ?, 1 == 1)
+		AND (Time >= TimeRange.1 AND Time <= TimeRange.2)
 	ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
 `
 )
@@ -78,9 +81,9 @@ func (t *BlocksFeed) DropTable() error {
 	return err
 }
 
-func (t *BlocksFeed) SelectBlocks(limit int16, beforeTime time.Time) ([]*BlockInFeed, error) {
+func (t *BlocksFeed) SelectBlocks(wcId int32, limit int16, beforeTime time.Time) ([]*BlockInFeed, error) {
 	beforeTimeInt := beforeTime.Unix()
-	rows, err := t.conn.Query(queryBlocksFeed, beforeTimeInt, beforeTimeInt, limit)
+	rows, err := t.conn.Query(queryBlocksFeed, wcId, wcId, beforeTimeInt, beforeTimeInt, limit, wcId, wcId)
 	if err != nil {
 		if rows != nil {
 			rows.Close()

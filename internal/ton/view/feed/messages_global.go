@@ -2,7 +2,6 @@ package feed
 
 import (
 	"database/sql"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
@@ -68,8 +67,10 @@ type MessageFeedGlobal struct {
 	Direction       string `json:"direction"`
 	SrcWorkchainId  int32  `json:"src_workchain_id"`
 	Src             string `json:"src"`
+	SrcUf           string `json:"src_uf"`
 	DestWorkchainId int32  `json:"dest_workchain_id"`
 	Dest            string `json:"dest"`
+	DestUf          string `json:"dest_uf"`
 	ValueGrams      string `json:"value_grams"`
 	TotalFeeGrams   string `json:"total_fee_grams"`
 	Bounce          bool   `json:"bounce"`
@@ -120,6 +121,14 @@ func (t *MessagesFeedGlobal) SelectLatestMessages(count int) ([]*MessageFeedGlob
 		)
 		if err != nil {
 			rows.Close()
+			return nil, err
+		}
+		if row.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(row.SrcWorkchainId, row.Src); err != nil {
+			// Maybe we shouldn't fail here?
+			return nil, err
+		}
+		if row.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(row.DestWorkchainId, row.Dest); err != nil {
+			// Maybe we shouldn't fail here?
 			return nil, err
 		}
 		row.ValueGrams = utils.TruncateRightZeros(row.ValueGrams)

@@ -1,10 +1,7 @@
 package ton
 
 import (
-	"errors"
-	"net/url"
-	"strconv"
-	"strings"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
 )
 
@@ -13,6 +10,7 @@ type AccountState struct {
 	BlockHeader
 
 	Addr                   string    `json:"addr"`
+	AddrUf                 string    `json:"addr_uf"`
 	Time                   time.Time `json:"time"`
 	Anycast                string    `json:"anycast"`
 	Status                 string    `json:"status"`
@@ -29,26 +27,9 @@ type AccountState struct {
 }
 
 func ParseAccountAddress(addr string) (AddrStd, error) {
-	var err error
-	var addrStd AddrStd
-
-	addr, err = url.QueryUnescape(addr)
-	if err != nil {
-		return addrStd, err
+	if wc, addrHex, err := utils.ParseAccountAddress(addr); err != nil {
+		return AddrStd{}, err
+	} else {
+		return AddrStd{IsEmpty: false, WorkchainId: wc, Addr: addrHex}, nil
 	}
-
-	parts := strings.Split(addr, ":")
-	if len(parts) != 2 {
-		return addrStd, errors.New("wrong addr format. Should be workchainId:addrHash")
-	}
-
-	workchainId, err := strconv.ParseInt(parts[0], 10, 32)
-	if err != nil {
-		return addrStd, err
-	}
-
-	addrStd.WorkchainId = int32(workchainId)
-	addrStd.Addr = strings.ToUpper(parts[1])
-
-	return addrStd, nil
 }

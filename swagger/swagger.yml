@@ -39,6 +39,9 @@ definitions:
         format: int64
       addr:
         type: string
+      addr_uf:
+        type: string
+        description: "User-friendly account address."
       status:
         type: string
       balance_nanogram:
@@ -108,6 +111,9 @@ definitions:
         format: int64
       account_addr:
         type: string
+      account_addr_uf:
+        type: string
+        description: "User-friendly account address."
       lt:
         type: integer
         format: int64
@@ -128,11 +134,17 @@ definitions:
         format: int32
       src:
         type: string
+      src_uf:
+        type: string
+        description: "User-friendly source address."
       dest_workchain_id:
         type: integer
         format: int32
       dest:
         type: string
+      dest_uf:
+        type: string
+        description: "User-friendly destination address."
       value_nanograms:
         type: string
       fwd_fee_nanograms:
@@ -338,6 +350,9 @@ definitions:
       account_addr:
         type: string
         description: "account_addr"
+      account_addr_uf:
+        type: string
+        description: "User-friendly account address."
       orig_status:
         type: string
         description: "orig_status"
@@ -452,6 +467,9 @@ definitions:
       addr:
         type: string
         description: "Addr HEX"
+      addr_uf:
+        type: string
+        description: "User-friendly account address."
       anycast:
         type: string
         description: "anycast"
@@ -460,8 +478,12 @@ definitions:
     description: ""
     type: object
     properties:
-      addr:
+      addr_raw:
         type: string
+        description: "Raw whale account address."
+      addr_uf:
+        type: string
+        description: "User-friendly whale account address."
       balance_gram:
         type: string
 
@@ -488,6 +510,9 @@ definitions:
         format: int32
       addr:
         type: string
+      addr_uf:
+        type: string
+        description: "User-friendly account address."
       count:
         type: integer
         format: int64
@@ -513,10 +538,20 @@ definitions:
         format: int64
       direction:
         type: string
+      src_workchain_id:
+        type: string
       src:
+        type: string
+      src_uf:
+        type: string
+        description: "User-friendly source account address."
+      dest_workchain_id:
         type: string
       dest:
         type: string
+      dest_uf:
+        type: string
+        description: "User-friendly destination account address."
       value_grams:
         type: string
       total_fee_grams:
@@ -728,6 +763,7 @@ paths:
         - core
       description: >
         Get block info by filters. <br>
+        This method is available by following paths: /block/info, /blocks/info, /b/info <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
@@ -771,6 +807,7 @@ paths:
         - core
       description: >
         Get block transactions by filters. <br>
+        This method is available by following paths: /block/transactions, /blocks/transactions, /b/transactions <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
@@ -807,7 +844,7 @@ paths:
         - name: addr
           in: query
           type: string
-          description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiply <b>addr</b>'s."
+          description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiple <b>addr</b>'s. Accepts <b>addr</b>'s in both raw and user-friendly format."
         - name: message_type
           in: query
           type: string
@@ -869,7 +906,8 @@ paths:
       tags:
         - core
       description: >
-        Get account by address. Support only raw address format yet. Another formats soon...
+        Get account by address. Both raw and user-friendly addresses formats supported. <br>
+        This method is available by following paths: /account, /address, /a
       security:
         - basicAuth: []
       parameters:
@@ -877,7 +915,7 @@ paths:
           in: query
           type: string
           required: true
-          description: "Account address"
+          description: "Account address (both raw and user-friendly addresses formats supported)."
       responses:
         200:
           description: OK
@@ -894,7 +932,8 @@ paths:
       tags:
         - core
       description: >
-        Get account transactions
+        Get account transactions <br>
+        This method is available by following paths: /account/transactions, /address/transactions, /a/transactions
       security:
         - basicAuth: []
       parameters:
@@ -902,7 +941,7 @@ paths:
           in: query
           type: string
           required: true
-          description: "Account address"
+          description: "Account address (both raw and user-friendly addresses formats supported)."
         - name: before_lt
           in: query
           type: integer
@@ -924,13 +963,14 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /blocks/feed:
+  /block/feed:
     get:
       summary: "Get blocks feed"
       tags:
         - core
       description: >
-        Get blocks feed
+        Get blocks feed <br>
+        This method is available by following paths: /block/feed, /blocks/feed, /b/feed
       security:
         - basicAuth: []
       parameters:
@@ -957,20 +997,20 @@ paths:
             $ref: "#/definitions/error"
 
   /timeseries/blocks-by-workchain:
-  get:
-    summary: "Blocks by workchain"
-    tags:
-      - main
-    description: ""
-    responses:
-      200:
-        description: OK
-        schema:
-          $ref: "#/definitions/TimeseriesBlocksByWorkchain"
-      default:
-        description: generic error response
-        schema:
-          $ref: "#/definitions/error"
+    get:
+      summary: "Blocks by workchain"
+      tags:
+        - main
+      description: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/TimeseriesBlocksByWorkchain"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
 
   /timeseries/messages-by-type:
     get:

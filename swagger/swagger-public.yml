@@ -21,8 +21,12 @@ definitions:
     description: ""
     type: object
     properties:
-      addr:
+      addr_raw:
         type: string
+        description: "Raw whale account address."
+      addr_uf:
+        type: string
+        description: "User-friendly whale account address."
       balance_gram:
         type: string
 
@@ -49,6 +53,9 @@ definitions:
         format: int32
       addr:
         type: string
+      addr_uf:
+        type: string
+        description: "User-friendly account address."
       count:
         type: integer
         format: int64
@@ -74,10 +81,20 @@ definitions:
         format: int64
       direction:
         type: string
+      src_workchain_id:
+        type: string
       src:
+        type: string
+      src_uf:
+        type: string
+        description: "User-friendly source account address."
+      dest_workchain_id:
         type: string
       dest:
         type: string
+      dest_uf:
+        type: string
+        description: "User-friendly destination account address."
       value_grams:
         type: string
       total_fee_grams:

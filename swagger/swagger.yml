@@ -997,20 +997,20 @@ paths:
             $ref: "#/definitions/error"
 
   /timeseries/blocks-by-workchain:
-  get:
-    summary: "Blocks by workchain"
-    tags:
-      - main
-    description: ""
-    responses:
-      200:
-        description: OK
-        schema:
-          $ref: "#/definitions/TimeseriesBlocksByWorkchain"
-      default:
-        description: generic error response
-        schema:
-          $ref: "#/definitions/error"
+    get:
+      summary: "Blocks by workchain"
+      tags:
+        - main
+      description: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/TimeseriesBlocksByWorkchain"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
 
   /timeseries/messages-by-type:
     get:

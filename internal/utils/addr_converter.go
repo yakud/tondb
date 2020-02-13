@@ -56,7 +56,7 @@ const (
 var defaultBase64 = base64.RawURLEncoding
 
 func ComposeRawAndConvertToUserFriendly(wcId int32, addr string) (string, error) {
-	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId)) + ":" + addr, UserFriendlyAddrDefaultTag)
+	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId))+":"+addr, UserFriendlyAddrDefaultTag)
 }
 
 func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
@@ -108,15 +108,15 @@ func ConvertUserFriendlyToRaw(ufAddr string) (string, error) {
 	}
 }
 
+var rawAddrMatcher = regexp.MustCompile(`[-]?\d:\S{64}`)
+
 func ParseAccountAddress(addr string) (int32, string, error) {
 	var err error
-
 	addr, err = url.QueryUnescape(addr)
 	if err != nil {
 		return 0, "", err
 	}
 
-	rawAddrMatcher := regexp.MustCompile(`[-]?\d:\S{64}`)
 	match := rawAddrMatcher.MatchString(addr)
 
 	if match {
@@ -166,47 +166,3 @@ func parseAccountAddressUserFriendly(addr string) (int32, string, error) {
 
 	return wc, addrHex, nil
 }
-
-/*
-
-bool unpack_std_smc_addr(const char packed[48], ton::WorkchainId& wc, ton::StdSmcAddress& addr, bool& bounceable,
-                         bool& testnet) {
-  unsigned char buffer[36];
-  wc = ton::workchainInvalid;
-  if (!buff_base64_decode(td::MutableSlice{buffer, 36}, td::Slice{packed, 48}, true)) {
-    return false;
-  }
-  unsigned crc = td::crc16(td::Slice{buffer, 34});
-  if (buffer[34] != (unsigned char)(crc >> 8) || buffer[35] != (unsigned char)(crc & 0xff)) {
-    return false;
-  }
-  if ((buffer[0] & 0x3f) != 0x11) {
-    return false;
-  }
-  testnet = (buffer[0] & 0x80);
-  bounceable = !(buffer[0] & 0x40);
-  wc = (td::int8)buffer[1];
-  std::memcpy(addr.data(), buffer + 2, 32);
-  return true;
-}
-
-
-def raw_to_userfriendly(address, tag=0x11):
-    workchain_id, key = address.split(':')
-    workchain_id = int(workchain_id)
-    key = bytearray.fromhex(key)
-
-    short_ints = [j * 256 + i for i, j in zip(*[iter(key)] * 2)]
-    payload = struct.pack(f'Bb{"H"*16}', tag, workchain_id, *short_ints)
-    crc = crc16xmodem(payload)
-
-    e_key = payload + struct.pack('>H', crc)
-    return base64.b64encode(e_key).decode("utf-8")
-
-
-def userfriendly_to_raw(address):
-    k = base64.b64decode(address)[1:34]
-    workchain_id = struct.unpack('b', k[:1])[0]
-    key = k[1:].hex().upper()
-    return f'{workchain_id}:{key}'
-*/

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +11,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-const defaultBlocksFeedCount = 30
+const (
+	defaultBlocksFeedCount = 30
+	noWcId = math.MinInt32
+)
 
 type GetBlocksFeed struct {
 	f *feed.BlocksFeed
@@ -56,7 +60,25 @@ func (m *GetBlocksFeed) Handler(w http.ResponseWriter, r *http.Request, p httpro
 		limit = defaultBlocksFeedCount
 	}
 
-	blocksFeed, err := m.f.SelectBlocks(limit, beforeTime)
+	// workchain_id
+	var wcId int32
+	wcIdStr, ok := r.URL.Query()["workchain_id"]
+	if ok {
+		if len(wcIdStr) > 1 {
+			http.Error(w, `{"error":true,"message":"only one workchain_id parameter can be set"}`, http.StatusBadRequest)
+			return
+		}
+		wcId64, err := strconv.ParseInt(wcIdStr[0], 10, 32)
+		if err != nil {
+			http.Error(w, `{"error":true,"message":"error parsing workchain_id field"}`, http.StatusBadRequest)
+			return
+		}
+		wcId = int32(wcId64)
+	} else {
+		wcId = noWcId
+	}
+
+	blocksFeed, err := m.f.SelectBlocks(wcId, limit, beforeTime)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error fetch blocks"}`, http.StatusInternalServerError)
 		return

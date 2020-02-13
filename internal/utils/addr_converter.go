@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -39,9 +40,10 @@ kf_8uRo6OBbQ97jCx2EIuKm8Wmt6Vb15-KsQHFLbKSMiYIny (base64url)
 */
 
 const (
-	AddrTagBounceable    = 0x11
-	AddrTagNonBounceable = 0x51
-	AddrTagDebugAddr     = 0x80
+	AddrTagBounceable          = 0x11
+	AddrTagNonBounceable       = 0x51
+	AddrTagDebugAddr           = 0x80
+	UserFriendlyAddrDefaultTag = AddrTagBounceable
 
 	Workchain0Byte  = 0x00
 	MasterchainByte = 0xff
@@ -53,8 +55,12 @@ const (
 
 var defaultBase64 = base64.RawURLEncoding
 
+func ComposeRawAndConvertToUserFriendly(wcId int32, addr string) (string, error) {
+	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId))+":"+addr, UserFriendlyAddrDefaultTag)
+}
+
 func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
-	wid, addr, err := ParseAccountAddress(rawAddr)
+	wid, addr, err := parseAccountAddressRaw(rawAddr)
 	if err != nil {
 		return "", err
 	}
@@ -95,34 +101,33 @@ func ConvertRawToUserFriendly(rawAddr string, tag byte) (string, error) {
 }
 
 func ConvertUserFriendlyToRaw(ufAddr string) (string, error) {
-	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
-	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(ufAddr)); err != nil {
+	if wc, addrHex, err := parseAccountAddressUserFriendly(ufAddr); err != nil {
 		return "", err
+	} else {
+		return strconv.FormatInt(int64(wc), 10) + ":" + addrHex, nil
 	}
-
-	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
-
-	if addrUfBytes[34] != uint8(checksum>>8) || addrUfBytes[35] != uint8(checksum&0xff) {
-		return "", fmt.Errorf("mismatch checksum")
-	}
-
-	if (addrUfBytes[0] & 0x3f) != 0x11 {
-		return "", fmt.Errorf("mismatch first byte")
-	}
-
-	wc := strconv.FormatInt(int64(int8(addrUfBytes[1])), 10)
-	addrHex := strings.ToUpper(hex.EncodeToString(addrUfBytes[2:34]))
-
-	return wc + ":" + addrHex, nil
 }
+
+var rawAddrMatcher = regexp.MustCompile(`[-]?\d:\S{64}`)
 
 func ParseAccountAddress(addr string) (int32, string, error) {
 	var err error
-
 	addr, err = url.QueryUnescape(addr)
 	if err != nil {
 		return 0, "", err
 	}
+
+	match := rawAddrMatcher.MatchString(addr)
+
+	if match {
+		return parseAccountAddressRaw(addr)
+	} else {
+		return parseAccountAddressUserFriendly(addr)
+	}
+}
+
+func parseAccountAddressRaw(addr string) (int32, string, error) {
+	var err error
 
 	parts := strings.Split(addr, ":")
 	if len(parts) != 2 {
@@ -140,46 +145,24 @@ func ParseAccountAddress(addr string) (int32, string, error) {
 	return WorkchainId, Addr, nil
 }
 
-/*
+func parseAccountAddressUserFriendly(addr string) (int32, string, error) {
+	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
+	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
+		return 0, "", err
+	}
 
-bool unpack_std_smc_addr(const char packed[48], ton::WorkchainId& wc, ton::StdSmcAddress& addr, bool& bounceable,
-                         bool& testnet) {
-  unsigned char buffer[36];
-  wc = ton::workchainInvalid;
-  if (!buff_base64_decode(td::MutableSlice{buffer, 36}, td::Slice{packed, 48}, true)) {
-    return false;
-  }
-  unsigned crc = td::crc16(td::Slice{buffer, 34});
-  if (buffer[34] != (unsigned char)(crc >> 8) || buffer[35] != (unsigned char)(crc & 0xff)) {
-    return false;
-  }
-  if ((buffer[0] & 0x3f) != 0x11) {
-    return false;
-  }
-  testnet = (buffer[0] & 0x80);
-  bounceable = !(buffer[0] & 0x40);
-  wc = (td::int8)buffer[1];
-  std::memcpy(addr.data(), buffer + 2, 32);
-  return true;
+	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])
+
+	if addrUfBytes[34] != uint8(checksum>>8) || addrUfBytes[35] != uint8(checksum&0xff) {
+		return 0, "", fmt.Errorf("mismatch checksum")
+	}
+
+	if (addrUfBytes[0] & 0x3f) != 0x11 {
+		return 0, "", fmt.Errorf("mismatch first byte")
+	}
+
+	wc := int32(int8(addrUfBytes[1]))
+	addrHex := strings.ToUpper(hex.EncodeToString(addrUfBytes[2:34]))
+
+	return wc, addrHex, nil
 }
-
-
-def raw_to_userfriendly(address, tag=0x11):
-    workchain_id, key = address.split(':')
-    workchain_id = int(workchain_id)
-    key = bytearray.fromhex(key)
-
-    short_ints = [j * 256 + i for i, j in zip(*[iter(key)] * 2)]
-    payload = struct.pack(f'Bb{"H"*16}', tag, workchain_id, *short_ints)
-    crc = crc16xmodem(payload)
-
-    e_key = payload + struct.pack('>H', crc)
-    return base64.b64encode(e_key).decode("utf-8")
-
-
-def userfriendly_to_raw(address):
-    k = base64.b64decode(address)[1:34]
-    workchain_id = struct.unpack('b', k[:1])[0]
-    key = k[1:].hex().upper()
-    return f'{workchain_id}:{key}'
-*/

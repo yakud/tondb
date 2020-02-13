@@ -2,11 +2,10 @@ package feed
 
 import (
 	"database/sql"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (
@@ -94,6 +93,7 @@ type AccountTransaction struct {
 	Shard              string `json:"shard"`
 	SeqNo              uint64 `json:"seq_no"`
 	AccountAddr        string `json:"account_addr"`
+	AccountAddrUf      string `json:"account_addr_uf"`
 	Lt                 uint64 `json:"lt"`
 	Time               uint64 `json:"time"`
 	Type               string `json:"type"`
@@ -102,8 +102,10 @@ type AccountTransaction struct {
 	Direction          string `json:"direction"`
 	SrcWorkchainId     int32  `json:"src_workchain_id"`
 	Src                string `json:"src"`
+	SrcUf              string `json:"src_uf"`
 	DestWorkchainId    int32  `json:"dest_workchain_id"`
 	Dest               string `json:"dest"`
+	DestUf             string `json:"dest_uf"`
 	ValueNanograms     string `json:"value_nanograms"`
 	FwdFeeNanograms    string `json:"fwd_fee_nanograms"`
 	IhrFeeNanograms    string `json:"ihr_fee_nanograms"`
@@ -173,6 +175,27 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 			&accTrans.Bounce,
 			&accTrans.Bounced,
 		)
+
+		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.WorkchainId, accTrans.AccountAddr)
+		if err != nil {
+			// Maybe we shouldn't fail here?
+			return nil, err
+		}
+
+		if accTrans.MessageType != "ext_in_msg_info" {
+			accTrans.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.SrcWorkchainId, accTrans.Src)
+			if err != nil {
+				// Maybe we shouldn't fail here?
+				return nil, err
+			}
+		}
+
+		accTrans.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.DestWorkchainId, accTrans.Dest)
+		if err != nil {
+			// Maybe we shouldn't fail here?
+			return nil, err
+		}
+
 		if err != nil {
 			rows.Close()
 			return nil, err

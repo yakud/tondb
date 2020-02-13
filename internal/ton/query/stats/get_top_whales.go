@@ -2,8 +2,9 @@ package stats
 
 import (
 	"database/sql"
-	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
+
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
@@ -20,7 +21,7 @@ const (
 )
 
 type Whale struct {
-	AddrRaw     string `json:"addr_raw"`
+	AddrRaw     string `json:"addr"`
 	AddrUf      string `json:"addr_uf"`
 	BalanceGram string `json:"balance_gram"`
 }

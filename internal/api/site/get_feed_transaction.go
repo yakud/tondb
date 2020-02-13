@@ -10,7 +10,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-const defaultLatestMessagesCount = 500
+const defaultLatestMessagesCount = 100
 
 type GetLatestMessages struct {
 	q *feed.MessagesFeedGlobal

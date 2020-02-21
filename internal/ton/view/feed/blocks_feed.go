@@ -10,7 +10,7 @@ import (
 const (
 	createBlocksFeed = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_BlocksFeed
-	ENGINE = MergeTree() 
+	ENGINE = SummingMergeTree()  
 	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId, Shard, SeqNo)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
@@ -21,9 +21,32 @@ const (
 		Shard,
 		SeqNo,
 	   	Time,
-	    StartLt,
-	    EndLt
-	FROM blocks
+	    TotalFeesNanograms,
+	    count,
+	    ValueNanograms,
+	    IhrFeeNanograms,
+	    ImportFeeNanograms,
+	    FwdFeeNanograms
+	FROM (
+	    SELECT
+			WorkchainId,
+			Shard,
+			SeqNo,
+			Time
+		FROM blocks
+	) ANY LEFT JOIN (
+	    SELECT 
+	    	TotalFeesNanograms,
+	        WorkchainId,
+			Shard,
+	        SeqNo,
+	        count() AS count,
+	        sumArray(Messages.ValueNanograms) AS ValueNanograms,
+	        sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
+	    	sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
+	        sumArray(Messages.FwdFeeNanograms) AS FwdFeeNanograms
+	    FROM transactions GROUP BY TotalFeesNanograms, WorkchainId, Shard, SeqNo
+	) USING (WorkchainId, Shard, SeqNo)
 `
 
 	dropBlocksFeed = `DROP TABLE _view_feed_BlocksFeed`
@@ -47,8 +70,12 @@ const (
 		Shard,
 		SeqNo,
 		toUInt64(Time),
-	    StartLt,
-	    EndLt
+	    TotalFeesNanograms,
+	    count,
+	    ValueNanograms,
+	    IhrFeeNanograms,
+	    ImportFeeNanograms,
+	    FwdFeeNanograms
 	FROM ".inner._view_feed_BlocksFeed"
 	PREWHERE 
 		(Time >= TimeRange.1 AND Time <= TimeRange.2) AND
@@ -58,12 +85,16 @@ const (
 )
 
 type BlockInFeed struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
-	Time        uint64 `json:"time"`
-	StartLt     uint64 `json:"start_lt"`
-	EndLt       uint64 `json:"end_lt"`
+	WorkchainId        int32  `json:"workchain_id"`
+	Shard              uint64 `json:"shard"`
+	SeqNo              uint64 `json:"seq_no"`
+	Time               uint64 `json:"time"`
+	TotalFeesNanograms uint64 `json:"total_fees_nanograms"`
+	Count              uint64 `json:"count"`
+	ValueNanograms     uint64 `json:"value_nanograms"`
+	IhrFeeNanograms    uint64 `json:"ihr_fee_nanograms"`
+	ImportFeeNanograms uint64 `json:"import_fee_nanograms"`
+	FwdFeeNanograms    uint64 `json:"fwd_fee_nanograms"`
 }
 
 type BlocksFeed struct {
@@ -100,8 +131,12 @@ func (t *BlocksFeed) SelectBlocks(wcId int32, limit int16, beforeTime time.Time)
 			&row.Shard,
 			&row.SeqNo,
 			&row.Time,
-			&row.StartLt,
-			&row.EndLt,
+			&row.TotalFeesNanograms,
+			&row.Count,
+			&row.ValueNanograms,
+			&row.IhrFeeNanograms,
+			&row.ImportFeeNanograms,
+			&row.FwdFeeNanograms,
 		)
 		if err != nil {
 			rows.Close()

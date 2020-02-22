@@ -10,7 +10,7 @@ import (
 const (
 	createBlocksFeed = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_BlocksFeed
-	ENGINE = SummingMergeTree()  
+	ENGINE = MergeTree()  
 	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId, Shard, SeqNo)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
@@ -20,67 +20,86 @@ const (
 		WorkchainId,
 		Shard,
 		SeqNo,
-	   	Time,
-	    TotalFeesNanograms,
-	    count,
-	    ValueNanograms,
-	    IhrFeeNanograms,
-	    ImportFeeNanograms,
-	    FwdFeeNanograms
-	FROM (
-	    SELECT
-			WorkchainId,
-			Shard,
-			SeqNo,
-			Time
-		FROM blocks
-	) ANY LEFT JOIN (
-	    SELECT 
-	    	TotalFeesNanograms,
-	        WorkchainId,
-			Shard,
-	        SeqNo,
-	        count() AS count,
-	        sumArray(Messages.ValueNanograms) AS ValueNanograms,
-	        sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
-	    	sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
-	        sumArray(Messages.FwdFeeNanograms) AS FwdFeeNanograms
-	    FROM transactions GROUP BY TotalFeesNanograms, WorkchainId, Shard, SeqNo
-	) USING (WorkchainId, Shard, SeqNo)
+		Time
+	FROM blocks
+`
+
+	createTransactionFeesFeed = `
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
+	ENGINE = SummingMergeTree()  
+	PARTITION BY toStartOfYear(Time)
+	ORDER BY (WorkchainId, Shard, SeqNo)
+	SETTINGS index_granularity=128,index_granularity_bytes=0
+	POPULATE 
+	AS
+	SELECT 
+	    Time,   
+		TotalFeesNanograms,
+		WorkchainId,
+		Shard,
+		SeqNo,
+		count() AS Count,
+		sumArray(Messages.ValueNanograms) AS ValueNanograms,
+		sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
+		sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
+		sumArray(Messages.FwdFeeNanograms) AS FwdFeeNanograms
+	FROM transactions
+	GROUP BY Time, TotalFeesNanograms, WorkchainId, Shard, SeqNo
 `
 
 	dropBlocksFeed = `DROP TABLE _view_feed_BlocksFeed`
 
+	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
+
 	queryBlocksFeed = `
-	WITH (
-		SELECT (min(Time), max(Time))
-		FROM (
-			SELECT 
-			   Time
-			FROM ".inner._view_feed_BlocksFeed"
-			PREWHERE
-				 if(? != 0, Time < toDateTime(?), 1) AND
-			     if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-			ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
-			LIMIT ?
-		)
-	) as TimeRange
 	SELECT 
 		WorkchainId,
 		Shard,
 		SeqNo,
 		toUInt64(Time),
 	    TotalFeesNanograms,
-	    count,
+	    Count,
 	    ValueNanograms,
 	    IhrFeeNanograms,
 	    ImportFeeNanograms,
 	    FwdFeeNanograms
-	FROM ".inner._view_feed_BlocksFeed"
-	PREWHERE 
-		(Time >= TimeRange.1 AND Time <= TimeRange.2) AND
-		if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-	ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+	FROM (
+	    WITH (
+			SELECT (min(Time), max(Time))
+			FROM (
+				SELECT 
+				   Time
+				FROM ".inner._view_feed_BlocksFeed"
+				PREWHERE
+					 if(? != 0, Time < toDateTime(?), 1) AND
+					 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
+				ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+				LIMIT ?
+			)
+		) as TimeRange
+	     SELECT 
+			 WorkchainId,
+			 Shard,
+			 SeqNo,
+			 Time
+	     FROM ".inner._view_feed_BlocksFeed"
+	     PREWHERE 
+			 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
+			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
+		 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+	) ANY LEFT JOIN ( 
+		SELECT
+		    WorkchainId,
+			Shard,
+			SeqNo,
+			TotalFeesNanograms,
+			Count,
+			ValueNanograms,
+			IhrFeeNanograms,
+			ImportFeeNanograms,
+			FwdFeeNanograms
+		FROM ".inner._view_feed_TransactionFeesFeed"
+	) USING (WorkchainId, Shard, SeqNo);
 `
 )
 
@@ -104,11 +123,13 @@ type BlocksFeed struct {
 
 func (t *BlocksFeed) CreateTable() error {
 	_, err := t.conn.Exec(createBlocksFeed)
+	_, err = t.conn.Exec(createTransactionFeesFeed)
 	return err
 }
 
 func (t *BlocksFeed) DropTable() error {
 	_, err := t.conn.Exec(dropBlocksFeed)
+	_, err = t.conn.Exec(dropTransactionFeesFeed)
 	return err
 }
 

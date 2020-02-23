@@ -147,8 +147,10 @@ func parseAccountAddressRaw(addr string) (int32, string, error) {
 
 func parseAccountAddressUserFriendly(addr string) (int32, string, error) {
 	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
-	if _, err := defaultBase64.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
-		return 0, "", err
+	if _, err := base64.RawURLEncoding.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
+		if _, err := base64.RawStdEncoding.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
+			return 0, "", err
+		}
 	}
 
 	checksum := crc16.Checksum(crc16.XModem, addrUfBytes[:crcHashBytes])

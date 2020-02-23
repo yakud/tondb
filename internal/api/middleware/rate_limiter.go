@@ -43,11 +43,9 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 			default:
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "core:",
-					PerSecondLimit: 1,
+					PerSecondLimit: 5,
 				}
 			}
-
-			log.Printf("touch: %s %s with limits: %+v", clientIp, r.URL.Path, limits)
 
 			if limitExceeded, err := rateLimiter.TouchAndCheckLimit(limits, clientIp); limitExceeded {
 				if err != nil {

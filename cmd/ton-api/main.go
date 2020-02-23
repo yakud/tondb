@@ -96,6 +96,9 @@ func main() {
 	searchTransactionsQuery := query.NewSearchTransactions(chConnect)
 	getBlockInfoQuery := query.NewGetBlockInfo(chConnect)
 
+	if err := ratelimit.RateLimitLua.Load(redisClient).Err(); err != nil {
+		log.Fatal("error load redis lua script:", err)
+	}
 	rateLimiter := ratelimit.NewRateLimiter(redisClient)
 	rateLimitMiddleware := middleware.RateLimit(rateLimiter)
 

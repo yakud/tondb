@@ -178,7 +178,7 @@ func main() {
 	bgCache.AddQuery(globalMetrics)
 
 	go func() {
-		bgCache.RunTicker(ctxBgCache, 30 * time.Second)
+		bgCache.RunTicker(ctxBgCache, time.Second)
 	}()
 
 	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
@@ -188,7 +188,7 @@ func main() {
 	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
 	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
 	router.GET("/top/whales", site.NewGetTopWhales(qGetTopWhales).Handler)
-	router.GET("/global-metrics", statsApi.NewGlobalMetrics(globalMetrics).Handler)
+	router.GET("/stats/global-metrics", statsApi.NewGlobalMetrics(globalMetrics).Handler)
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

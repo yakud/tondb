@@ -12,7 +12,7 @@ const (
 	getTotalAddrAndGram = `
 	SELECT
 		count() AS TotalAddr,
-		sum(BalanceNanogram) AS TotalNanogran
+		sum(BalanceNanogram) AS TotalNanogram
     FROM ".inner._view_state_AccountState"
 	FINAL
 `
@@ -28,14 +28,14 @@ const (
 
 type GlobalMetricsResult struct {
 	TotalAddr     uint64 `json:"total_addr"`
-	TotalNanogram string `json:"total_nanogram"`
+	TotalNanogram uint64 `json:"total_nanogram"`
 	TotalBlocks   uint64 `json:"total_blocks"`
 	TotalMessages uint64 `json:"total_messages"`
 }
 
 type GlobalMetrics struct {
 	conn        *sql.DB
-	resultCache *cache.Background
+	resultCache cache.Cache
 }
 
 func (t *GlobalMetrics) UpdateQuery() error {
@@ -56,7 +56,7 @@ func (t *GlobalMetrics) UpdateQuery() error {
 		return err
 	}
 
-	// Not handling the error because it's quite useless in this implementation of cache (cache.Background).
+	// Not handling the error because it's quite useless in this implementation of Cache interface (cache.Background).
 	// Set function returns error in Cache interface because in some implementations of it errors may be somehow valuable.
 	t.resultCache.Set(cacheKey, &res)
 

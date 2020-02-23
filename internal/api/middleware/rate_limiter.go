@@ -31,7 +31,7 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				"/addr/top-by-message-count",
 				"/top/whales":
 				limits = ratelimit.LimitsConfig{
-					LimitPrefix:    "fast",
+					LimitPrefix:    "main",
 					PerSecondLimit: 15,
 				}
 

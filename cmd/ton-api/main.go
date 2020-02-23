@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 
 	"gitlab.flora.loc/mills/tondb/internal/api/site"
@@ -28,7 +30,7 @@ import (
 )
 
 var (
-	blocksRootAliases = [...]string{"/blocks", "/block", "/b"}
+	blocksRootAliases  = [...]string{"/blocks", "/block", "/b"}
 	addressRootAliases = [...]string{"/address", "/account", "/a"}
 )
 
@@ -42,7 +44,16 @@ func main() {
 	if chAddr == "" {
 		chAddr = "http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton2?max_query_size=3145728000"
 	}
+	blocksFetcherAddr := os.Getenv("TLB_BLOCKS_FETCHER_ADDR")
+	if blocksFetcherAddr == "" {
+		blocksFetcherAddr = "127.0.0.1:13699"
+	}
 	chConnect, err := ch.Connect(&chAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	blocksFetcher, err := blocks_fetcher.NewClient(blocksFetcherAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,18 +93,19 @@ func main() {
 	router.GET("/master/block/shards/range", api.BasicAuth(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
 	router.GET("/workchain/block/master", api.BasicAuth(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
 	router.GET("/transaction", api.BasicAuth(api.NewGetTransactions(searchTransactionsQuery).Handler))
+	router.GET("/block/tlb", api.BasicAuth(api.NewGetBlockTlb(blocksFetcher).Handler))
 
 	// Block routes
 	for _, blockRoot := range blocksRootAliases {
-		router.GET(blockRoot + "/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
-		router.GET(blockRoot + "/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
-		router.GET(blockRoot + "/feed", api.BasicAuth(api.NewGetBlocksFeed(blocksFeed).Handler))
+		router.GET(blockRoot+"/info", api.BasicAuth(api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage).Handler))
+		router.GET(blockRoot+"/transactions", api.BasicAuth(api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage).Handler))
+		router.GET(blockRoot+"/feed", api.BasicAuth(api.NewGetBlocksFeed(blocksFeed).Handler))
 	}
 
 	// Address (account) routes
 	for _, addrRoot := range addressRootAliases {
 		router.GET(addrRoot, api.BasicAuth(api.NewGetAccount(accountState).Handler))
-		router.GET(addrRoot + "/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
+		router.GET(addrRoot+"/transactions", api.BasicAuth(api.NewGetAccountTransactions(accountTransactions).Handler))
 	}
 
 	// Main API

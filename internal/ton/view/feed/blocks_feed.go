@@ -28,7 +28,7 @@ const (
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
 	ENGINE = SummingMergeTree()  
 	PARTITION BY toStartOfYear(Time)
-	ORDER BY (WorkchainId, Shard, SeqNo)
+	ORDER BY (Time, WorkchainId, Shard, SeqNo)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
 	POPULATE 
 	AS
@@ -51,6 +51,7 @@ const (
 
 	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
 
+	// TODO: optimize query make it beauty
 	queryBlocksFeed = `
 	SELECT 
 		WorkchainId,
@@ -88,6 +89,19 @@ const (
 			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
 		 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
 	) ANY LEFT JOIN ( 
+		WITH (
+			SELECT (min(Time), max(Time))
+			FROM (
+				SELECT 
+				   Time
+				FROM ".inner._view_feed_BlocksFeed"
+				PREWHERE
+					 if(? != 0, Time < toDateTime(?), 1) AND
+					 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
+				ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+				LIMIT ?
+			)
+		) as TimeRange
 		SELECT
 		    WorkchainId,
 			Shard,
@@ -99,6 +113,9 @@ const (
 			ImportFeeNanograms,
 			FwdFeeNanograms
 		FROM ".inner._view_feed_TransactionFeesFeed"
+		PREWHERE 
+			 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
+			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
 	) USING (WorkchainId, Shard, SeqNo);
 `
 )
@@ -135,7 +152,11 @@ func (t *BlocksFeed) DropTable() error {
 
 func (t *BlocksFeed) SelectBlocks(wcId int32, limit int16, beforeTime time.Time) ([]*BlockInFeed, error) {
 	beforeTimeInt := beforeTime.Unix()
-	rows, err := t.conn.Query(queryBlocksFeed, beforeTimeInt, beforeTimeInt, wcId, wcId, limit, wcId, wcId)
+	rows, err := t.conn.Query(
+		queryBlocksFeed,
+		beforeTimeInt, beforeTimeInt, wcId, wcId, limit, wcId, wcId,
+		beforeTimeInt, beforeTimeInt, wcId, wcId, limit, wcId, wcId,
+	)
 	if err != nil {
 		if rows != nil {
 			rows.Close()

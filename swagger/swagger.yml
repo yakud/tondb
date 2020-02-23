@@ -812,6 +812,31 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /block/tlb:
+    get:
+      summary: "Get block in TL-B format"
+      tags:
+        - core
+      description: >
+        Get block in TL-B format. <br>
+      security:
+        - basicAuth: []
+      parameters:
+        - name: block
+          in: query
+          type: string
+          description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: string
+            description: "return block in TL-B binary format"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
   /block/transactions:
     get:
       summary: "Get block transactions"

@@ -43,7 +43,7 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 			default:
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "core:",
-					PerSecondLimit: 5,
+					PerSecondLimit: 1,
 				}
 			}
 

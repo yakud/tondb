@@ -16,13 +16,6 @@ swagger: "2.0"
 basePath: /
 host: api.tengram.com
 
-securityDefinitions:
-  basicAuth:
-    type: basic
-
-security:
-  - basicAuth: []
-
 definitions:
   Account:
     description: "Account"
@@ -686,8 +679,6 @@ paths:
       description: "Get synced master height"
       tags:
         - core
-      security:
-        - basicAuth: []
       responses:
         200:
           description: OK
@@ -704,8 +695,6 @@ paths:
       description: "Get master blockchain height"
       tags:
         - core
-      security:
-        - basicAuth: []
       responses:
         200:
           description: OK
@@ -722,8 +711,6 @@ paths:
       description: "Get master block shards range. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
       tags:
         - core
-      security:
-        - basicAuth: []
       parameters:
         - name: block_master
           in: query
@@ -748,8 +735,6 @@ paths:
       description: "Get master block by workchain block."
       tags:
         - core
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
@@ -781,8 +766,6 @@ paths:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
         You can set multiply <b>block_master</b>'s like:
         <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
@@ -819,8 +802,6 @@ paths:
         - core
       description: >
         Get block in TL-B format. <br>
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
@@ -852,8 +833,6 @@ paths:
         <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
         You can set multiply <b>addr</b>'s like:
         <pre style='font-size:11px;'>?addr=ADDR_1&addr=ADDR_2</pre>
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
@@ -918,8 +897,6 @@ paths:
         - core
       description: >
         Get transaction by hash.
-      security:
-        - basicAuth: []
       parameters:
         - name: hash
           in: query
@@ -945,8 +922,6 @@ paths:
       description: >
         Get account by address. Both raw and user-friendly addresses formats supported. <br>
         This method is available by following paths: /account, /address, /a
-      security:
-        - basicAuth: []
       parameters:
         - name: address
           in: query
@@ -963,6 +938,28 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
+  /account/qr:
+    get:
+      summary: "Get account QR code"
+      tags:
+        - core
+      description: >
+        Get account QR code with link by address. Both raw and user-friendly addresses formats supported. <br>
+        This method is available by following paths: /account, /address, /a
+      parameters:
+        - name: address
+          in: query
+          type: string
+          required: true
+          description: "Account address (both raw and user-friendly addresses formats supported)."
+      responses:
+        200:
+          description: QR code png
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
   /account/transactions:
     get:
       summary: "Get account transactions"
@@ -971,8 +968,6 @@ paths:
       description: >
         Get account transactions <br>
         This method is available by following paths: /account/transactions, /address/transactions, /a/transactions
-      security:
-        - basicAuth: []
       parameters:
         - name: address
           in: query
@@ -1008,8 +1003,6 @@ paths:
       description: >
         Get blocks feed <br>
         This method is available by following paths: /block/feed, /blocks/feed, /b/feed
-      security:
-        - basicAuth: []
       parameters:
         - name: before_time
           in: query

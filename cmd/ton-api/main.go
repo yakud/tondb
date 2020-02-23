@@ -122,9 +122,11 @@ func main() {
 	// Address (account) routes
 	getAccountHandler := api.NewGetAccount(accountState)
 	getAccountTransactions := api.NewGetAccountTransactions(accountTransactions)
+	getAccountQR := api.NewGetAccountAddressQR()
 	for _, addrRoot := range addressRootAliases {
 		router.GET(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
 		router.GET(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
+		router.GET(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
 	}
 
 	// Main API

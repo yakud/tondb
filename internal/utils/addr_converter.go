@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton"
+
 	"github.com/npat-efault/crc16"
 )
 
@@ -54,6 +56,10 @@ const (
 )
 
 var defaultBase64 = base64.RawURLEncoding
+
+func ConvertToUserFriendly(addr ton.AddrStd) (string, error) {
+	return ComposeRawAndConvertToUserFriendly(addr.WorkchainId, addr.Addr)
+}
 
 func ComposeRawAndConvertToUserFriendly(wcId int32, addr string) (string, error) {
 	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId))+":"+addr, UserFriendlyAddrDefaultTag)

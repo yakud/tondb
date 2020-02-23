@@ -10,8 +10,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-//const _user, _pass = "tonapi", "QnrWW9q4XVt5fGCcaNGvkNfQ"
-
 func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) httprouter.Handle {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -41,6 +39,8 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 					PerSecondLimit: 5,
 				}
 			}
+
+			log.Println(clientIp, r.URL.Path)
 
 			if limitExceeded, err := rateLimiter.TouchAndCheckLimit(limits, clientIp); limitExceeded {
 				if err != nil {

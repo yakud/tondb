@@ -2,61 +2,68 @@ package cache
 
 import (
 	"context"
-	"database/sql"
+	"errors"
+	"fmt"
+	"log"
 	"sync"
 	"time"
 )
 
-type Updater func(conn *sql.DB) interface{}
-
 type Background struct {
-	value   interface{}
-	m       *sync.RWMutex
-	updater Updater
+	values  *sync.Map
+	queries []QueryUpdater
 }
 
-func NewBackground(updater Updater, conn *sql.DB, dur time.Duration, ctx context.Context) *Background {
-	bg := &Background{
-		value:   nil,
-		m:       &sync.RWMutex{},
-		updater: updater,
+func NewBackground() *Background {
+	return &Background{
+		values:  &sync.Map{},
+		queries: make([]QueryUpdater, 0, 10),
+	}
+}
+
+func (v *Background) Set(key string, value interface{}) error {
+	if value != nil {
+		v.values.Store(key, value)
+		return nil
 	}
 
-	bg.Set(bg.updater(conn))
-	go bg.update(conn, time.NewTicker(dur), ctx)
-
-	return bg
+	return errors.New("value is empty")
 }
 
-func (v *Background) update(conn *sql.DB, ticker *time.Ticker, ctx context.Context)  {
+func (v *Background) Get(key string) (interface{}, error) {
+	if value, ok := v.values.Load(key); ok {
+		return value, nil
+	} else {
+		return nil, fmt.Errorf("couldn't get value for key %s", key)
+	}
+}
+
+func (v *Background) RunTicker(ctx context.Context, interval time.Duration) {
+	ticker := time.NewTicker(interval)
 	for {
 		select {
 		case <-ticker.C:
-			v.Set(v.updater(conn))
+			for _, updater := range v.queries {
+				if err := updater.UpdateQuery(); err != nil {
+					log.Println("Got an error while updating cache with query. err: ", err)
+				}
+			}
 		case <-ctx.Done():
 			return
 		}
 	}
-
 }
 
-func (v *Background) Set(value interface{}) {
-	if value != nil {
-		v.m.Lock()
-		v.value = value
-		v.m.Unlock()
-	}
+func (v *Background) AddQuery(updater QueryUpdater) {
+	v.queries = append(v.queries, updater)
 }
 
-func (v *Background) Get() (interface{}, bool) {
-	v.m.RLock()
-	if v.value != nil {
-		v.m.RUnlock()
-		return v.value, true
-	}
+func (v *Background) SetQueries(queries []QueryUpdater) {
+	v.queries = queries
+}
 
-	v.m.RUnlock()
-	return nil, false
+func (v *Background) GetQueries() []QueryUpdater {
+	return v.queries
 }
 
 

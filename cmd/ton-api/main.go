@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	"log"
 	"net/http"
 	"time"
@@ -17,8 +20,8 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 
 	"gitlab.flora.loc/mills/tondb/internal/api/site"
-	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
 	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
+	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
@@ -166,8 +169,17 @@ func main() {
 
 	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
 
-	ctxGlobalMetrics, _ := context.WithCancel(context.Background())
-	globalMetrics := statsQ.NewGlobalMetrics(chConnect, 30 * time.Second, ctxGlobalMetrics)
+	ctxBgCache, _ := context.WithCancel(context.Background())
+	bgCache := cache.NewBackground()
+
+	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
+	globalMetrics.UpdateQuery()
+
+	bgCache.AddQuery(globalMetrics)
+
+	go func() {
+		bgCache.RunTicker(ctxBgCache, 30 * time.Second)
+	}()
 
 	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
 	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)

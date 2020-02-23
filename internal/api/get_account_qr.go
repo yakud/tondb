@@ -11,17 +11,17 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
-type GetAccountAddressQR struct {
+type GetAccountQR struct {
 }
 
-func (m *GetAccountAddressQR) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m *GetAccountQR) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	accountFilter, err := apifilter.AccountFilterFromRequest(r, "address")
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error make account filter: `+err.Error()+`"}`, http.StatusBadRequest)
 		return
 	}
 
-	ufAddr, err := utils.ConvertToUserFriendly(accountFilter.Addr())
+	ufAddr, err := utils.ComposeRawAndConvertToUserFriendly(accountFilter.Addr().WorkchainId, accountFilter.Addr().Addr)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error address convertation"}`, http.StatusInternalServerError)
 		return
@@ -41,6 +41,6 @@ func (m *GetAccountAddressQR) Handler(w http.ResponseWriter, r *http.Request, p 
 	w.Write(png)
 }
 
-func NewGetAccountAddressQR() *GetAccountAddressQR {
-	return &GetAccountAddressQR{}
+func NewGetAccountQR() *GetAccountQR {
+	return &GetAccountQR{}
 }

@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	"log"
 	"net/http"
 	"time"

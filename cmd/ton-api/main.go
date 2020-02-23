@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-redis/redis"
 
@@ -16,6 +18,7 @@ import (
 
 	"gitlab.flora.loc/mills/tondb/internal/api/site"
 	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
+	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
@@ -163,13 +166,17 @@ func main() {
 
 	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
 
-	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
-	router.GET("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
-	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
-	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
-	router.GET("/messages/latest", rateLimitMiddleware(site.NewGetLatestMessages(messagesFeedGlobal).Handler))
-	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
-	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(qGetTopWhales).Handler))
+	ctxGlobalMetrics, _ := context.WithCancel(context.Background())
+	globalMetrics := statsQ.NewGlobalMetrics(chConnect, 30 * time.Second, ctxGlobalMetrics)
+
+	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
+	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)
+	router.GET("/timeseries/volume-by-grams", timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler)
+	router.GET("/timeseries/messages-ord-count", timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler)
+	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
+	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
+	router.GET("/top/whales", site.NewGetTopWhales(qGetTopWhales).Handler)
+	router.GET("/global-metrics", statsApi.NewGlobalMetrics(globalMetrics).Handler)
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

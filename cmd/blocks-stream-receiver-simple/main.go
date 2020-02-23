@@ -18,7 +18,7 @@ var astTonConverter = tlb_pretty.NewAstTonConverter()
 func handler() func(resp []byte) error {
 
 	return func(blockPretty []byte) error {
-		fmt.Println(string(blockPretty))
+		//fmt.Println(string(blockPretty))
 
 		astPretty := tlbParser.Parse(blockPretty)
 		astPretty, err := treeSimplifier.Simplify(astPretty)

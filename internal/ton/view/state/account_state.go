@@ -2,12 +2,11 @@ package state
 
 import (
 	"database/sql"
-	"gitlab.flora.loc/mills/tondb/internal/utils"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (

@@ -1,0 +1,54 @@
+version: "3"
+services:
+  redis:
+    hostname: redis
+    image: bitnami/redis:5.0.7
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    volumes:
+      - redis_data:/bitnami/redis/data
+    networks:
+      - tondb-net
+
+  go-base:
+    image: tondb/go-base
+    build:
+      context: ./
+      dockerfile: ./docker/go-base/Dockerfile
+      args:
+        PACKAGE: "gitlab.flora.loc/mills/tondb"
+
+  ton-api:
+    hostname: ton-api
+    build:
+      context: ./
+      dockerfile: ./docker/ton-api/Dockerfile
+      args:
+        PACKAGE: "gitlab.flora.loc/mills/tondb"
+        CMD_PATH: "cmd/ton-api"
+    restart: always
+    ports:
+      - 192.168.100.3:8512:8512
+    depends_on:
+      - go-base
+      - redis
+    links:
+      - redis
+    environment:
+      - ADDR=0.0.0.0:8512
+      - CH_ADDR=http://clickhouse01.pay-mills.loc:8123/default?max_query_size=3145728000
+      - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+    networks:
+      - tondb-net
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  tondb-net:
+    driver: bridge

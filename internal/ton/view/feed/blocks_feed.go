@@ -10,7 +10,7 @@ import (
 const (
 	createBlocksFeed = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_BlocksFeed
-	ENGINE = MergeTree() 
+	ENGINE = MergeTree()  
 	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId, Shard, SeqNo)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
@@ -20,50 +20,100 @@ const (
 		WorkchainId,
 		Shard,
 		SeqNo,
-	   	Time,
-	    StartLt,
-	    EndLt
+		Time
 	FROM blocks
+`
+
+	createTransactionFeesFeed = `
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
+	ENGINE = SummingMergeTree()  
+	PARTITION BY toStartOfYear(Time)
+	ORDER BY (WorkchainId, Shard, SeqNo)
+	SETTINGS index_granularity=128,index_granularity_bytes=0
+	POPULATE 
+	AS
+	SELECT 
+	    Time,   
+		TotalFeesNanograms,
+		WorkchainId,
+		Shard,
+		SeqNo,
+		count() AS Count,
+		sumArray(Messages.ValueNanograms) AS ValueNanograms,
+		sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
+		sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
+		sumArray(Messages.FwdFeeNanograms) AS FwdFeeNanograms
+	FROM transactions
+	GROUP BY Time, TotalFeesNanograms, WorkchainId, Shard, SeqNo
 `
 
 	dropBlocksFeed = `DROP TABLE _view_feed_BlocksFeed`
 
+	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
+
 	queryBlocksFeed = `
-	WITH (
-		SELECT (min(Time), max(Time))
-		FROM (
-			SELECT 
-			   Time
-			FROM ".inner._view_feed_BlocksFeed"
-			PREWHERE
-				 if(? != 0, Time < toDateTime(?), 1) AND
-			     if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-			ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
-			LIMIT ?
-		)
-	) as TimeRange
 	SELECT 
 		WorkchainId,
 		Shard,
 		SeqNo,
 		toUInt64(Time),
-	    StartLt,
-	    EndLt
-	FROM ".inner._view_feed_BlocksFeed"
-	PREWHERE 
-		(Time >= TimeRange.1 AND Time <= TimeRange.2) AND
-		if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-	ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+	    TotalFeesNanograms,
+	    Count,
+	    ValueNanograms,
+	    IhrFeeNanograms,
+	    ImportFeeNanograms,
+	    FwdFeeNanograms
+	FROM (
+	    WITH (
+			SELECT (min(Time), max(Time))
+			FROM (
+				SELECT 
+				   Time
+				FROM ".inner._view_feed_BlocksFeed"
+				PREWHERE
+					 if(? != 0, Time < toDateTime(?), 1) AND
+					 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
+				ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+				LIMIT ?
+			)
+		) as TimeRange
+	     SELECT 
+			 WorkchainId,
+			 Shard,
+			 SeqNo,
+			 Time
+	     FROM ".inner._view_feed_BlocksFeed"
+	     PREWHERE 
+			 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
+			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
+		 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+	) ANY LEFT JOIN ( 
+		SELECT
+		    WorkchainId,
+			Shard,
+			SeqNo,
+			TotalFeesNanograms,
+			Count,
+			ValueNanograms,
+			IhrFeeNanograms,
+			ImportFeeNanograms,
+			FwdFeeNanograms
+		FROM ".inner._view_feed_TransactionFeesFeed"
+	) USING (WorkchainId, Shard, SeqNo);
 `
 )
 
 type BlockInFeed struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
-	Time        uint64 `json:"time"`
-	StartLt     uint64 `json:"start_lt"`
-	EndLt       uint64 `json:"end_lt"`
+	WorkchainId        int32  `json:"workchain_id"`
+	Shard              uint64 `json:"shard"`
+	SeqNo              uint64 `json:"seq_no"`
+	Time               uint64 `json:"time"`
+	TotalFeesNanograms uint64 `json:"total_fees_nanograms"`
+	Count              uint64 `json:"count"`
+	ValueNanograms     uint64 `json:"value_nanograms"`
+	IhrFeeNanograms    uint64 `json:"ihr_fee_nanograms"`
+	ImportFeeNanograms uint64 `json:"import_fee_nanograms"`
+	FwdFeeNanograms    uint64 `json:"fwd_fee_nanograms"`
 }
 
 type BlocksFeed struct {
@@ -73,11 +123,13 @@ type BlocksFeed struct {
 
 func (t *BlocksFeed) CreateTable() error {
 	_, err := t.conn.Exec(createBlocksFeed)
+	_, err = t.conn.Exec(createTransactionFeesFeed)
 	return err
 }
 
 func (t *BlocksFeed) DropTable() error {
 	_, err := t.conn.Exec(dropBlocksFeed)
+	_, err = t.conn.Exec(dropTransactionFeesFeed)
 	return err
 }
 
@@ -100,8 +152,12 @@ func (t *BlocksFeed) SelectBlocks(wcId int32, limit int16, beforeTime time.Time)
 			&row.Shard,
 			&row.SeqNo,
 			&row.Time,
-			&row.StartLt,
-			&row.EndLt,
+			&row.TotalFeesNanograms,
+			&row.Count,
+			&row.ValueNanograms,
+			&row.IhrFeeNanograms,
+			&row.ImportFeeNanograms,
+			&row.FwdFeeNanograms,
 		)
 		if err != nil {
 			rows.Close()

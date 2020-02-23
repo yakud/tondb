@@ -40,7 +40,7 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				}
 			}
 
-			log.Println(clientIp, r.URL.Path)
+			log.Printf("%+v\n================================\n", r.Header)
 
 			if limitExceeded, err := rateLimiter.TouchAndCheckLimit(limits, clientIp); limitExceeded {
 				if err != nil {

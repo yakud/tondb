@@ -952,6 +952,13 @@ paths:
           type: string
           required: true
           description: "Account address (both raw and user-friendly addresses formats supported)."
+        - name: format
+          in: query
+          type: string
+          enum:
+            - png
+            - png_base64
+          description: "Image format png or png_base64"
       responses:
         200:
           description: QR code png

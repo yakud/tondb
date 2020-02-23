@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	apifilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
@@ -11,6 +12,9 @@ import (
 	"github.com/skip2/go-qrcode"
 )
 
+const qrFormatPNG = "png"
+const qrFormatPNGBase64 = "png_base64"
+
 type GetAccountQR struct {
 }
 
@@ -19,6 +23,13 @@ func (m *GetAccountQR) Handler(w http.ResponseWriter, r *http.Request, p httprou
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error make account filter: `+err.Error()+`"}`, http.StatusBadRequest)
 		return
+	}
+
+	var imageFormat string
+	if format, ok := r.URL.Query()["format"]; !ok || len(format) == 0 {
+		imageFormat = qrFormatPNG
+	} else {
+		imageFormat = format[0]
 	}
 
 	ufAddr, err := utils.ComposeRawAndConvertToUserFriendly(accountFilter.Addr().WorkchainId, accountFilter.Addr().Addr)
@@ -36,7 +47,19 @@ func (m *GetAccountQR) Handler(w http.ResponseWriter, r *http.Request, p httprou
 		return
 	}
 
-	w.Header().Add("Content-Type", "image/png")
+	switch imageFormat {
+	case qrFormatPNGBase64:
+		w.Header().Add("Content-Type", "text/plain")
+		png = []byte(fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(png)))
+
+	case qrFormatPNG:
+		w.Header().Add("Content-Type", "image/png")
+
+	default:
+		http.Error(w, `{"error":true,"message":"error wrong format string"}`, http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(200)
 	w.Write(png)
 }

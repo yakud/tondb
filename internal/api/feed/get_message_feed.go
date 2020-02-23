@@ -1,7 +1,8 @@
-package api
+package feed
 
 import (
-	"math"
+	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,16 +12,13 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-const (
-	defaultBlocksFeedCount = 30
-	noWcId = math.MinInt32
-)
+const defaultLatestMessagesCount = 50
 
-type GetBlocksFeed struct {
-	f *feed.BlocksFeed
+type GetMessagesFeed struct {
+	q *feed.MessagesFeed
 }
 
-func (m *GetBlocksFeed) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GetMessagesFeed) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	var err error
 
 	// before_time
@@ -57,7 +55,7 @@ func (m *GetBlocksFeed) Handler(w http.ResponseWriter, r *http.Request, p httpro
 		}
 		limit = int16(limit64)
 	} else {
-		limit = defaultBlocksFeedCount
+		limit = defaultLatestMessagesCount
 	}
 
 	// workchain_id
@@ -78,24 +76,27 @@ func (m *GetBlocksFeed) Handler(w http.ResponseWriter, r *http.Request, p httpro
 		wcId = noWcId
 	}
 
-	blocksFeed, err := m.f.SelectBlocks(wcId, limit, beforeTime)
+	messagesFeed, err := api.q.SelectLatestMessages(wcId, limit, beforeTime)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"error fetch blocks"}`, http.StatusInternalServerError)
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":true,"message":"error retrieve messages from DB"}`))
 		return
 	}
 
-	resp, err := json.Marshal(blocksFeed)
+	resp, err := json.Marshal(messagesFeed)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
 		return
 	}
 
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	w.Write(resp)
 }
 
-func NewGetBlocksFeed(f *feed.BlocksFeed) *GetBlocksFeed {
-	return &GetBlocksFeed{
-		f: f,
+func NewGetMessagesFeed(q *feed.MessagesFeed) *GetMessagesFeed {
+	return &GetMessagesFeed{
+		q: q,
 	}
 }

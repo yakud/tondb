@@ -1,5 +1,5 @@
 # BUILDER
-FROM auth-api/go-base as builder
+FROM tondb/go-base as builder
 
 ARG PACKAGE
 ARG CMD_PATH

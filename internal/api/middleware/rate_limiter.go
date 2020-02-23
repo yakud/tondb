@@ -52,6 +52,7 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 					// TODO: fallback to inmemory counter
 					log.Println(fmt.Errorf("rateLimiter error: %w", err))
 				}
+				log.Printf("limitExceeded: %s", clientIp)
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusTooManyRequests)
 				return
 			}

@@ -90,10 +90,22 @@ definitions:
       time:
         type: integer
         format: int64
-      start_lt:
+      total_fees_nanograms:
         type: integer
         format: int64
-      end_lt:
+      count:
+        type: integer
+        format: int64
+      value_nanograms:
+        type: integer
+        format: int64
+      ihr_fee_nanograms:
+        type: integer
+        format: int64
+      import_fee_nanograms:
+        type: integer
+        format: int64
+      fwd_fee_nanograms:
         type: integer
         format: int64
 

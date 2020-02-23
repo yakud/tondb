@@ -50,7 +50,7 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusTooManyRequests)
 				return
 			}
-			h.Handler(w, r, ps)
+			h(w, r, ps)
 		}
 	}
 }

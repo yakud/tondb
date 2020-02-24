@@ -17,9 +17,6 @@ import (
 func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) httprouter.Handle {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			h(w, r, ps)
-			return
-
 			clientIp := r.Header.Get("Cf-Connecting-Ip")
 			if clientIp == "" {
 				clientIp = r.Header.Get("X-Real-IP")

@@ -17,6 +17,9 @@ import (
 func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) httprouter.Handle {
 	return func(h httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			h(w, r, ps)
+			return
+
 			clientIp := r.Header.Get("Cf-Connecting-Ip")
 			if clientIp == "" {
 				clientIp = r.Header.Get("X-Real-IP")
@@ -34,7 +37,8 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				"/block/feed",
 				"/blocks/feed",
 				"/addr/top-by-message-count",
-				"/top/whales":
+				"/top/whales",
+				"/messages/feed":
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "main:",
 					PerSecondLimit: 15,

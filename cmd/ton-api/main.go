@@ -138,9 +138,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	getMessagesFeed := rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler)
-	router.GET("/messages/feed", getMessagesFeed)
-	//router.GET("/messages/latest", getMessagesFeed)
+	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
 
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)

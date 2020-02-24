@@ -2,7 +2,7 @@ package stats
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
@@ -69,14 +69,14 @@ func (t *GlobalMetrics) GetGlobalMetrics() (*GlobalMetricsResult, error) {
 		case *GlobalMetricsResult:
 			return res.(*GlobalMetricsResult), nil
 		default:
-			return nil, fmt.Errorf("couldn't get global metrics from cache, cache contains object of wrong type")
+			return nil, errors.New("couldn't get global metrics from cache, cache contains object of wrong type")
 		}
 	}
 
-	return nil, fmt.Errorf("couldn't get global metrics from cache, cache is empty")
+	return nil, errors.New("couldn't get global metrics from cache, cache is empty")
 }
 
-func NewGlobalMetrics(conn *sql.DB, cache *cache.Background) *GlobalMetrics {
+func NewGlobalMetrics(conn *sql.DB, cache cache.Cache) *GlobalMetrics {
 	return &GlobalMetrics{
 		conn:        conn,
 		resultCache: cache,

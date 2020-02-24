@@ -2,44 +2,33 @@ package main
 
 import (
 	"context"
-	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"log"
 	"net/http"
 	"time"
 
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
-
-	"github.com/go-redis/redis"
-
-	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
-
+	"gitlab.flora.loc/mills/tondb/internal/api"
+	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
 	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
-
-	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
-
+	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
 	"gitlab.flora.loc/mills/tondb/internal/api/site"
 	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
 	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
-
-	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
-
-	"github.com/rs/cors"
-
-	"gitlab.flora.loc/mills/tondb/internal/api"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
 	"gitlab.flora.loc/mills/tondb/internal/ch"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query"
-	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
-
-	"github.com/julienschmidt/httprouter"
-
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	statsQ "gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
 	timeseriesQ "gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 
+	"github.com/go-redis/redis"
+	"github.com/julienschmidt/httprouter"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/rs/cors"
 )
 
 var (

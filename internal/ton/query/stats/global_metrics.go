@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
@@ -19,10 +20,6 @@ const (
 
 	getTotalBlocks = `
 	SELECT count() FROM blocks;
-`
-
-	getTotalMessages = `
-	SELECT count() FROM ".inner._view_feed_MessagesFeedGlobal"
 `
 )
 
@@ -51,7 +48,7 @@ func (t *GlobalMetrics) UpdateQuery() error {
 		return err
 	}
 
-	row = t.conn.QueryRow(getTotalMessages)
+	row = t.conn.QueryRow(fmt.Sprintf(getTotalMessages, ""))
 	if err := row.Scan(&res.TotalMessages); err != nil {
 		return err
 	}

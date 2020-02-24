@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+
 	"github.com/go-redis/redis"
 
 	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
@@ -21,8 +23,8 @@ import (
 	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
 	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
 
+	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
 
 	"github.com/rs/cors"
 
@@ -116,7 +118,7 @@ func main() {
 	// Block routes
 	getBlockInfo := api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage)
 	getBlockTransactions := api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage)
-	getBlocksFeed := api.NewGetBlocksFeed(blocksFeed)
+	getBlocksFeed := apifeed.NewGetBlocksFeed(blocksFeed)
 	for _, blockRoot := range blocksRootAliases {
 		router.GET(blockRoot+"/info", rateLimitMiddleware(getBlockInfo.Handler))
 		router.GET(blockRoot+"/transactions", rateLimitMiddleware(getBlockTransactions.Handler))
@@ -132,6 +134,15 @@ func main() {
 		router.GET(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
 		router.GET(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
 	}
+
+	// Messages feed
+
+	messagesFeedGlobal := feed.NewMessagesFeed(chConnect)
+	if err := messagesFeedGlobal.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
 
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
@@ -155,11 +166,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	messagesFeedGlobal := feed.NewMessagesFeedGlobal(chConnect)
-	if err := messagesFeedGlobal.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	addrMessagesCount := stats.NewAddrMessagesCount(chConnect)
 	if err := addrMessagesCount.CreateTable(); err != nil {
 		log.Fatal(err)
@@ -179,14 +185,13 @@ func main() {
 		bgCache.RunTicker(ctxBgCache, time.Second)
 	}()
 
-	router.GET("/timeseries/blocks-by-workchain", timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler)
-	router.GET("/timeseries/messages-by-type", timeseries.NewMessagesByType(tsMessagesByType).Handler)
-	router.GET("/timeseries/volume-by-grams", timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler)
-	router.GET("/timeseries/messages-ord-count", timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler)
-	router.GET("/messages/latest", site.NewGetLatestMessages(messagesFeedGlobal).Handler)
-	router.GET("/addr/top-by-message-count", site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler)
-	router.GET("/top/whales", site.NewGetTopWhales(qGetTopWhales).Handler)
-	router.GET("/stats/global-metrics", statsApi.NewGlobalMetrics(globalMetrics).Handler)
+	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
+	router.GET("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
+	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
+	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
+	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
+	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(qGetTopWhales).Handler))
+	router.GET("/stats/global-metrics", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

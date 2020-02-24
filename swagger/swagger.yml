@@ -521,7 +521,7 @@ definitions:
         type: integer
         format: int64
 
-  MessageFeedGlobal:
+  MessageFeed:
     description: ""
     type: object
     properties:
@@ -556,10 +556,10 @@ definitions:
       dest_uf:
         type: string
         description: "User-friendly destination account address."
-      value_grams:
-        type: string
-      total_fee_grams:
-        type: string
+      value_nanogram:
+        type: integer
+      total_fee_nanogram:
+        type: integer
       bounce:
         type: boolean
 
@@ -963,7 +963,7 @@ paths:
     get:
       summary: "Get account QR code"
       tags:
-        - core
+        - main
       description: >
         Get account QR code with link by address. Both raw and user-friendly addresses formats supported. <br>
         This method is available by following paths: /account, /address, /a
@@ -1118,19 +1118,30 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /messages/latest:
+  /messages/feed:
     get:
-      summary: "Latest messages feed"
+      summary: "Messages feed"
       tags:
-        - main
+        - core
       description: ""
+      parameters:
+        - name: before_time
+          in: query
+          type: integer
+          default: 0
+          description: "Get messages before time"
+        - name: limit
+          in: query
+          type: integer
+          default: 50
+          description: "Limit messages"
       responses:
         200:
           description: OK
           schema:
             type: array
             items:
-              $ref: "#/definitions/MessageFeedGlobal"
+              $ref: "#/definitions/MessageFeed"
         default:
           description: generic error response
           schema:

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	apiFilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
 	"gitlab.flora.loc/mills/tondb/internal/ton"
@@ -87,14 +86,12 @@ func (m *GetBlockInfo) Handler(w http.ResponseWriter, r *http.Request, p httprou
 	}
 
 	// Make query
-	t := time.Now()
 	blockInfo, err := m.q.GetBlockInfo(blocksFilter)
 	if err != nil {
 		log.Println(fmt.Errorf("query GetBlockInfo error: %w", err))
 		http.Error(w, `{"error":true,"message":"GetBlockInfo query error"}`, http.StatusBadRequest)
 		return
 	}
-	log.Println("block info query for: ", time.Now().Sub(t))
 
 	resp, err := json.Marshal(blockInfo)
 	if err != nil {

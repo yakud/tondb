@@ -1,41 +1,34 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
-
-	"github.com/go-redis/redis"
-
-	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
-
-	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
-
-	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
-
-	"gitlab.flora.loc/mills/tondb/internal/api/site"
-	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
-
-	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
-
-	"github.com/rs/cors"
+	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/api"
+	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
+	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
+	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
+	"gitlab.flora.loc/mills/tondb/internal/api/site"
+	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
+	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
 	"gitlab.flora.loc/mills/tondb/internal/ch"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query"
-	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
-
-	"github.com/julienschmidt/httprouter"
-
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	statsQ "gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
 	timeseriesQ "gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
+	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 
+	"github.com/go-redis/redis"
+	"github.com/julienschmidt/httprouter"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/rs/cors"
 )
 
 var (
@@ -169,12 +162,27 @@ func main() {
 
 	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
 
+	ctxBgCache, _ := context.WithCancel(context.Background())
+	bgCache := cache.NewBackground()
+
+	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
+	if err := globalMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
+	bgCache.AddQuery(globalMetrics)
+
+	go func() {
+		bgCache.RunTicker(ctxBgCache, time.Second)
+	}()
+
 	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
 	router.GET("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
 	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
 	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
 	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
 	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(qGetTopWhales).Handler))
+	router.GET("/stats/global-metrics", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

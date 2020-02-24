@@ -29,12 +29,10 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				"/timeseries/messages-by-type",
 				"/timeseries/volume-by-grams",
 				"/timeseries/messages-ord-count",
-				"/messages/latest",
-				"/b/feed",
-				"/block/feed",
 				"/blocks/feed",
 				"/addr/top-by-message-count",
 				"/top/whales",
+				"/stats/global-metrics",
 				"/messages/feed":
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "main:",

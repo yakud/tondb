@@ -492,7 +492,6 @@ definitions:
       balance_gram:
         type: string
 
-
   AddrTopByMessageCountResponse:
     description: ""
     type: object
@@ -646,6 +645,28 @@ definitions:
       workchain0:
         description: "array count blocks in workchain 0"
         $ref: "#/definitions/int64Array"
+
+
+  GlobalMetrics:
+    description: ""
+    type: object
+    properties:
+      total_addr:
+        description: "Total number of addresses"
+        type: integer
+        format: int64
+      total_nanogram:
+        description: "Total number of nanograms"
+        type: integer
+        format: int64
+      total_blocks:
+        description: "Total number of blocks"
+        type: integer
+        format: int64
+      total_messages:
+        description: "Total number of messages"
+        type: integer
+        format: int64
 
   stringArray:
     description: "String array type"
@@ -1155,6 +1176,22 @@ paths:
             type: array
             items:
               $ref: "#/definitions/AccountWhale"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /stats/global-metrics:
+    get:
+      summary: "Get some global blockchain metrics"
+      tags:
+        - main
+      description: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/GlobalMetrics"
         default:
           description: generic error response
           schema:

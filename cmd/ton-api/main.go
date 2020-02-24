@@ -166,7 +166,9 @@ func main() {
 	bgCache := cache.NewBackground()
 
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
-	globalMetrics.UpdateQuery()
+	if err := globalMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
 
 	bgCache.AddQuery(globalMetrics)
 

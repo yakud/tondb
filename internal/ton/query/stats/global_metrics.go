@@ -3,18 +3,18 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
 const (
-	cacheKey = "global_metrics"
+	cacheKeyGlobalMetrics = "global_metrics"
 
 	getTotalAddrAndGram = `
 	SELECT
 		count() AS TotalAddr,
 		sum(BalanceNanogram) AS TotalNanogram
-    FROM ".inner._view_state_AccountState"
-	FINAL
+    FROM ".inner._view_state_AccountState" FINAL
 `
 
 	getTotalBlocks = `
@@ -58,13 +58,13 @@ func (t *GlobalMetrics) UpdateQuery() error {
 
 	// Not handling the error because it's quite useless in this implementation of Cache interface (cache.Background).
 	// Set function returns error in Cache interface because in some implementations of it errors may be somehow valuable.
-	t.resultCache.Set(cacheKey, &res)
+	t.resultCache.Set(cacheKeyGlobalMetrics, &res)
 
 	return nil
 }
 
 func (t *GlobalMetrics) GetGlobalMetrics() (*GlobalMetricsResult, error) {
-	if res, err := t.resultCache.Get(cacheKey); err == nil {
+	if res, err := t.resultCache.Get(cacheKeyGlobalMetrics); err == nil {
 		switch res.(type) {
 		case *GlobalMetricsResult:
 			return res.(*GlobalMetricsResult), nil

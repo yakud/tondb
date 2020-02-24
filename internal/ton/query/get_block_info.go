@@ -2,6 +2,8 @@ package query
 
 import (
 	"database/sql"
+	"log"
+	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -59,11 +61,13 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 		return nil, err
 	}
 
+	t := time.Now()
 	rows, err := q.conn.Query(query, args...)
 	if err != nil {
 		rows.Close()
 		return nil, err
 	}
+	log.Println("\t inner block info query for: ", time.Now().Sub(t))
 
 	res := make([]*ton.BlockInfo, 0)
 	for rows.Next() {

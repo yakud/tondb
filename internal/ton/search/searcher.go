@@ -1,11 +1,6 @@
 package search
 
-import (
-	"strings"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton"
-)
-
+/*
 type Searcher struct {
 }
 
@@ -42,3 +37,4 @@ func (s *Searcher) isFullBlockNum(query string) bool {
 func NewSearcher() *Searcher {
 	return &Searcher{}
 }
+*/

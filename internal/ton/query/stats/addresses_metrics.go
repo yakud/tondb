@@ -3,8 +3,8 @@ package stats
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
 
 const (
@@ -16,12 +16,20 @@ const (
 	FINAL %s
 `
 
-	getActiveAccounts = `
+	getDailyActiveAccounts = `
 	SELECT
 		count() as ActiveAddr
 	FROM ".inner._view_state_AccountState"
 	FINAL
-	WHERE Time > now() - INTERVAL %d %s %s;
+	WHERE Time > now() - INTERVAL 1 DAY AND %s;
+`
+
+	getMonthlyActiveAccounts = `
+	SELECT
+		count() as ActiveAddr
+	FROM ".inner._view_state_AccountState"
+	FINAL
+	WHERE Time > now() - INTERVAL 1 MONTH AND %s;
 `
 
 	cacheKeyAddressesMetrics = "addresses_metrics"
@@ -42,17 +50,29 @@ type AddressesMetrics struct {
 func (t *AddressesMetrics) UpdateQuery() error {
 	res := AddressesMetricsResult{}
 
-	row := t.conn.QueryRow(fmt.Sprintf(getTotalAddrAndNanogram, ""))
+	queryGetTotalAddrAndNanogram, _, err := filter.RenderQuery(getTotalAddrAndNanogram, nil)
+	if err != nil {
+		return err
+	}
+	row := t.conn.QueryRow(queryGetTotalAddrAndNanogram)
 	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts, 1, intervalDay, ""))
+	queryGetDailyActiveAccounts, _, err := filter.RenderQuery(getDailyActiveAccounts, nil)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetDailyActiveAccounts)
 	if err := row.Scan(&res.DailyActive); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts, 1, intervalMonth, ""))
+	queryGetMonthlyActiveAccounts, _, err := filter.RenderQuery(getMonthlyActiveAccounts, nil)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts)
 	if err := row.Scan(&res.MonthlyActive); err != nil {
 		return err
 	}
@@ -60,18 +80,31 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	t.resultCache.Set(cacheKeyAddressesMetrics, &res)
 
 	resWorkchain := AddressesMetricsResult{}
+	workchainFilter := filter.NewKV("WorkchainId", 0)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalAddrAndNanogram, fmt.Sprintf(workchainIdPrewhere, 0)))
+	queryGetTotalAddrAndNanogram, args, err := filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args)
 	if err := row.Scan(&resWorkchain.TotalAddr, &resWorkchain.TotalNanogram); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts,  1, intervalDay, fmt.Sprintf(workchainIdAnd, 0)))
+	queryGetDailyActiveAccounts, args, err = filter.RenderQuery(getDailyActiveAccounts, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args)
 	if err := row.Scan(&resWorkchain.DailyActive); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts,  1, intervalMonth, fmt.Sprintf(workchainIdAnd, 0)))
+	queryGetMonthlyActiveAccounts, args, err = filter.RenderQuery(getMonthlyActiveAccounts, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args)
 	if err := row.Scan(&resWorkchain.MonthlyActive); err != nil {
 		return err
 	}
@@ -79,18 +112,31 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	t.resultCache.Set(cacheKeyAddressesMetrics + "0", &resWorkchain)
 
 	resMasterchain := AddressesMetricsResult{}
+	workchainFilter = filter.NewKV("WorkchainId", -1)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalAddrAndNanogram, fmt.Sprintf(workchainIdPrewhere, -1)))
+	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args)
 	if err := row.Scan(&resMasterchain.TotalAddr, &resMasterchain.TotalNanogram); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts,  1, intervalDay, fmt.Sprintf(workchainIdAnd, -1)))
+	queryGetDailyActiveAccounts, args, err = filter.RenderQuery(getDailyActiveAccounts, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args)
 	if err := row.Scan(&resMasterchain.DailyActive); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getActiveAccounts,  1, intervalMonth, fmt.Sprintf(workchainIdAnd, -1)))
+	queryGetMonthlyActiveAccounts, args, err = filter.RenderQuery(getMonthlyActiveAccounts, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args)
 	if err := row.Scan(&resMasterchain.MonthlyActive); err != nil {
 		return err
 	}

@@ -3,66 +3,75 @@ package stats
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
 
 const (
 	createMessagesPerSecondView = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesPerSecond
 	ENGINE = MergeTree()
-	PARTITION BY toYYYYMM(Time)
+	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId)
-	SETTINGS index_granularity = 128, index_granularity_bytes = 0
 	POPULATE AS
-	SELECT 
-    	WorkchainId, 
-    	Shard, 
-    	SeqNo, 
-    	Time, 
-    	count() AS MsgCount
+	SELECT
+		WorkchainId,
+		Time,
+		count() AS TrxCount,
+		sum(length(Messages.Direction)) AS MsgCount
 	FROM transactions
-	ARRAY JOIN Messages
-	GROUP BY 
-    	WorkchainId, 
-    	Shard, 
-    	SeqNo, 
-    	Time
+	GROUP BY
+	    Time, WorkchainId;
 `
+
+	createTotalTransactionsAndMessagesView = `
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TotalTransactionsAndMessages
+	ENGINE = SummingMergeTree() 
+	PARTITION BY tuple()
+	ORDER BY (WorkchainId)
+	POPULATE 
+	AS
+	SELECT
+		WorkchainId,
+		count() as TotalTransactions,
+		sum(length(Messages.Direction)) AS TotalMessages
+	FROM transactions
+	GROUP BY WorkchainId
+`
+
+	dropTotalTransactionsAndMessagesView = `DROP TABLE _view_feed_TotalTransactionsAndMessages`
 
 	dropMessagesPerSecondView = `DROP TABLE _view_feed_MessagesPerSecond`
 
-	getTotalTransactions = `SELECT sum(Count) FROM ".inner._view_feed_TransactionFeesFeed" %s` // It turned out to be faster then SELECT count() FROM transactions
-
-	getTotalMessages = `SELECT sum(MsgCount) FROM ".inner._view_feed_MessagesPerSecond" %s`
-
-	getTransactionsPerSecond = `
+	getTotalTransactionsAndMessages = `
 	SELECT
+		TotalTransactions,
+		TotalMessages
+	FROM ".inner._view_feed_TotalTransactionsAndMessages"
+	WHERE %s
+`
+
+	getTotalTransactionsAndMessagesForAllChains = `
+	SELECT
+		sum(TotalTransactions) AS TotalTransactions,
+		sum(TotalMessages) AS TotalMessages
+	FROM ".inner._view_feed_TotalTransactionsAndMessages"
+`
+
+	getTransactionsAndMessagesPerSecond = `
+	SELECT 
+		avg(MsgCount) AS MPS,
 		avg(TrxCount) AS TPS
 	FROM (
-		SELECT 
-			sum(Count) as TrxCount
-		FROM ".inner._view_feed_TransactionFeesFeed"
-		%s %s
-		GROUP BY WorkchainId, Time
-		ORDER BY Time WITH FILL
-	)
-`
-
-	getMessagesPerSecond = `
-	SELECT 
-		avg(MsgCount) AS MPS
-	FROM (
 		SELECT
+			sum(TrxCount) as TrxCount,
 			sum(MsgCount) as MsgCount
 		FROM ".inner._view_feed_MessagesPerSecond"
-		%s %s
-		GROUP BY WorkchainId, Time
+		WHERE Time > now() - INTERVAL 1 WEEK AND Time <= now() AND %s
+		GROUP BY Time
 		ORDER BY Time WITH FILL
 	)
 `
-
-	timeBetweenInterval = "WHERE Time > now() - INTERVAL %d %s AND Time <= now()"
 
 	cacheKeyMessagesMetrics = "messages_metrics"
 )
@@ -82,82 +91,76 @@ type MessagesMetrics struct {
 
 func (t *MessagesMetrics) CreateTable() error {
 	_, err := t.conn.Exec(createMessagesPerSecondView)
+	_, err = t.conn.Exec(createTotalTransactionsAndMessagesView)
 	return err
 }
 
 func (t *MessagesMetrics) DropTable() error {
 	_, err := t.conn.Exec(dropMessagesPerSecondView)
+	_, err = t.conn.Exec(dropTotalTransactionsAndMessagesView)
 	return err
 }
 
 func (t *MessagesMetrics) UpdateQuery() error {
 	res := MessagesMetricsResult{}
 
-	row := t.conn.QueryRow(fmt.Sprintf(getTotalTransactions, ""))
-	if err := row.Scan(&res.TotalTransactions); err != nil {
+	row := t.conn.QueryRow(getTotalTransactionsAndMessagesForAllChains)
+	if err := row.Scan(&res.TotalTransactions, &res.TotalMessages); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalMessages, ""))
-	if err := row.Scan(&res.TotalMessages); err != nil {
+	queryTpsAndMps, _, err := filter.RenderQuery(getTransactionsAndMessagesPerSecond, nil)
+	if err != nil {
 		return err
 	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getTransactionsPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), ""))
-	if err := row.Scan(&res.Tps); err != nil {
-		return err
-	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getMessagesPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), ""))
-	if err := row.Scan(&res.Mps); err != nil {
+	row = t.conn.QueryRow(queryTpsAndMps)
+	if err := row.Scan(&res.Tps, &res.Mps); err != nil {
 		return err
 	}
 
 	t.resultCache.Set(cacheKeyMessagesMetrics, &res)
 
 	resWorkchain := MessagesMetricsResult{}
+	workchainFilter := filter.NewKV("WorkchainId", 0)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalTransactions, fmt.Sprintf(workchainIdPrewhere, 0)))
-	if err := row.Scan(&resWorkchain.TotalTransactions); err != nil {
+	queryTotalTrxAndMsgs, args, err := filter.RenderQuery(getTotalTransactionsAndMessages, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryTotalTrxAndMsgs, args...)
+	if err := row.Scan(&resWorkchain.TotalTransactions, &resWorkchain.TotalMessages); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalMessages, fmt.Sprintf(workchainIdPrewhere, 0)))
-	if err := row.Scan(&resWorkchain.TotalMessages); err != nil {
+	queryTpsAndMps, args, err = filter.RenderQuery(getTransactionsAndMessagesPerSecond, workchainFilter)
+	if err != nil {
 		return err
 	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getTransactionsPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), fmt.Sprintf(workchainIdAnd, 0)))
-	if err := row.Scan(&resWorkchain.Tps); err != nil {
-		return err
-	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getMessagesPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), fmt.Sprintf(workchainIdAnd, 0)))
-	if err := row.Scan(&resWorkchain.Mps); err != nil {
+	row = t.conn.QueryRow(queryTpsAndMps, args...)
+	if err := row.Scan(&resWorkchain.Tps, &resWorkchain.Mps); err != nil {
 		return err
 	}
 
 	t.resultCache.Set(cacheKeyMessagesMetrics + "0", &resWorkchain)
 
 	resMasterchain := MessagesMetricsResult{}
+	workchainFilter = filter.NewKV("WorkchainId", -1)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalTransactions, fmt.Sprintf(workchainIdPrewhere, -1)))
-	if err := row.Scan(&resMasterchain.TotalTransactions); err != nil {
+	queryTotalTrxAndMsgs, args, err = filter.RenderQuery(getTotalTransactionsAndMessages, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryTotalTrxAndMsgs, args...)
+	if err := row.Scan(&resMasterchain.TotalTransactions, &resMasterchain.TotalMessages); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getTotalMessages, fmt.Sprintf(workchainIdPrewhere, -1)))
-	if err := row.Scan(&resMasterchain.TotalMessages); err != nil {
+	queryTpsAndMps, args, err = filter.RenderQuery(getTransactionsAndMessagesPerSecond, workchainFilter)
+	if err != nil {
 		return err
 	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getTransactionsPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), fmt.Sprintf(workchainIdAnd, -1)))
-	if err := row.Scan(&resMasterchain.Tps); err != nil {
-		return err
-	}
-
-	row = t.conn.QueryRow(fmt.Sprintf(getMessagesPerSecond, fmt.Sprintf(timeBetweenInterval, 1, intervalYear), fmt.Sprintf(workchainIdAnd, -1)))
-	if err := row.Scan(&resMasterchain.Mps); err != nil {
+	row = t.conn.QueryRow(queryTpsAndMps, args...)
+	if err := row.Scan(&resMasterchain.Tps, &resMasterchain.Mps); err != nil {
 		return err
 	}
 

@@ -3,12 +3,18 @@ package stats
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
 
 const (
-	getHeightAndTotalBlocks = `SELECT count() AS TotalBlocks, max(SeqNo) AS BlockHeight FROM ".inner._view_feed_BlocksFeed" %s`
+	getHeightAndTotalBlocks = `
+	SELECT
+		count() AS TotalBlocks,
+		max(SeqNo) AS BlockHeight
+	FROM ".inner._view_feed_BlocksFeed"
+	WHERE %s
+`
 
 	getAvgBlockTime = `
 	SELECT                                                                                                              
@@ -17,24 +23,10 @@ const (
  		SELECT
 			Time 
  		FROM ".inner._view_feed_BlocksFeed" 
- 		PREWHERE Time > now() - INTERVAL %d %s %s 
+ 		PREWHERE Time > now() - INTERVAL 1 WEEK AND %s 
  		ORDER BY Time
 	)
 `
-
-	// maybe I should move these consts somwhere else
-	workchainIdPrewhere = "PREWHERE WorkchainId = %d"
-
-	workchainIdAnd = "AND WorkchainId = %d"
-
-	intervalDay = "DAY"
-
-	intervalWeek = "WEEK"
-
-	intervalMonth = "MONTH"
-
-	intervalYear = "YEAR"
-
 	cacheKeyBlocksMetrics = "blocks_metrics"
 )
 
@@ -52,12 +44,20 @@ type BlocksMetrics struct {
 func (t *BlocksMetrics) UpdateQuery() error {
 	res := BlocksMetricsResult{}
 
-	row := t.conn.QueryRow(fmt.Sprintf(getHeightAndTotalBlocks, ""))
+	queryGetHeightAndTotalBlocks, _, err := filter.RenderQuery(getHeightAndTotalBlocks, nil)
+	if err != nil {
+		return err
+	}
+	row := t.conn.QueryRow(queryGetHeightAndTotalBlocks)
 	if err := row.Scan(&res.TotalBlocks, &res.BlocksHeight); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getAvgBlockTime, 1, intervalWeek, ""))
+	queryGetAvgBlockTime, _, err := filter.RenderQuery(getAvgBlockTime, nil)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetAvgBlockTime)
 	if err := row.Scan(&res.AvgBlockTime); err != nil {
 		return err
 	}
@@ -65,13 +65,22 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	t.resultCache.Set(cacheKeyBlocksMetrics, &res)
 
 	resWorkchain := BlocksMetricsResult{}
+	workchainFilter := filter.NewKV("WorkchainId", 0)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getHeightAndTotalBlocks, fmt.Sprintf(workchainIdPrewhere, 0)))
+	queryGetHeightAndTotalBlocks, args, err := filter.RenderQuery(getHeightAndTotalBlocks, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args)
 	if err := row.Scan(&resWorkchain.TotalBlocks, &resWorkchain.BlocksHeight); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getAvgBlockTime,  1, intervalWeek, fmt.Sprintf(workchainIdAnd, 0)))
+	queryGetAvgBlockTime, args, err = filter.RenderQuery(getAvgBlockTime, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetAvgBlockTime, args)
 	if err := row.Scan(&resWorkchain.AvgBlockTime); err != nil {
 		return err
 	}
@@ -79,13 +88,22 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	t.resultCache.Set(cacheKeyBlocksMetrics + "0", &resWorkchain)
 
 	resMasterchain := BlocksMetricsResult{}
+	workchainFilter = filter.NewKV("WorkchainId", -1)
 
-	row = t.conn.QueryRow(fmt.Sprintf(getHeightAndTotalBlocks, fmt.Sprintf(workchainIdPrewhere, -1)))
+	queryGetHeightAndTotalBlocks, args, err = filter.RenderQuery(getHeightAndTotalBlocks, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args)
 	if err := row.Scan(&resMasterchain.TotalBlocks, &resMasterchain.BlocksHeight); err != nil {
 		return err
 	}
 
-	row = t.conn.QueryRow(fmt.Sprintf(getAvgBlockTime,  1, intervalWeek, fmt.Sprintf(workchainIdAnd, -1)))
+	queryGetAvgBlockTime, args, err = filter.RenderQuery(getAvgBlockTime, workchainFilter)
+	if err != nil {
+		return err
+	}
+	row = t.conn.QueryRow(queryGetAvgBlockTime, args)
 	if err := row.Scan(&resMasterchain.AvgBlockTime); err != nil {
 		return err
 	}

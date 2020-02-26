@@ -540,6 +540,8 @@ definitions:
       time:
         type: integer
         format: int64
+      trx_hash:
+        type: string
       direction:
         type: string
       src_workchain_id:

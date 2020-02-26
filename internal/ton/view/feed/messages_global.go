@@ -23,6 +23,7 @@ const (
 		SeqNo,
 		Lt,
 		Time,
+	    Hash AS TrxHash,
 	    Messages.CreatedLt as MessageLt, 
 	    Messages.Direction as Direction, 
 		Messages.SrcWorkchainId AS SrcWorkchainId, 
@@ -58,6 +59,7 @@ const (
 		SeqNo,
 		Lt,
 		toUInt64(Time),
+	    TrxHash,
 		Direction,
 		SrcWorkchainId,
 		Src,
@@ -80,6 +82,7 @@ type MessageInFeed struct {
 	SeqNo            uint64 `json:"seq_no"`
 	Lt               uint64 `json:"lt"`
 	Time             uint64 `json:"time"`
+	TrxHash             string `json:"trx_hash"`
 	Direction        string `json:"direction"`
 	SrcWorkchainId   int32  `json:"src_workchain_id"`
 	Src              string `json:"src"`
@@ -130,6 +133,7 @@ func (t *MessagesFeed) SelectLatestMessages(wcId int32, limit int16, beforeTime 
 			&row.SeqNo,
 			&row.Lt,
 			&row.Time,
+			&row.TrxHash,
 			&row.Direction,
 			&row.SrcWorkchainId,
 			&row.Src,

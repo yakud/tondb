@@ -71,7 +71,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args)
+	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args...)
 	if err := row.Scan(&resWorkchain.TotalBlocks, &resWorkchain.BlocksHeight); err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetAvgBlockTime, args)
+	row = t.conn.QueryRow(queryGetAvgBlockTime, args...)
 	if err := row.Scan(&resWorkchain.AvgBlockTime); err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args)
+	row = t.conn.QueryRow(queryGetHeightAndTotalBlocks, args...)
 	if err := row.Scan(&resMasterchain.TotalBlocks, &resMasterchain.BlocksHeight); err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetAvgBlockTime, args)
+	row = t.conn.QueryRow(queryGetAvgBlockTime, args...)
 	if err := row.Scan(&resMasterchain.AvgBlockTime); err != nil {
 		return err
 	}

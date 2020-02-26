@@ -13,7 +13,8 @@ const (
     	count() AS TotalAddr, 
     	sum(BalanceNanogram) AS TotalNanogram
 	FROM ".inner._view_state_AccountState"
-	FINAL %s
+	FINAL
+	WHERE %s
 `
 
 	getDailyActiveAccounts = `
@@ -86,7 +87,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args)
+	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args...)
 	if err := row.Scan(&resWorkchain.TotalAddr, &resWorkchain.TotalNanogram); err != nil {
 		return err
 	}
@@ -95,7 +96,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args)
+	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args...)
 	if err := row.Scan(&resWorkchain.DailyActive); err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args)
+	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args...)
 	if err := row.Scan(&resWorkchain.MonthlyActive); err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args)
+	row = t.conn.QueryRow(queryGetTotalAddrAndNanogram, args...)
 	if err := row.Scan(&resMasterchain.TotalAddr, &resMasterchain.TotalNanogram); err != nil {
 		return err
 	}
@@ -127,7 +128,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args)
+	row = t.conn.QueryRow(queryGetDailyActiveAccounts, args...)
 	if err := row.Scan(&resMasterchain.DailyActive); err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args)
+	row = t.conn.QueryRow(queryGetMonthlyActiveAccounts, args...)
 	if err := row.Scan(&resMasterchain.MonthlyActive); err != nil {
 		return err
 	}

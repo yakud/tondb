@@ -42,7 +42,16 @@ const (
 		WantSplit,
 		AfterMerge,
 		AfterSplit,
-		BeforeSplit
+		BeforeSplit,
+		ValueFlowFromPrevBlk,
+		ValueFlowToNextBlk,
+		ValueFlowImported,
+		ValueFlowExported,
+		ValueFlowFeesCollected,
+		ValueFlowFeesImported,
+		ValueFlowRecovered,
+		ValueFlowCreated,
+		ValueFlowMinted
 	FROM blocks
 	WHERE %s
 	LIMIT 100;
@@ -71,6 +80,7 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 			Prev1Ref:  &ton.BlockRef{},
 			Prev2Ref:  &ton.BlockRef{},
 			MasterRef: &ton.BlockRef{},
+			ValueFlow: &ton.ValueFlow{},
 		}
 
 		err = rows.Scan(
@@ -106,6 +116,15 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 			&blockInfo.AfterMerge,
 			&blockInfo.AfterSplit,
 			&blockInfo.BeforeSplit,
+			&blockInfo.ValueFlow.FromPrevBlk,
+			&blockInfo.ValueFlow.ToNextBlk,
+			&blockInfo.ValueFlow.Imported,
+			&blockInfo.ValueFlow.Exported,
+			&blockInfo.ValueFlow.FeesCollected,
+			&blockInfo.ValueFlow.FeesImported,
+			&blockInfo.ValueFlow.Recovered,
+			&blockInfo.ValueFlow.Created,
+			&blockInfo.ValueFlow.Minted,
 		)
 		if err != nil {
 			rows.Close()

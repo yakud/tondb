@@ -1,44 +1,49 @@
 package feed
 
 import (
-	"database/sql"
-	"time"
+	"github.com/jmoiron/sqlx"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
 )
 
 const (
+	DefaultBlocksLimit = 30
+	MaxBlocksLimit     = 500
+
+	// todo: recreate table
 	createBlocksFeed = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_BlocksFeed
-	ENGINE = MergeTree()  
+	ENGINE = MergeTree()
 	PARTITION BY toStartOfYear(Time)
-	ORDER BY (Time, WorkchainId, Shard, SeqNo)
-	SETTINGS index_granularity=128,index_granularity_bytes=0
-	POPULATE 
+	ORDER BY (Time, StartLt, Shard, WorkchainId)
+	SETTINGS index_granularity=64,index_granularity_bytes=0
+	POPULATE
 	AS
 	SELECT
 		WorkchainId,
 		Shard,
 		SeqNo,
-		Time
+		Time,
+		StartLt
 	FROM blocks
 `
 
+	// todo: recreate table
 	createTransactionFeesFeed = `
 	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
-	ENGINE = SummingMergeTree()  
+	ENGINE = SummingMergeTree()
 	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId, Shard, SeqNo)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
-	POPULATE 
+	POPULATE
 	AS
-	SELECT 
-	    Time,   
+	SELECT
+	    Time,
 		TotalFeesNanograms,
 		WorkchainId,
 		Shard,
 		SeqNo,
-		count() AS Count,
+		count() AS TrxCount,
 		sumArray(Messages.ValueNanograms) AS ValueNanograms,
 		sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
 		sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
@@ -51,72 +56,83 @@ const (
 
 	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
 
-	// TODO: optimize query make it beauty
-	queryBlocksFeed = `
-	SELECT 
+	queryBlocksFeedScoll = `
+SELECT
+	WorkchainId,
+	Shard,
+	SeqNo,
+	toUInt64(Time),
+	TotalFeesNanograms,
+	TrxCount,
+	ValueNanograms,
+	IhrFeeNanograms,
+	ImportFeeNanograms,
+	FwdFeeNanograms
+FROM (
+	WITH (
+		SELECT (min(Time), max(Time), max(Lt), max(Shard))
+		FROM (
+			SELECT 
+			   Time,
+			   Lt,
+			   Shard
+			FROM ".inner._view_feed_BlocksFeed"
+			PREWHERE
+				 if(:time == 0, 1,
+					(Time = :time AND Lt <= :lt AND Shard < :shard) OR
+					(Time < :time)
+				 ) AND 
+				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
+			ORDER BY Time DESC, Lt DESC, MessageLt DESC, WorkchainId DESC
+			LIMIT :limit
+		)
+	) as TimeRange
+	SELECT
+		 WorkchainId,
+		 Shard,
+		 SeqNo,
+		 Time
+	 FROM ".inner._view_feed_BlocksFeed"
+	 PREWHERE
+		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
+		 (Lt <= TimeRange.3 AND Shard <= TimeRange.4) AND
+		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
+	 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+) ANY LEFT JOIN (
+	WITH (
+		SELECT (min(Time), max(Time), max(Lt), max(Shard))
+		FROM (
+			SELECT 
+			   Time,
+			   Lt,
+			   Shard
+			FROM ".inner._view_feed_BlocksFeed"
+			PREWHERE
+				 if(:time == 0, 1,
+					(Time = :time AND Lt <= :lt AND Shard < :shard) OR
+					(Time < :time)
+				 ) AND 
+				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
+			ORDER BY Time DESC, Lt DESC, MessageLt DESC, WorkchainId DESC
+			LIMIT :limit
+		)
+	) as TimeRange
+	SELECT
 		WorkchainId,
 		Shard,
 		SeqNo,
-		toUInt64(Time),
-	    TotalFeesNanograms,
-	    Count,
-	    ValueNanograms,
-	    IhrFeeNanograms,
-	    ImportFeeNanograms,
-	    FwdFeeNanograms
-	FROM (
-	    WITH (
-			SELECT (min(Time), max(Time))
-			FROM (
-				SELECT 
-				   Time
-				FROM ".inner._view_feed_BlocksFeed"
-				PREWHERE
-					 if(? != 0, Time < toDateTime(?), 1) AND
-					 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-				ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
-				LIMIT ?
-			)
-		) as TimeRange
-	     SELECT 
-			 WorkchainId,
-			 Shard,
-			 SeqNo,
-			 Time
-	     FROM ".inner._view_feed_BlocksFeed"
-	     PREWHERE 
-			 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
-			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-		 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
-	) ANY LEFT JOIN ( 
-		WITH (
-			SELECT (min(Time), max(Time))
-			FROM (
-				SELECT 
-				   Time
-				FROM ".inner._view_feed_BlocksFeed"
-				PREWHERE
-					 if(? != 0, Time < toDateTime(?), 1) AND
-					 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-				ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
-				LIMIT ?
-			)
-		) as TimeRange
-		SELECT
-		    WorkchainId,
-			Shard,
-			SeqNo,
-			TotalFeesNanograms,
-			Count,
-			ValueNanograms,
-			IhrFeeNanograms,
-			ImportFeeNanograms,
-			FwdFeeNanograms
-		FROM ".inner._view_feed_TransactionFeesFeed"
-		PREWHERE 
-			 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
-			 if(? != bitShiftLeft(toInt32(-1), 31), WorkchainId = ?, 1)
-	) USING (WorkchainId, Shard, SeqNo);
+		TotalFeesNanograms,
+		TrxCount,
+		ValueNanograms,
+		IhrFeeNanograms,
+		ImportFeeNanograms,
+		FwdFeeNanograms
+	FROM ".inner._view_feed_TransactionFeesFeed"
+	PREWHERE
+		 Time >= TimeRange.1 AND Time <= TimeRange.2 AND
+		 Shard <= TimeRange.4 AND
+		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
+) USING (WorkchainId, Shard, SeqNo);
 `
 )
 
@@ -125,17 +141,33 @@ type BlockInFeed struct {
 	Shard              uint64 `json:"shard"`
 	SeqNo              uint64 `json:"seq_no"`
 	Time               uint64 `json:"time"`
+	StartLt            uint64 `json:"start_lt"`
 	TotalFeesNanograms uint64 `json:"total_fees_nanograms"`
-	Count              uint64 `json:"count"`
+	TrxCount           uint64 `json:"trx_count"`
 	ValueNanograms     uint64 `json:"value_nanograms"`
 	IhrFeeNanograms    uint64 `json:"ihr_fee_nanograms"`
 	ImportFeeNanograms uint64 `json:"import_fee_nanograms"`
 	FwdFeeNanograms    uint64 `json:"fwd_fee_nanograms"`
 }
 
+type BlocksFeedScrollId struct {
+	Time        uint64 `json:"t"`
+	Lt          uint64 `json:"l"`
+	Shard       uint64 `json:"m"`
+	WorkchainId int32  `json:"w"`
+}
+
+type blocksFeedDbFilter struct {
+	Time        uint64 `db:"time"`
+	Lt          uint64 `db:"lt"`
+	Shard       uint64 `db:"message_lt"`
+	Limit       uint16 `db:"limit"`
+	WorkchainId int32  `db:"workchain_id"`
+}
+
 type BlocksFeed struct {
 	view.View
-	conn *sql.DB
+	conn *sqlx.DB
 }
 
 func (t *BlocksFeed) CreateTable() error {
@@ -150,52 +182,59 @@ func (t *BlocksFeed) DropTable() error {
 	return err
 }
 
-func (t *BlocksFeed) SelectBlocks(wcId int32, limit int16, beforeTime time.Time) ([]*BlockInFeed, error) {
-	beforeTimeInt := beforeTime.Unix()
-	rows, err := t.conn.Query(
-		queryBlocksFeed,
-		beforeTimeInt, beforeTimeInt, wcId, wcId, limit, wcId, wcId,
-		beforeTimeInt, beforeTimeInt, wcId, wcId, limit, wcId, wcId,
-	)
+func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([]*BlockInFeed, *BlocksFeedScrollId, error) {
+	if scrollId == nil {
+		scrollId = &BlocksFeedScrollId{
+			WorkchainId: EmptyWorkchainId,
+		}
+	}
+	if limit == 0 {
+		limit = DefaultMessagesLimit
+	}
+	if limit > MaxMessagesLimit {
+		limit = MaxMessagesLimit
+	}
+
+	filter := blocksFeedDbFilter{
+		Time:        scrollId.Time,
+		Lt:          scrollId.Lt,
+		Shard:       scrollId.Shard,
+		Limit:       limit,
+		WorkchainId: scrollId.WorkchainId,
+	}
+
+	rows, err := t.conn.NamedQuery(queryBlocksFeedScoll, &filter)
 	if err != nil {
-		if rows != nil {
-			rows.Close()
-		}
-
-		return nil, err
+		return nil, nil, err
 	}
+	defer rows.Close()
 
-	res := make([]*BlockInFeed, 0, limit)
+	var feed []*BlockInFeed
 	for rows.Next() {
-		row := &BlockInFeed{}
-		err := rows.Scan(
-			&row.WorkchainId,
-			&row.Shard,
-			&row.SeqNo,
-			&row.Time,
-			&row.TotalFeesNanograms,
-			&row.Count,
-			&row.ValueNanograms,
-			&row.IhrFeeNanograms,
-			&row.ImportFeeNanograms,
-			&row.FwdFeeNanograms,
-		)
-		if err != nil {
-			rows.Close()
-			return nil, err
+		msg := &BlockInFeed{}
+		if err := rows.StructScan(msg); err != nil {
+			return nil, nil, err
 		}
 
-		res = append(res, row)
+		feed = append(feed, msg)
 	}
 
-	if rows != nil {
-		rows.Close()
+	if len(feed) == 0 {
+		return feed, nil, nil
 	}
 
-	return res, err
+	var lastMsg = feed[len(feed)-1]
+	newScrollId := &BlocksFeedScrollId{
+		Time:        lastMsg.Time,
+		Lt:          lastMsg.StartLt,
+		Shard:       lastMsg.Shard,
+		WorkchainId: scrollId.WorkchainId,
+	}
+
+	return feed, newScrollId, nil
 }
 
-func NewBlocksFeed(conn *sql.DB) *BlocksFeed {
+func NewBlocksFeed(conn *sqlx.DB) *BlocksFeed {
 	return &BlocksFeed{
 		conn: conn,
 	}

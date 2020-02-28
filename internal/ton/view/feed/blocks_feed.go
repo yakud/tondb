@@ -164,7 +164,7 @@ type BlocksFeedScrollId struct {
 type blocksFeedDbFilter struct {
 	Time        uint64 `db:"time"`
 	Lt          uint64 `db:"lt"`
-	Shard       uint64 `db:"message_lt"`
+	Shard       uint64 `db:"shard"`
 	Limit       uint16 `db:"limit"`
 	WorkchainId int32  `db:"workchain_id"`
 }

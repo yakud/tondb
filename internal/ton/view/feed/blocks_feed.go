@@ -73,16 +73,16 @@ SELECT
 	FwdFeeNanograms
 FROM (
 	WITH (
-		SELECT (min(Time), max(Time), max(Lt), max(Shard))
+		SELECT (min(Time), max(Time), max(StartLt), max(Shard))
 		FROM (
 			SELECT 
 			   Time,
-			   Lt,
+			   StartLt,
 			   Shard
 			FROM ".inner._view_feed_BlocksFeed"
 			PREWHERE
 				 if(:time == 0, 1,
-					(Time = :time AND Lt <= :lt AND Shard < :shard) OR
+					(Time = :time AND StartLt <= :lt AND Shard < :shard) OR
 					(Time < :time)
 				 ) AND 
 				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
@@ -99,21 +99,21 @@ FROM (
 	 FROM ".inner._view_feed_BlocksFeed"
 	 PREWHERE
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
-		 (Lt <= TimeRange.3 AND Shard <= TimeRange.4) AND
+		 (StartLt <= TimeRange.3 AND Shard <= TimeRange.4) AND
 		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
 	 ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
 ) ANY LEFT JOIN (
 	WITH (
-		SELECT (min(Time), max(Time), max(Lt), max(Shard))
+		SELECT (min(Time), max(Time), max(StartLt), max(Shard))
 		FROM (
 			SELECT 
 			   Time,
-			   Lt,
+			   StartLt,
 			   Shard
 			FROM ".inner._view_feed_BlocksFeed"
 			PREWHERE
 				 if(:time == 0, 1,
-					(Time = :time AND Lt <= :lt AND Shard < :shard) OR
+					(Time = :time AND StartLt <= :lt AND Shard < :shard) OR
 					(Time < :time)
 				 ) AND 
 				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)

@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine
+FROM golang:1.13-alpine
 
 RUN apk update && apk upgrade && \
     apk add --no-cache bash git openssh
@@ -10,6 +10,3 @@ WORKDIR "/go/src/${PACKAGE}"
 COPY ./ .
 
 RUN go get ./...
-#RUN export GO111MODULE=on &&\
-#    go mod download && \
-#    go mod vendor

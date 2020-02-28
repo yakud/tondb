@@ -70,7 +70,7 @@ const (
 		Shard,
 		SeqNo,
 		Lt,
-		toUInt64(Time),
+		toUInt64(Time) as TimeUnix,
 		TrxHash,
 		MessageLt,
 		Direction,
@@ -91,23 +91,23 @@ const (
 )
 
 type MessageInFeed struct {
-	WorkchainId      int32  `json:"workchain_id"`
-	Shard            uint64 `json:"shard"`
-	SeqNo            uint64 `json:"seq_no"`
-	Lt               uint64 `json:"lt"`
-	Time             uint64 `json:"time"`
-	TrxHash          string `json:"trx_hash"`
-	MessageLt        uint64 `json:"message_lt"`
-	Direction        string `json:"direction"`
-	SrcWorkchainId   int32  `json:"src_workchain_id"`
-	Src              string `json:"src"`
-	SrcUf            string `json:"src_uf"`
-	DestWorkchainId  int32  `json:"dest_workchain_id"`
-	Dest             string `json:"dest"`
-	DestUf           string `json:"dest_uf"`
-	ValueNanogram    uint64 `json:"value_nanogram"`
-	TotalFeeNanogram uint64 `json:"total_fee_nanogram"`
-	Bounce           bool   `json:"bounce"`
+	WorkchainId      int32  `db:"WorkchainId" json:"workchain_id"`
+	Shard            uint64 `db:"Shard" json:"shard"`
+	SeqNo            uint64 `db:"SeqNo" json:"seq_no"`
+	Lt               uint64 `db:"Lt" json:"lt"`
+	Time             uint64 `db:"TimeUnix" json:"time"`
+	TrxHash          string `db:"TrxHash" json:"trx_hash"`
+	MessageLt        uint64 `db:"MessageLt" json:"message_lt"`
+	Direction        string `db:"Direction" json:"direction"`
+	SrcWorkchainId   int32  `db:"SrcWorkchainId" json:"src_workchain_id"`
+	Src              string `db:"Src" json:"src"`
+	SrcUf            string `db:"-" json:"src_uf"`
+	DestWorkchainId  int32  `db:"DestWorkchainId" json:"dest_workchain_id"`
+	Dest             string `db:"Dest" json:"dest"`
+	DestUf           string `db:"-" json:"dest_uf"`
+	ValueNanogram    uint64 `db:"ValueNanogram" json:"value_nanogram"`
+	TotalFeeNanogram uint64 `db:"TotalFeeNanogram" json:"total_fee_nanogram"`
+	Bounce           bool   `db:"Bounce" json:"bounce"`
 }
 
 type MessagesFeedScrollId struct {

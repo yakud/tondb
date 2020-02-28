@@ -67,6 +67,16 @@ definitions:
         type: integer
         format: int64
 
+  BlocksFeedResponse:
+    type: object
+    properties:
+      scroll_id:
+        type: string
+      blocks:
+        type: array
+        items:
+          $ref: '#/definitions/BlockInFeed'
+
   BlockInFeed:
     description: "Block in feed"
     type: object
@@ -81,6 +91,9 @@ definitions:
         type: integer
         format: int64
       time:
+        type: integer
+        format: int64
+      start_lt:
         type: integer
         format: int64
       total_fees_nanograms:
@@ -294,6 +307,41 @@ definitions:
       before_split:
         type: boolean
         description: "before_split"
+      value_flow:
+        $ref: '#/definitions/ValueFlow'
+        description: "Value flow"
+
+  ValueFlow:
+    description: "Value flow"
+    type: object
+    properties:
+      from_prev_blk:
+        type: integer
+        format: int64
+      to_next_blk:
+        type: integer
+        format: int64
+      imported:
+        type: integer
+        format: int64
+      exported:
+        type: integer
+        format: int64
+      fees_collected:
+        type: integer
+        format: int64
+      fees_imported:
+        type: integer
+        format: int64
+      recovered:
+        type: integer
+        format: int64
+      created:
+        type: integer
+        format: int64
+      minted:
+        type: integer
+        format: int64
 
   BlockRef:
     description: "Block ref"
@@ -521,6 +569,16 @@ definitions:
         type: integer
         format: int64
 
+  MessageFeedResponse:
+    type: object
+    properties:
+      scroll_id:
+        type: string
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/MessageFeed'
+
   MessageFeed:
     description: ""
     type: object
@@ -538,6 +596,9 @@ definitions:
         type: integer
         format: int64
       time:
+        type: integer
+        format: int64
+      message_lt:
         type: integer
         format: int64
       direction:
@@ -1023,7 +1084,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /block/feed:
+  /blocks/feed:
     get:
       summary: "Get blocks feed"
       tags:
@@ -1032,11 +1093,10 @@ paths:
         Get blocks feed <br>
         This method is available by following paths: /block/feed, /blocks/feed, /b/feed
       parameters:
-        - name: before_time
+        - name: scroll_id
           in: query
-          type: integer
-          default: 0
-          description: "Get blocks before time"
+          type: string
+          description: "Scroll ID"
         - name: limit
           in: query
           type: integer
@@ -1046,9 +1106,7 @@ paths:
         200:
           description: OK
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/BlockInFeed"
+            $ref: '#/definitions/BlocksFeedResponse'
         default:
           description: generic error response
           schema:
@@ -1125,11 +1183,10 @@ paths:
         - core
       description: ""
       parameters:
-        - name: before_time
+        - name: scroll_id
           in: query
-          type: integer
-          default: 0
-          description: "Get messages before time"
+          type: string
+          description: "Scroll ID"
         - name: limit
           in: query
           type: integer
@@ -1139,9 +1196,7 @@ paths:
         200:
           description: OK
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/MessageFeed"
+            $ref: '#/definitions/MessageFeedResponse'
         default:
           description: generic error response
           schema:

@@ -26,7 +26,8 @@ const (
 		Shard,
 		SeqNo,
 		Time,
-		StartLt
+		StartLt,
+		RootHash
 	FROM blocks
 `
 
@@ -65,6 +66,7 @@ SELECT
 	SeqNo,
 	toUInt64(Time) as TimeUnix,
     StartLt,
+    RootHash,
 	TotalFeesNanograms,
 	TrxCount,
 	ValueNanograms,
@@ -95,7 +97,8 @@ FROM (
 		 Shard,
 		 SeqNo,
 		 Time,
-	     StartLt
+	     StartLt,
+	     RootHash
 	 FROM ".inner._view_feed_BlocksFeed"
 	 PREWHERE
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
@@ -146,6 +149,7 @@ type BlockInFeed struct {
 	SeqNo              uint64 `db:"SeqNo" json:"seq_no"`
 	Time               uint64 `db:"TimeUnix" json:"time"`
 	StartLt            uint64 `db:"StartLt" json:"start_lt"`
+	RootHash           uint64 `db:"RootHash" json:"root_hash"`
 	TotalFeesNanograms uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
 	TrxCount           uint64 `db:"TrxCount" json:"trx_count"`
 	ValueNanograms     uint64 `db:"ValueNanograms" json:"value_nanograms"`

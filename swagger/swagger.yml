@@ -99,7 +99,9 @@ definitions:
       total_fees_nanograms:
         type: integer
         format: int64
-      count:
+      root_hash:
+        type: string
+      trx_count:
         type: integer
         format: int64
       value_nanograms:
@@ -1104,6 +1106,10 @@ paths:
           type: integer
           default: 30
           description: "Limit blocks"
+        - name: workchain_id
+          in: query
+          type: integer
+          description: "Workchain Id filter"
       responses:
         200:
           description: OK
@@ -1194,6 +1200,10 @@ paths:
           type: integer
           default: 50
           description: "Limit messages"
+        - name: workchain_id
+          in: query
+          type: integer
+          description: "Workchain Id filter"
       responses:
         200:
           description: OK

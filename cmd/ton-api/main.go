@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"gitlab.flora.loc/mills/tondb/internal/api"
 	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
 	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
@@ -45,6 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	chConnectSqlx := sqlx.NewDb(chConnect, "clickhouse")
 
 	blocksFetcher, err := blocks_fetcher.NewClient(config.TlbBlocksFetcherAddr)
 	if err != nil {
@@ -81,7 +84,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	blocksFeed := feed.NewBlocksFeed(chConnect)
+	blocksFeed := feed.NewBlocksFeed(chConnectSqlx)
 	if err := blocksFeed.CreateTable(); err != nil {
 		log.Fatal(err)
 	}
@@ -125,8 +128,7 @@ func main() {
 	}
 
 	// Messages feed
-
-	messagesFeedGlobal := feed.NewMessagesFeed(chConnect)
+	messagesFeedGlobal := feed.NewMessagesFeed(chConnectSqlx)
 	if err := messagesFeedGlobal.CreateTable(); err != nil {
 		log.Fatal(err)
 	}

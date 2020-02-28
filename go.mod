@@ -1,10 +1,12 @@
 module gitlab.flora.loc/mills/tondb
 
-go 1.13
+go 1.14
 
 require (
+	github.com/ClickHouse/clickhouse-go v1.3.14
 	github.com/go-cmd/cmd v1.1.0
 	github.com/go-redis/redis v6.15.7+incompatible
+	github.com/jmoiron/sqlx v1.2.0
 	github.com/json-iterator/go v1.1.8
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -19,6 +21,7 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/rs/cors v1.7.0
 	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
-	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/stretchr/testify v1.4.0
+	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

@@ -59,6 +59,16 @@ var BlocksFields = []kv{
 	{"AfterMerge", "UInt8"},
 	{"AfterSplit", "UInt8"},
 	{"BeforeSplit", "UInt8"},
+
+	{"ValueFlowFromPrevBlk", "UInt64"},
+	{"ValueFlowToNextBlk", "UInt64"},
+	{"ValueFlowImported", "UInt64"},
+	{"ValueFlowExported", "UInt64"},
+	{"ValueFlowFeesCollected", "UInt64"},
+	{"ValueFlowFeesImported", "UInt64"},
+	{"ValueFlowRecovered", "UInt64"},
+	{"ValueFlowCreated", "UInt64"},
+	{"ValueFlowMinted", "UInt64"},
 }
 
 const (
@@ -212,6 +222,16 @@ func (c *Blocks) InsertManyExec(rows []*ton.Block, bdTx *sql.Tx) (*sql.Stmt, err
 			utils.BoolToUint8(row.Info.AfterMerge),
 			utils.BoolToUint8(row.Info.AfterSplit),
 			utils.BoolToUint8(row.Info.BeforeSplit),
+
+			row.Info.ValueFlow.FromPrevBlk,
+			row.Info.ValueFlow.ToNextBlk,
+			row.Info.ValueFlow.Imported,
+			row.Info.ValueFlow.Exported,
+			row.Info.ValueFlow.FeesCollected,
+			row.Info.ValueFlow.FeesImported,
+			row.Info.ValueFlow.Recovered,
+			row.Info.ValueFlow.Created,
+			row.Info.ValueFlow.Minted,
 		); err != nil {
 			return stmt, err
 		}

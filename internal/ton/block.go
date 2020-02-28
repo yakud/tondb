@@ -50,6 +50,20 @@ type BlockInfo struct {
 	AfterMerge  bool  `json:"after_merge"`
 	AfterSplit  bool  `json:"after_split"`
 	BeforeSplit bool  `json:"before_split"`
+
+	ValueFlow *ValueFlow `json:"value_flow"`
+}
+
+type ValueFlow struct {
+	FromPrevBlk   uint64 `json:"from_prev_blk"`
+	ToNextBlk     uint64 `json:"to_next_blk"`
+	Imported      uint64 `json:"imported"`
+	Exported      uint64 `json:"exported"`
+	FeesCollected uint64 `json:"fees_collected"`
+	FeesImported  uint64 `json:"fees_imported"`
+	Recovered     uint64 `json:"recovered"`
+	Created       uint64 `json:"created"`
+	Minted        uint64 `json:"minted"`
 }
 
 type BlockHeader struct {

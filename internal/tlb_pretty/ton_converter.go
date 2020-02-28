@@ -154,6 +154,11 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 		return nil, err
 	}
 
+	valueFlow, err := c.extractValueFlow(node)
+	if err == nil {
+		info.ValueFlow = valueFlow
+	}
+
 	nodeShard, err := nodeInfo.GetNode("shard")
 	if err != nil {
 		return nil, err
@@ -298,6 +303,35 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	}
 
 	return info, nil
+}
+
+func (c *AstTonConverter) extractValueFlow(node *AstNode) (*ton.ValueFlow, error) {
+	valueFlowRoot, err := node.GetNode("value_flow")
+	if err != nil {
+		return nil, err
+	}
+	valueFlow := &ton.ValueFlow{
+		FromPrevBlk:  0,
+		ToNextBlk:    0,
+		Imported:     0,
+		Exported:     0,
+		FeesImported: 0,
+		Recovered:    0,
+		Created:      0,
+		Minted:       0,
+	}
+
+	valueFlow.FeesCollected, _ = valueFlowRoot.GetUint64("fees_collected", "grams", "amount", "value")
+	valueFlow.Exported, _ = valueFlowRoot.GetUint64("value_0", "exported", "grams", "amount", "value")
+	valueFlow.FromPrevBlk, _ = valueFlowRoot.GetUint64("value_0", "from_prev_blk", "grams", "amount", "value")
+	valueFlow.ToNextBlk, _ = valueFlowRoot.GetUint64("value_0", "to_next_blk", "grams", "amount", "value")
+	valueFlow.Imported, _ = valueFlowRoot.GetUint64("value_0", "imported", "grams", "amount", "value")
+	valueFlow.Created, _ = valueFlowRoot.GetUint64("value_1", "created", "grams", "amount", "value")
+	valueFlow.FeesImported, _ = valueFlowRoot.GetUint64("value_1", "fees_imported", "grams", "amount", "value")
+	valueFlow.Minted, _ = valueFlowRoot.GetUint64("value_1", "minted", "grams", "amount", "value")
+	valueFlow.Recovered, _ = valueFlowRoot.GetUint64("value_1", "recovered", "grams", "amount", "value")
+
+	return valueFlow, nil
 }
 
 func (c *AstTonConverter) extractTransactions(node *AstNode, transactions *[]*ton.Transaction) error {

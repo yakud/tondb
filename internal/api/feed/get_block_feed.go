@@ -14,6 +14,11 @@ const (
 	defaultBlocksFeedCount = 30
 )
 
+type GetBlocksFeedResponse struct {
+	Blocks   []*feed.BlockInFeed `json:"blocks"`
+	ScrollId string              `json:"scroll_id"`
+}
+
 type GetBlocksFeed struct {
 	f *feed.BlocksFeed
 }
@@ -46,13 +51,25 @@ func (m *GetBlocksFeed) Handler(w http.ResponseWriter, r *http.Request, p httpro
 		scrollId.WorkchainId = workchainId
 	}
 
-	blocksFeed, scrollId, err := m.f.SelectBlocks(scrollId, limit)
+	blocksFeed, newScrollId, err := m.f.SelectBlocks(scrollId, limit)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error fetch blocks"}`, http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := json.Marshal(blocksFeed)
+	newPackedScrollId, err := PackScrollId(newScrollId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error":true,"message":"error pack scroll_id"}`))
+		return
+	}
+
+	respFeed := GetBlocksFeedResponse{
+		Blocks:   blocksFeed,
+		ScrollId: newPackedScrollId,
+	}
+
+	resp, err := json.Marshal(&respFeed)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)
 		return

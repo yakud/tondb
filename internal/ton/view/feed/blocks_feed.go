@@ -1,6 +1,8 @@
 package feed
 
 import (
+	"log"
+
 	"github.com/jmoiron/sqlx"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
@@ -61,7 +63,8 @@ SELECT
 	WorkchainId,
 	Shard,
 	SeqNo,
-	toUInt64(Time),
+	toUInt64(Time) as TimeUnix,
+    StartLt,
 	TotalFeesNanograms,
 	TrxCount,
 	ValueNanograms,
@@ -91,7 +94,8 @@ FROM (
 		 WorkchainId,
 		 Shard,
 		 SeqNo,
-		 Time
+		 Time,
+	     StartLt
 	 FROM ".inner._view_feed_BlocksFeed"
 	 PREWHERE
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
@@ -137,17 +141,17 @@ FROM (
 )
 
 type BlockInFeed struct {
-	WorkchainId        int32  `json:"workchain_id"`
-	Shard              uint64 `json:"shard"`
-	SeqNo              uint64 `json:"seq_no"`
-	Time               uint64 `json:"time"`
-	StartLt            uint64 `json:"start_lt"`
-	TotalFeesNanograms uint64 `json:"total_fees_nanograms"`
-	TrxCount           uint64 `json:"trx_count"`
-	ValueNanograms     uint64 `json:"value_nanograms"`
-	IhrFeeNanograms    uint64 `json:"ihr_fee_nanograms"`
-	ImportFeeNanograms uint64 `json:"import_fee_nanograms"`
-	FwdFeeNanograms    uint64 `json:"fwd_fee_nanograms"`
+	WorkchainId        int32  `db:"WorkchainId" json:"workchain_id"`
+	Shard              uint64 `db:"Shard" json:"shard"`
+	SeqNo              uint64 `db:"SeqNo" json:"seq_no"`
+	Time               uint64 `db:"TimeUnix" json:"time"`
+	StartLt            uint64 `db:"StartLt" json:"start_lt"`
+	TotalFeesNanograms uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
+	TrxCount           uint64 `db:"TrxCount" json:"trx_count"`
+	ValueNanograms     uint64 `db:"ValueNanograms" json:"value_nanograms"`
+	IhrFeeNanograms    uint64 `db:"IhrFeeNanograms" json:"ihr_fee_nanograms"`
+	ImportFeeNanograms uint64 `db:"ImportFeeNanograms" json:"import_fee_nanograms"`
+	FwdFeeNanograms    uint64 `db:"FwdFeeNanograms" json:"fwd_fee_nanograms"`
 }
 
 type BlocksFeedScrollId struct {
@@ -189,10 +193,10 @@ func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([
 		}
 	}
 	if limit == 0 {
-		limit = DefaultMessagesLimit
+		limit = DefaultBlocksLimit
 	}
-	if limit > MaxMessagesLimit {
-		limit = MaxMessagesLimit
+	if limit > MaxBlocksLimit {
+		limit = MaxBlocksLimit
 	}
 
 	filter := blocksFeedDbFilter{
@@ -205,6 +209,7 @@ func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([
 
 	rows, err := t.conn.NamedQuery(queryBlocksFeedScoll, &filter)
 	if err != nil {
+		log.Println("fetch blocks err:", err)
 		return nil, nil, err
 	}
 	defer rows.Close()

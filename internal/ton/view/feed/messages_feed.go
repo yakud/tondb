@@ -105,8 +105,8 @@ type MessageInFeed struct {
 	DestWorkchainId  int32  `db:"DestWorkchainId" json:"dest_workchain_id"`
 	Dest             string `db:"Dest" json:"dest"`
 	DestUf           string `db:"-" json:"dest_uf"`
-	ValueNanogram    uint64 `db:"ValueNanogram" json:"value_nanogram"`
-	TotalFeeNanogram uint64 `db:"TotalFeeNanogram" json:"total_fee_nanogram"`
+	ValueNanogram    uint64 `db:"ValueNanograms" json:"value_nanogram"`
+	TotalFeeNanogram uint64 `db:"TotalFeeNanograms" json:"total_fee_nanogram"`
 	Bounce           bool   `db:"Bounce" json:"bounce"`
 }
 

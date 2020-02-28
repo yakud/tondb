@@ -30,6 +30,7 @@ const (
 		SeqNo,
 		Lt,
 		Time,
+		Hash AS TrxHash,
 	    Messages.CreatedLt as MessageLt, 
 	    Messages.Direction as Direction, 
 		Messages.SrcWorkchainId AS SrcWorkchainId, 
@@ -70,6 +71,7 @@ const (
 		SeqNo,
 		Lt,
 		toUInt64(Time),
+		TrxHash,
 		MessageLt,
 		Direction,
 		SrcWorkchainId,
@@ -94,6 +96,7 @@ type MessageInFeed struct {
 	SeqNo            uint64 `json:"seq_no"`
 	Lt               uint64 `json:"lt"`
 	Time             uint64 `json:"time"`
+	TrxHash          string `json:"trx_hash"`
 	MessageLt        uint64 `json:"message_lt"`
 	Direction        string `json:"direction"`
 	SrcWorkchainId   int32  `json:"src_workchain_id"`

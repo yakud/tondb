@@ -86,7 +86,7 @@ FROM (
 					(Time < :time)
 				 ) AND 
 				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
-			ORDER BY Time DESC, Lt DESC, MessageLt DESC, WorkchainId DESC
+			ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
 			LIMIT :limit
 		)
 	) as TimeRange
@@ -101,7 +101,7 @@ FROM (
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
 		 (Lt <= TimeRange.3 AND Shard <= TimeRange.4) AND
 		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
-	 ORDER BY Time DESC, WorkchainId DESC, Shard DESC, SeqNo DESC
+	 ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
 ) ANY LEFT JOIN (
 	WITH (
 		SELECT (min(Time), max(Time), max(Lt), max(Shard))
@@ -117,7 +117,7 @@ FROM (
 					(Time < :time)
 				 ) AND 
 				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
-			ORDER BY Time DESC, Lt DESC, MessageLt DESC, WorkchainId DESC
+			ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
 			LIMIT :limit
 		)
 	) as TimeRange

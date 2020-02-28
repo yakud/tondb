@@ -9,6 +9,7 @@ WORKDIR "/go/src/${PACKAGE}"
 
 COPY ./ .
 
-RUN export GO111MODULE=on &&\
-    go mod download && \
-    go mod vendor
+RUN go get ./...
+#RUN export GO111MODULE=on &&\
+#    go mod download && \
+#    go mod vendor

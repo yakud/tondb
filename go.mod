@@ -3,7 +3,6 @@ module gitlab.flora.loc/mills/tondb
 go 1.14
 
 require (
-	github.com/ClickHouse/clickhouse-go v1.3.14
 	github.com/go-cmd/cmd v1.1.0
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/jmoiron/sqlx v1.2.0

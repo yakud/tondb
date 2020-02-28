@@ -30,7 +30,7 @@ const (
 
 	// todo: recreate table
 	createTransactionFeesFeed = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed2
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
 	ENGINE = SummingMergeTree()
 	PARTITION BY toStartOfYear(Time)
 	ORDER BY (Time, WorkchainId, Shard, SeqNo)

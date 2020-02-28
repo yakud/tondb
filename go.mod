@@ -13,7 +13,6 @@ require (
 	github.com/kr/pretty v0.0.0-20150520163514-e6ac2fc51e89 // indirect
 	github.com/kr/text v0.0.0-20150520163712-e373e137fafd // indirect
 	github.com/mailru/go-clickhouse v1.2.0
-	github.com/mercuryoio/tonlib-go v0.4.0
 	github.com/npat-efault/crc16 v0.0.0-20161013170008-4128ccbe47c3
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect

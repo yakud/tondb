@@ -45,8 +45,8 @@ const (
 
 	getTotalTransactionsAndMessages = `
 	SELECT
-		TotalTransactions,
-		TotalMessages
+		sum(TotalTransactions) AS TotalTransactions,
+		sum(TotalMessages) AS TotalMessages
 	FROM ".inner._view_feed_TotalTransactionsAndMessages"
 	WHERE %s
 `

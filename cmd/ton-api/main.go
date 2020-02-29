@@ -164,6 +164,7 @@ func main() {
 
 	ctxBgCache, _ := context.WithCancel(context.Background())
 	bgCache := cache.NewBackground()
+	blocksCache := cache.NewBackground()
 
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
@@ -189,12 +190,16 @@ func main() {
 	}
 
 	bgCache.AddQuery(globalMetrics)
-	bgCache.AddQuery(blocksMetrics)
 	bgCache.AddQuery(addressesMetrics)
 	bgCache.AddQuery(messagesMetrics)
+	blocksCache.AddQuery(blocksMetrics)
 
 	go func() {
 		bgCache.RunTicker(ctxBgCache, 5 * time.Second)
+	}()
+
+	go func() {
+		blocksCache.RunTicker(ctxBgCache, 1 * time.Second)
 	}()
 
 	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))

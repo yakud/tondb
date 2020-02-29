@@ -70,6 +70,15 @@ func GetQueryValueUint16(url *url.URL, key string) (uint16, error) {
 	return uint16(val64), nil
 }
 
+func GetQueryValueUint32(url *url.URL, key string) (uint32, error) {
+	val64, err := GetQueryValueUint(url, key, 32)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(val64), nil
+}
+
 func GetQueryValueArrString(url *url.URL, key string) ([]string, error) {
 	values, ok := url.Query()[key]
 	if !ok || len(values) == 0 {

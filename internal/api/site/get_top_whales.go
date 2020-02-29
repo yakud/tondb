@@ -2,6 +2,8 @@ package site
 
 import (
 	"encoding/json"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+	httpUtils "gitlab.flora.loc/mills/tondb/internal/utils/http"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -13,17 +15,29 @@ type GetTopWhales struct {
 }
 
 func (api *GetTopWhales) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	topWhales, err := api.q.GetTopWhales()
+	wcId, err := httpUtils.GetQueryValueInt32(r.URL, "workchain_id")
+	if err != nil {
+		wcId = int32(feed.EmptyWorkchainId)
+	}
+
+	limit, err := httpUtils.GetQueryValueUint32(r.URL, "limit")
+	if err != nil {
+		limit = uint32(stats.WhalesDefaultLimit / 2)
+	}
+
+	offset, _ := httpUtils.GetQueryValueUint32(r.URL, "offset")
+
+	topWhales, err := api.q.GetTopWhales(wcId, limit, offset)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieve top whales from DB"}`))
+		w.Write([]byte(`{"error":true,"message":"error retrieving top whales"}`))
 		return
 	}
 
 	resp, err := json.Marshal(*topWhales)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
+		w.Write([]byte(`{"error":true,"message":"error serializing response"}`))
 		return
 	}
 

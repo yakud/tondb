@@ -1290,10 +1290,26 @@ paths:
 
   /top/whales:
     get:
-      summary: "Top whales account by gram amount"
+      summary: "Top whales accounts by gram amount held"
       tags:
         - main
       description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          type: string
+          default: ""
+          description: "Get top whales for specific WorckchainId. Do not specify to get workchain agnostic stats."
+        - name: limit
+          in: query
+          type: integer
+          default: 50
+          description: "Get top whales with limit. Do not specify to get first 50 whales."
+        - name: offset
+          in: query
+          type: integer
+          default: 0
+          description: "Get top whales with offset. Do not specify to get first whales (with no offset applied)."
       responses:
         200:
           description: OK

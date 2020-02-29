@@ -162,28 +162,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
-
 	ctxBgCache, _ := context.WithCancel(context.Background())
-	bgCache := cache.NewBackground()
+	metricsCache := cache.NewBackground()
 	blocksCache := cache.NewBackground()
+	whalesCache := cache.NewBackground()
 
-	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
+	globalMetrics := statsQ.NewGlobalMetrics(chConnect, metricsCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}
 
-	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, bgCache)
+	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, metricsCache)
 	if err := blocksMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}
 
-	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, bgCache)
+	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, metricsCache)
 	if err := addressesMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}
 
-	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, bgCache)
+	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, metricsCache)
 	if err := messagesMetrics.CreateTable(); err != nil {
 		log.Fatal(err)
 	}
@@ -191,13 +190,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bgCache.AddQuery(globalMetrics)
-	bgCache.AddQuery(addressesMetrics)
-	bgCache.AddQuery(messagesMetrics)
+	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache)
+	if err := topWhales.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
+	metricsCache.AddQuery(globalMetrics)
+	metricsCache.AddQuery(addressesMetrics)
+	metricsCache.AddQuery(messagesMetrics)
 	blocksCache.AddQuery(blocksMetrics)
+	whalesCache.AddQuery(topWhales)
 
 	go func() {
-		bgCache.RunTicker(ctxBgCache, 5 * time.Second)
+		metricsCache.RunTicker(ctxBgCache, 5 * time.Second)
+		whalesCache.RunTicker(ctxBgCache, 10 * time.Second)
 	}()
 
 	go func() {
@@ -209,7 +215,7 @@ func main() {
 	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
 	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
 	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
-	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(qGetTopWhales).Handler))
+	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(topWhales).Handler))
 	router.GET("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
 	router.GET("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
 	router.GET("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))

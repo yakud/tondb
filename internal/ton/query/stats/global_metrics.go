@@ -3,7 +3,6 @@ package stats
 import (
 	"database/sql"
 	"errors"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
@@ -22,7 +21,7 @@ const (
 `
 
 	getTotalMessages = `
-	SELECT count() FROM ".inner._view_feed_MessagesFeedGlobal"
+	SELECT sum(TotalMessages) AS TotalMessages FROM ".inner._view_feed_TotalTransactionsAndMessages"
 `
 )
 

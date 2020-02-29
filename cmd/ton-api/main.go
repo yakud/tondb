@@ -166,16 +166,42 @@ func main() {
 
 	ctxBgCache, _ := context.WithCancel(context.Background())
 	bgCache := cache.NewBackground()
+	blocksCache := cache.NewBackground()
 
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}
 
+	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, bgCache)
+	if err := blocksMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
+	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, bgCache)
+	if err := addressesMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
+	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, bgCache)
+	if err := messagesMetrics.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+	if err := messagesMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
 	bgCache.AddQuery(globalMetrics)
+	bgCache.AddQuery(addressesMetrics)
+	bgCache.AddQuery(messagesMetrics)
+	blocksCache.AddQuery(blocksMetrics)
 
 	go func() {
-		bgCache.RunTicker(ctxBgCache, time.Second)
+		bgCache.RunTicker(ctxBgCache, 5 * time.Second)
+	}()
+
+	go func() {
+		blocksCache.RunTicker(ctxBgCache, 1 * time.Second)
 	}()
 
 	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
@@ -184,7 +210,10 @@ func main() {
 	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
 	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
 	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(qGetTopWhales).Handler))
-	router.GET("/stats/global-metrics", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
+	router.GET("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
+	router.GET("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
+	router.GET("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))
+	router.GET("/stats/messages", rateLimitMiddleware(statsApi.NewMessagesMetrics(messagesMetrics).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

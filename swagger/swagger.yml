@@ -711,7 +711,6 @@ definitions:
         description: "array count blocks in workchain 0"
         $ref: "#/definitions/int64Array"
 
-
   GlobalMetrics:
     description: ""
     type: object
@@ -732,6 +731,65 @@ definitions:
         description: "Total number of messages"
         type: integer
         format: int64
+
+  BlocksMetrics:
+    description: ""
+    type: object
+    properties:
+      total_blocks:
+        description: "Total number of blocks"
+        type: integer
+        format: int64
+      blocks_height:
+        description: "Maximum SeqNo"
+        type: integer
+        format: int64
+      avg_block_time:
+        description: "Average time between blocks"
+        type: number
+        format: double
+
+  AddressesMetrics:
+    description: ""
+    type: object
+    properties:
+      total_addr:
+        description: "Total number of addresses"
+        type: integer
+        format: int64
+      total_nanogram:
+        description: "Total number of nanograms"
+        type: integer
+        format: int64
+      daily_active:
+        description: "Daily active accounts"
+        type: integer
+        format: int64
+      monthly_active:
+        description: "Monthly active accounts"
+        type: integer
+        format: int64
+
+  MessagesMetrics:
+    description: ""
+    type: object
+    properties:
+      total_transactions:
+        description: "Total number of transactions"
+        type: integer
+        format: int64
+      total_messages:
+        description: "Total number of messages"
+        type: integer
+        format: int64
+      tps:
+        description: "Transactions per second"
+        type: number
+        format: double
+      mps:
+        description: "Messages per second"
+        type: number
+        format: double
 
   stringArray:
     description: "String array type"
@@ -1248,7 +1306,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /stats/global-metrics:
+  /stats/global:
     get:
       summary: "Get some global blockchain metrics"
       tags:
@@ -1259,6 +1317,72 @@ paths:
           description: OK
           schema:
             $ref: "#/definitions/GlobalMetrics"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /stats/blocks:
+    get:
+      summary: "Get blocks metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          type: string
+          default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/BlocksMetrics"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /stats/addresses:
+    get:
+      summary: "Get addresses metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          type: string
+          default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/AddressesMetrics"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /stats/messages:
+    get:
+      summary: "Get messages metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          type: string
+          default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/MessagesMetrics"
         default:
           description: generic error response
           schema:

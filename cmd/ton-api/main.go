@@ -85,10 +85,17 @@ func main() {
 	// Core API
 	//blocksStorage := storage.NewBlocks(chConnect)
 	//transactionsStorage := storage.NewTransactions(chConnect)
+	bgCache := cache.NewBackground()
+	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
+	if err := globalMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
 	accountState := state.NewAccountState(chConnect)
 	accountTransactions := feed.NewAccountTransactions(chConnect)
 	blocksFeed := feed.NewBlocksFeed(chConnectSqlx)
+	accountsFeed := feed.NewAccountsFeed(chConnect, globalMetrics)
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
@@ -122,10 +129,12 @@ func main() {
 	getAccountHandler := api.NewGetAccount(accountState)
 	getAccountTransactions := api.NewGetAccountTransactions(accountTransactions)
 	getAccountQR := api.NewGetAccountQR()
+	getAccountFeed := apifeed.NewGetAccountsFeed(accountsFeed)
 	for _, addrRoot := range addressRootAliases {
 		router.GET(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
 		router.GET(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
 		router.GET(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
+		router.GET(addrRoot+"/feed", rateLimitMiddleware(getAccountFeed.Handler))
 	}
 
 	// Messages feed
@@ -146,13 +155,7 @@ func main() {
 	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
 
 	ctxBgCache, _ := context.WithCancel(context.Background())
-	bgCache := cache.NewBackground()
 	blocksCache := cache.NewBackground()
-
-	globalMetrics := statsQ.NewGlobalMetrics(chConnect, bgCache)
-	if err := globalMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
-	}
 
 	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, bgCache)
 	if err := blocksMetrics.UpdateQuery(); err != nil {

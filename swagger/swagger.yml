@@ -630,6 +630,23 @@ definitions:
       body:
         type: string
 
+  AccountsFeed:
+    description: ""
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+      addr:
+        type: string
+      addr_uf:
+        type: string
+      balance_nanogram:
+        type: integer
+      balance_percentage_of_total:
+        type: number
+        format: double
+
   MessagesByTypeResult:
     description: ""
     type: object
@@ -1143,6 +1160,39 @@ paths:
             type: array
             items:
               $ref: "#/definitions/AccountTransaction"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /account/feed:
+    get:
+      summary: "Get accounts feed"
+      tags:
+        - core
+      description: >
+        Get accounts feed <br>
+        This method is available by following paths: /account/feed, /address/feed, /a/feed
+      parameters:
+        - name: workchain_id
+          in: query
+          type: integer
+          description: "Workchain id filter"
+        - name: limit
+          in: query
+          type: integer
+          default: 50
+          description: "Limit accounts returned"
+        - name: offset
+          in: query
+          type: integer
+          default: 0
+          description: "Get accounts with offset"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/AccountsFeed'
         default:
           description: generic error response
           schema:

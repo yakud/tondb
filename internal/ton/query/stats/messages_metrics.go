@@ -8,41 +8,6 @@ import (
 )
 
 const (
-	createMessagesPerSecondView = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesPerSecond
-	ENGINE = MergeTree()
-	PARTITION BY toStartOfYear(Time)
-	ORDER BY (Time, WorkchainId)
-	POPULATE AS
-	SELECT
-		WorkchainId,
-		Time,
-		count() AS TrxCount,
-		sum(length(Messages.Direction)) AS MsgCount
-	FROM transactions
-	GROUP BY
-	    Time, WorkchainId;
-`
-
-	createTotalTransactionsAndMessagesView = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TotalTransactionsAndMessages
-	ENGINE = SummingMergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (WorkchainId)
-	POPULATE 
-	AS
-	SELECT
-		WorkchainId,
-		count() as TotalTransactions,
-		sum(length(Messages.Direction)) AS TotalMessages
-	FROM transactions
-	GROUP BY WorkchainId
-`
-
-	dropTotalTransactionsAndMessagesView = `DROP TABLE _view_feed_TotalTransactionsAndMessages`
-
-	dropMessagesPerSecondView = `DROP TABLE _view_feed_MessagesPerSecond`
-
 	getTotalTransactionsAndMessages = `
 	SELECT
 		sum(TotalTransactions) AS TotalTransactions,
@@ -87,18 +52,6 @@ type MessagesMetricsResult struct {
 type MessagesMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
-}
-
-func (t *MessagesMetrics) CreateTable() error {
-	_, err := t.conn.Exec(createMessagesPerSecondView)
-	_, err = t.conn.Exec(createTotalTransactionsAndMessagesView)
-	return err
-}
-
-func (t *MessagesMetrics) DropTable() error {
-	_, err := t.conn.Exec(dropMessagesPerSecondView)
-	_, err = t.conn.Exec(dropTotalTransactionsAndMessagesView)
-	return err
 }
 
 func (t *MessagesMetrics) UpdateQuery() error {

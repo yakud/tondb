@@ -3,6 +3,7 @@ package api
 type Config struct {
 	Addr                 string `envconfig:"ADDR" default:"0.0.0.0:8512"`
 	ChAddr               string `envconfig:"CH_ADDR" default:"http://0.0.0.0:8123/default?compress=false&debug=false"`
+	ChAddrCh             string `envconfig:"CH_ADDR_CH" default:"clickhouse://0.0.0.0:8123?database=default&x-multi-statement=true"`
 	TlbBlocksFetcherAddr string `envconfig:"TLB_BLOCKS_FETCHER_ADDR" default:"127.0.0.1:13699"`
 
 	RedisAddr     string `envconfig:"REDIS_ADDR" default:"127.0.0.1:6379"`

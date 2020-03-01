@@ -10,23 +10,6 @@ import (
 )
 
 const (
-	createTsVolumeByGrams = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_ts_VolumeByGrams
-	ENGINE = SummingMergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (Time, WorkchainId)
-	POPULATE 
-	AS
-	SELECT
-		toStartOfInterval(Time, INTERVAL 10 MINUTE) as Time,
-		WorkchainId,
-	    sum(Messages.ValueNanograms) as VolumeNanograms
-	FROM transactions
-	ARRAY JOIN Messages
-	GROUP BY Time, WorkchainId
-`
-	dropTsVolumeByGrams = `DROP TABLE _view_ts_VolumeByGrams`
-
 	selectVolumeByGrams = `
 	SELECT 
        WorkchainId,
@@ -58,16 +41,6 @@ type VolumeByGramsTimeseries struct {
 type VolumeByGrams struct {
 	conn        *sql.DB
 	resultCache *cache.WithTimer
-}
-
-func (t *VolumeByGrams) CreateTable() error {
-	_, err := t.conn.Exec(createTsVolumeByGrams)
-	return err
-}
-
-func (t *VolumeByGrams) DropTable() error {
-	_, err := t.conn.Exec(dropTsVolumeByGrams)
-	return err
 }
 
 func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {

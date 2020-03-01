@@ -9,26 +9,6 @@ import (
 )
 
 const (
-	createTsMessagesOrdCount = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_ts_MessagesOrdCount
-	ENGINE = SummingMergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (Time, WorkchainId)
-	POPULATE 
-	AS
-	SELECT
-		toStartOfInterval(Time, INTERVAL 10 MINUTE) as Time,
-		WorkchainId,
-	    count() as MessagesCount
-	FROM transactions
-	ARRAY JOIN Messages
-	WHERE 
-		Type = 'trans_ord' AND 
-		Messages.ValueNanograms > 0
-	GROUP BY Time, WorkchainId
-`
-	dropTsMessagesOrdCount = `DROP TABLE _view_ts_MessagesOrdCount`
-
 	selectMessagesOrdCount = `
 	SELECT 
        WorkchainId,
@@ -60,16 +40,6 @@ type MessagesOrdCountTimeseries struct {
 type MessagesOrdCount struct {
 	conn        *sql.DB
 	resultCache *cache.WithTimer
-}
-
-func (t *MessagesOrdCount) CreateTable() error {
-	_, err := t.conn.Exec(createTsMessagesOrdCount)
-	return err
-}
-
-func (t *MessagesOrdCount) DropTable() error {
-	_, err := t.conn.Exec(dropTsMessagesOrdCount)
-	return err
 }
 
 func (t *MessagesOrdCount) GetMessagesOrdCount() (*MessagesOrdCountResult, error) {

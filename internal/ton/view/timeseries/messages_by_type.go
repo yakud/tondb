@@ -9,25 +9,6 @@ import (
 )
 
 const (
-	createTsMessagesByType = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_ts_MessagesByType
-	ENGINE = SummingMergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (Time, WorkchainId, Type, MsgType)
-	POPULATE 
-	AS
-	SELECT
-		toStartOfInterval(Time, INTERVAL 5 MINUTE) as Time,
-		WorkchainId,
-	    Type,
-	    Messages.Type as MsgType,
-		count() as MessagesCount
-	FROM transactions
-	ARRAY JOIN Messages
-	GROUP BY Time, WorkchainId, Type, MsgType
-`
-	dropTsMessagesByType = `DROP TABLE _view_ts_MessagesByType`
-
 	selectMessagesByType = `
 	SELECT 
        WorkchainId,
@@ -65,16 +46,6 @@ type MessagesByTypeTimeseries struct {
 type MessagesByType struct {
 	conn        *sql.DB
 	resultCache *cache.WithTimer
-}
-
-func (t *MessagesByType) CreateTable() error {
-	_, err := t.conn.Exec(createTsMessagesByType)
-	return err
-}
-
-func (t *MessagesByType) DropTable() error {
-	_, err := t.conn.Exec(dropTsMessagesByType)
-	return err
 }
 
 func (t *MessagesByType) GetMessagesByType() (*MessagesByTypeResult, error) {

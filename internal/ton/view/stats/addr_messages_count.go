@@ -7,24 +7,6 @@ import (
 )
 
 const (
-	createAddrMessagesCount = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_stats_AddrMessagesCountTop
-	ENGINE = SummingMergeTree() 
-	PARTITION BY tuple()
-	ORDER BY (Direction, Addr, WorkchainId)
-	POPULATE 
-	AS
-	SELECT
-	    Messages.Direction as Direction,
-		if(Direction = 'in', Messages.DestAddr, Messages.SrcAddr) AS Addr,
-	    WorkchainId,
-		count() as Count
-	FROM transactions
-	ARRAY JOIN Messages
-	WHERE Type = 'trans_ord' AND Messages.Type = 'int_msg_info'
-	GROUP BY Direction, Addr, WorkchainId
-`
-
 	selectAddrMessagesCountTop = `SELECT
     Direction,
     WorkchainId,
@@ -38,8 +20,6 @@ GROUP BY
 ORDER BY cnt DESC
 LIMIT ? BY Direction
 `
-
-	dropAddrMessagesCount = `DROP TABLE _view_stats_AddrMessagesCountTop`
 )
 
 type AddrCount struct {
@@ -51,16 +31,6 @@ type AddrCount struct {
 
 type AddrMessagesCount struct {
 	conn *sql.DB
-}
-
-func (t *AddrMessagesCount) CreateTable() error {
-	_, err := t.conn.Exec(createAddrMessagesCount)
-	return err
-}
-
-func (t *AddrMessagesCount) DropTable() error {
-	_, err := t.conn.Exec(dropAddrMessagesCount)
-	return err
 }
 
 // Select in and out top addr by messages count

@@ -28,6 +28,9 @@ import (
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 
 	"github.com/go-redis/redis"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/clickhouse"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/julienschmidt/httprouter"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/cors"
@@ -48,6 +51,19 @@ func main() {
 		log.Fatal(err)
 	}
 	chConnectSqlx := sqlx.NewDb(chConnect, "clickhouse")
+
+	migrateDriver, err := clickhouse.WithInstance(chConnect, &clickhouse.Config{DatabaseName:"default", MultiStatementEnabled:true})
+	if err != nil {
+		log.Fatal(err)
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations", "clickhouse", migrateDriver,)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal(err)
+	}
 
 	blocksFetcher, err := blocks_fetcher.NewClient(config.TlbBlocksFetcherAddr)
 	if err != nil {
@@ -70,24 +86,9 @@ func main() {
 	//blocksStorage := storage.NewBlocks(chConnect)
 	//transactionsStorage := storage.NewTransactions(chConnect)
 	shardsDescrStorage := storage.NewShardsDescr(chConnect)
-	if err := shardsDescrStorage.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	accountState := state.NewAccountState(chConnect)
-	if err := accountState.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	accountTransactions := feed.NewAccountTransactions(chConnect)
-	if err := accountTransactions.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	blocksFeed := feed.NewBlocksFeed(chConnectSqlx)
-	if err := blocksFeed.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
 
 	syncedHeightQuery := query.NewGetSyncedHeight(chConnect)
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
@@ -129,38 +130,18 @@ func main() {
 
 	// Messages feed
 	messagesFeedGlobal := feed.NewMessagesFeed(chConnectSqlx)
-	if err := messagesFeedGlobal.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
+	getMessageQuery := query.NewGetMessage(chConnect)
 
 	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
+	router.GET("/message/:trx_hash/:message_lt", rateLimitMiddleware(api.NewGetMessage(getMessageQuery).Handler))
 
 	// Main API
-	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
-	if err := vBlocksByWorkchain.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
 	qBlocksByWorkchain := timeseriesQ.NewGetBlocksByWorkchain(chConnect)
 
 	tsMessagesByType := timeseriesV.NewMessagesByType(chConnect)
-	if err := tsMessagesByType.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	tsVolumeByGrams := timeseriesV.NewVolumeByGrams(chConnect)
-	if err := tsVolumeByGrams.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	tsMessagesOrdCount := timeseriesV.NewMessagesOrdCount(chConnect)
-	if err := tsMessagesOrdCount.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-
 	addrMessagesCount := stats.NewAddrMessagesCount(chConnect)
-	if err := addrMessagesCount.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
 
 	qGetTopWhales := statsQ.NewGetTopWhales(chConnect)
 
@@ -184,9 +165,6 @@ func main() {
 	}
 
 	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, bgCache)
-	if err := messagesMetrics.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
 	if err := messagesMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}

@@ -15,37 +15,6 @@ const (
 	DefaultMessagesLimit = 50
 	MaxMessagesLimit     = 500
 
-	// TODO: change to ORDER BY (Time, Lt, MessageLt, WorkchainId)
-	createMessagesFeedGlobal = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobal2
-	ENGINE = MergeTree() 
-	PARTITION BY toYYYYMM(Time)
-	ORDER BY (Time, WorkchainId, Lt, MessageLt)
-	SETTINGS index_granularity=128,index_granularity_bytes=0
-	POPULATE 
-	AS
-	SELECT
-		WorkchainId,
-		Shard,
-		SeqNo,
-		Lt,
-		Time,
-		Hash AS TrxHash,
-	    Messages.CreatedLt as MessageLt, 
-	    Messages.Direction as Direction, 
-		Messages.SrcWorkchainId AS SrcWorkchainId, 
-		Messages.SrcAddr AS Src, 
-		Messages.DestWorkchainId AS DestWorkchainId, 
-		Messages.DestAddr AS Dest, 
-		Messages.ValueNanograms as ValueNanograms,
-	    Messages.FwdFeeNanograms + Messages.IhrFeeNanograms + Messages.ImportFeeNanograms as TotalFeeNanograms, 
-		Messages.Bounce as Bounce
-	FROM transactions
-	ARRAY JOIN Messages
-	WHERE Type = 'trans_ord' AND Messages.Type = 'int_msg_info'
-`
-	dropMessagesFeedGlobal = `DROP TABLE _view_feed_MessagesFeedGlobal`
-
 	querySelectMessagesPart = `
 	WITH (
 		SELECT (min(Time), max(Time), max(Lt), max(MessageLt))
@@ -80,7 +49,8 @@ const (
 		Dest,
 		ValueNanograms,
 		TotalFeeNanograms,
-		Bounce
+		Bounce,
+	    BodyValue
 	FROM ".inner._view_feed_MessagesFeedGlobal"
 	PREWHERE 
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
@@ -108,6 +78,7 @@ type MessageInFeed struct {
 	ValueNanogram    uint64 `db:"ValueNanograms" json:"value_nanogram"`
 	TotalFeeNanogram uint64 `db:"TotalFeeNanograms" json:"total_fee_nanogram"`
 	Bounce           bool   `db:"Bounce" json:"bounce"`
+	Body             string `db:"BodyValue" json:"body"`
 }
 
 type MessagesFeedScrollId struct {
@@ -128,16 +99,6 @@ type messagesFeedDbFilter struct {
 type MessagesFeed struct {
 	view.View
 	conn *sqlx.DB
-}
-
-func (t *MessagesFeed) CreateTable() error {
-	_, err := t.conn.Exec(createMessagesFeedGlobal)
-	return err
-}
-
-func (t *MessagesFeed) DropTable() error {
-	_, err := t.conn.Exec(dropMessagesFeedGlobal)
-	return err
 }
 
 func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint16) ([]*MessageInFeed, *MessagesFeedScrollId, error) {

@@ -9,40 +9,6 @@ import (
 )
 
 const (
-	createFeedAccountTransactions = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_AccountTransactions
-	ENGINE = MergeTree() 
-	PARTITION BY toYYYYMM(Time)
-	ORDER BY (WorkchainId, AccountAddr, Lt, Time)
-	SETTINGS index_granularity=128,index_granularity_bytes=0
-	POPULATE 
-	AS
-	SELECT
-		WorkchainId,
-		Shard,
-		SeqNo,
-		AccountAddr,
-		Lt,
-		Time,
-		Type,
-		Messages.Type as MessageType, 
-		Messages.CreatedLt as MessageLt, 
-	    Messages.Direction as Direction, 
-		Messages.SrcWorkchainId AS SrcWorkchainId, 
-		Messages.SrcAddr AS Src, 
-		Messages.DestWorkchainId AS DestWorkchainId, 
-		Messages.DestAddr AS Dest, 
-		Messages.ValueNanograms as ValueNanograms,
-	    Messages.FwdFeeNanograms as FwdFeeNanograms, 
-		Messages.IhrFeeNanograms as IhrFeeNanograms,
-		Messages.ImportFeeNanograms as ImportFeeNanograms,
-		Messages.Bounce as Bounce,
-		Messages.Bounced as Bounced
-	FROM transactions
-	ARRAY JOIN Messages
-`
-	dropFeedAccountTransactions = `DROP TABLE _view_feed_AccountTransactions`
-
 	querySelectAccountTransactions = `
 	WITH (
 		SELECT (min(Lt), max(Lt))
@@ -117,16 +83,6 @@ type AccountTransaction struct {
 type AccountTransactions struct {
 	view.View
 	conn *sql.DB
-}
-
-func (t *AccountTransactions) CreateTable() error {
-	_, err := t.conn.Exec(createFeedAccountTransactions)
-	return err
-}
-
-func (t *AccountTransactions) DropTable() error {
-	_, err := t.conn.Exec(dropFeedAccountTransactions)
-	return err
 }
 
 func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt uint64, count int16, f filter.Filter) ([]*AccountTransaction, error) {

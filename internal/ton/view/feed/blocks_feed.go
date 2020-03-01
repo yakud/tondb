@@ -12,53 +12,6 @@ const (
 	DefaultBlocksLimit = 30
 	MaxBlocksLimit     = 500
 
-	// todo: recreate table
-	createBlocksFeed = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_BlocksFeed
-	ENGINE = MergeTree()
-	PARTITION BY toStartOfYear(Time)
-	ORDER BY (Time, StartLt, Shard, WorkchainId)
-	SETTINGS index_granularity=64,index_granularity_bytes=0
-	POPULATE
-	AS
-	SELECT
-		WorkchainId,
-		Shard,
-		SeqNo,
-		Time,
-		StartLt,
-		RootHash
-	FROM blocks
-`
-
-	// todo: recreate table
-	createTransactionFeesFeed = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionFeesFeed
-	ENGINE = SummingMergeTree()
-	PARTITION BY toStartOfYear(Time)
-	ORDER BY (Time, WorkchainId, Shard, SeqNo)
-	SETTINGS index_granularity=128,index_granularity_bytes=0
-	POPULATE
-	AS
-	SELECT
-	    Time,
-		TotalFeesNanograms,
-		WorkchainId,
-		Shard,
-		SeqNo,
-		count() AS TrxCount,
-		sumArray(Messages.ValueNanograms) AS ValueNanograms,
-		sumArray(Messages.IhrFeeNanograms) AS IhrFeeNanograms,
-		sumArray(Messages.ImportFeeNanograms) AS ImportFeeNanograms,
-		sumArray(Messages.FwdFeeNanograms) AS FwdFeeNanograms
-	FROM transactions
-	GROUP BY Time, TotalFeesNanograms, WorkchainId, Shard, SeqNo
-`
-
-	dropBlocksFeed = `DROP TABLE _view_feed_BlocksFeed`
-
-	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
-
 	queryBlocksFeedScoll = `
 SELECT
 	WorkchainId,
@@ -176,18 +129,6 @@ type blocksFeedDbFilter struct {
 type BlocksFeed struct {
 	view.View
 	conn *sqlx.DB
-}
-
-func (t *BlocksFeed) CreateTable() error {
-	_, err := t.conn.Exec(createBlocksFeed)
-	_, err = t.conn.Exec(createTransactionFeesFeed)
-	return err
-}
-
-func (t *BlocksFeed) DropTable() error {
-	_, err := t.conn.Exec(dropBlocksFeed)
-	_, err = t.conn.Exec(dropTransactionFeesFeed)
-	return err
 }
 
 func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([]*BlockInFeed, *BlocksFeedScrollId, error) {

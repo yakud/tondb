@@ -10,19 +10,6 @@ import (
 )
 
 const (
-	createStateAccountState = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_state_AccountState
-	ENGINE = ReplacingMergeTree(SeqNo)
-	ORDER BY (WorkchainId, Addr)
-	SETTINGS index_granularity = 64
-	POPULATE 
-	AS
-	SELECT 
-		*    
-	FROM account_state;
-`
-	dropStateAccountState = `DROP TABLE _view_state_AccountState`
-
 	queryGetAccount = `
 	SELECT 
 		WorkchainId,
@@ -52,16 +39,6 @@ const (
 type AccountState struct {
 	view.View
 	conn *sql.DB
-}
-
-func (t *AccountState) CreateTable() error {
-	_, err := t.conn.Exec(createStateAccountState)
-	return err
-}
-
-func (t *AccountState) DropTable() error {
-	_, err := t.conn.Exec(dropStateAccountState)
-	return err
 }
 
 func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {

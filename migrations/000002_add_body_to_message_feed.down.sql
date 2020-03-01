@@ -26,3 +26,5 @@ ARRAY JOIN Messages
 WHERE Type = 'trans_ord' AND Messages.Type = 'int_msg_info';
 
 RENAME TABLE _view_feed_MessagesFeedGlobal TO _view_feed_MessagesFeedGlobalNew, _view_feed_MessagesFeedGlobalOld TO _view_feed_MessagesFeedGlobal;
+
+DROP TABLE _view_feed_MessagesFeedGlobalNew;

@@ -203,6 +203,9 @@ func main() {
 
 	go func() {
 		metricsCache.RunTicker(ctxBgCache, 5 * time.Second)
+	}()
+
+	go func() {
 		whalesCache.RunTicker(ctxBgCache, 10 * time.Second)
 	}()
 

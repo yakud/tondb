@@ -55,13 +55,18 @@ const (
 )
 
 var defaultBase64 = base64.RawURLEncoding
-var emptyAddrBytes = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-var emptyAddrString = "0000000000000000000000000000000000000000000000000000000000000000"
+var EmptyAddrBytes = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+var EmptyAddrString = "0000000000000000000000000000000000000000000000000000000000000000"
+
+func NullAddrToString(addr string) string {
+	if bytes.Compare(EmptyAddrBytes, []byte(addr)) == 0 {
+		return EmptyAddrString
+	}
+	return addr
+}
 
 func ComposeRawAndConvertToUserFriendly(wcId int32, addr string) (string, error) {
-	if bytes.Compare(emptyAddrBytes, []byte(addr)) == 0 {
-		addr = emptyAddrString
-	}
+	addr = NullAddrToString(addr)
 
 	return ConvertRawToUserFriendly(strconv.Itoa(int(wcId))+":"+addr, UserFriendlyAddrDefaultTag)
 }

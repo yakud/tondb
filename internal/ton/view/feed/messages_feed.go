@@ -174,6 +174,10 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 		if err := rows.StructScan(msg); err != nil {
 			return nil, nil, err
 		}
+
+		msg.Src = utils.NullAddrToString(msg.Src)
+		msg.Dest = utils.NullAddrToString(msg.Dest)
+
 		if msg.Src != "" {
 			if msg.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.SrcWorkchainId, msg.Src); err != nil {
 				// Maybe we shouldn't fail here?

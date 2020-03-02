@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"strings"
 
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
@@ -127,6 +129,8 @@ func (s *AccountState) InsertManyExec(states []*ton.AccountState, bdTx *sql.Tx) 
 	}
 
 	for _, st := range states {
+		addr := utils.NullAddrToString(strings.TrimLeft(st.Addr, "x"))
+
 		// in order like BlocksFields
 		if _, err := stmt.Exec(
 			st.BlockId.WorkchainId,
@@ -135,7 +139,7 @@ func (s *AccountState) InsertManyExec(states []*ton.AccountState, bdTx *sql.Tx) 
 			strings.TrimLeft(st.RootHash, "x"),
 			strings.TrimLeft(st.FileHash, "x"),
 			st.Time,
-			strings.TrimLeft(st.Addr, "x"),
+			addr,
 			st.Anycast,
 			st.Status,
 			st.BalanceNanogram,

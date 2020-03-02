@@ -184,6 +184,10 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 		if err := rows.StructScan(trx); err != nil {
 			return nil, nil, err
 		}
+
+		trx.Src = utils.NullAddrToString(trx.Src)
+		trx.Dest = utils.NullAddrToString(trx.Dest)
+
 		if trx.Src != "" {
 			if trx.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.SrcWorkchainId, trx.Src); err != nil {
 				log.Println("src string:\"", trx.Src, "\"")

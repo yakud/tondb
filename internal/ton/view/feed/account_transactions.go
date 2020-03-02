@@ -2,6 +2,7 @@ package feed
 
 import (
 	"database/sql"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
@@ -175,6 +176,10 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 			&accTrans.Bounce,
 			&accTrans.Bounced,
 		)
+
+		accTrans.AccountAddr = utils.NullAddrToString(accTrans.AccountAddr)
+		accTrans.Src = utils.NullAddrToString(accTrans.Src)
+		accTrans.Dest = utils.NullAddrToString(accTrans.Dest)
 
 		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.WorkchainId, accTrans.AccountAddr)
 		if err != nil {

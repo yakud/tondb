@@ -2,8 +2,9 @@ package query
 
 import (
 	"database/sql"
-	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"time"
+
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -169,6 +170,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			var srcUf, destUf string
 
 			if messagesDestIsEmpty[i] != 1 {
+				messagesDestAddr[i] = utils.NullAddrToString(messagesDestAddr[i])
 				destUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesDestWorkchainId[i], messagesDestAddr[i])
 				if err != nil {
 					// Maybe we shouldn't fail here?
@@ -177,6 +179,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			}
 
 			if messagesSrcIsEmpty[i] != 1 {
+				messagesSrcAddr[i] = utils.NullAddrToString(messagesSrcAddr[i])
 				srcUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesSrcWorkchainId[i], messagesSrcAddr[i])
 				if err != nil {
 					// Maybe we shouldn't fail here?

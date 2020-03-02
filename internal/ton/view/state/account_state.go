@@ -97,6 +97,8 @@ func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {
 		return nil, err
 	}
 
+	res.Addr = utils.NullAddrToString(res.Addr)
+
 	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(res.WorkchainId, res.Addr); err != nil {
 		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err

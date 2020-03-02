@@ -196,6 +196,9 @@ func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([
 			WorkchainId: EmptyWorkchainId,
 		}
 	}
+	if scrollId.WorkchainId == -2 {
+		scrollId.WorkchainId = EmptyWorkchainId
+	}
 	if limit == 0 {
 		limit = DefaultBlocksLimit
 	}

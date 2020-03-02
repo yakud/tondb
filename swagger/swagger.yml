@@ -581,6 +581,16 @@ definitions:
         items:
           $ref: '#/definitions/MessageFeed'
 
+  TransactionsFeedResponse:
+    type: object
+    properties:
+      scroll_id:
+        type: string
+      transactions:
+        type: array
+        items:
+          $ref: '#/definitions/TransactionsFeed'
+
   MessageFeed:
     description: ""
     type: object
@@ -627,6 +637,62 @@ definitions:
         type: integer
       bounce:
         type: boolean
+
+  TransactionsFeed:
+    description: ""
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+      shard:
+        type: integer
+        format: int64
+      seq_no:
+        type: integer
+        format: int64
+      time:
+        type: integer
+        format: int64
+      lt:
+        type: integer
+        format: int64
+      msg_in_created_lt:
+        type: integer
+        format: int64
+      trx_hash:
+        type: string
+      type:
+        type: string
+      msg_in_type:
+        type: string
+      src_uf:
+        type: string
+      src_workchain_id:
+        type: string
+      src:
+        type: string
+      dest_uf:
+        type: string
+      dest_workchain_id:
+        type: string
+      dest:
+        type: string
+      total_nanograms:
+        type: integer
+        format: int64
+      total_fees_nanograms:
+        type: integer
+        format: int64
+      total_fwd_fee_nanograms:
+        type: integer
+        format: int64
+      total_ihr_fee_nanograms:
+        type: integer
+        format: int64
+      total_import_fee_nanograms:
+        type: integer
+        format: int64
 
   MessagesByTypeResult:
     description: ""
@@ -1267,6 +1333,36 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/MessageFeedResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /transactions/feed:
+    get:
+      summary: "Transactions feed"
+      description: ""
+      tags:
+        - core
+      parameters:
+        - name: scroll_id
+          in: query
+          type: string
+          description: "Scroll ID"
+        - name: limit
+          in: query
+          type: integer
+          default: 50
+          description: "Limit messages"
+        - name: workchain_id
+          in: query
+          type: integer
+          description: "Workchain Id filter"
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: '#/definitions/TransactionsFeedResponse'
         default:
           description: generic error response
           schema:

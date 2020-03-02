@@ -15,12 +15,11 @@ const (
 	DefaultMessagesLimit = 50
 	MaxMessagesLimit     = 500
 
-	// TODO: change to ORDER BY (Time, Lt, MessageLt, WorkchainId)
 	createMessagesFeedGlobal = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobal2
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobal
 	ENGINE = MergeTree() 
 	PARTITION BY toYYYYMM(Time)
-	ORDER BY (Time, WorkchainId, Lt, MessageLt)
+	ORDER BY (Time, Lt, MessageLt, WorkchainId)
 	SETTINGS index_granularity=128,index_granularity_bytes=0
 	POPULATE 
 	AS
@@ -145,6 +144,9 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 		scrollId = &MessagesFeedScrollId{
 			WorkchainId: EmptyWorkchainId,
 		}
+	}
+	if scrollId.WorkchainId == -2 {
+		scrollId.WorkchainId = EmptyWorkchainId
 	}
 	if limit == 0 {
 		limit = DefaultMessagesLimit

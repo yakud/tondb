@@ -135,6 +135,14 @@ func main() {
 
 	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
 
+	// Transactions feed
+	transactionsFeed := feed.NewTransactionsFeed(chConnectSqlx)
+	if err := transactionsFeed.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
+	router.GET("/transactions/feed", rateLimitMiddleware(apifeed.NewGetTransactionsFeed(transactionsFeed).Handler))
+
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
 	if err := vBlocksByWorkchain.CreateTable(); err != nil {
@@ -197,11 +205,11 @@ func main() {
 	blocksCache.AddQuery(blocksMetrics)
 
 	go func() {
-		bgCache.RunTicker(ctxBgCache, 5 * time.Second)
+		bgCache.RunTicker(ctxBgCache, 5*time.Second)
 	}()
 
 	go func() {
-		blocksCache.RunTicker(ctxBgCache, 1 * time.Second)
+		blocksCache.RunTicker(ctxBgCache, 1*time.Second)
 	}()
 
 	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))

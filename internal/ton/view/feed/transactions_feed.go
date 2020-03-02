@@ -1,6 +1,9 @@
 package feed
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/jmoiron/sqlx"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
@@ -181,13 +184,19 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 		if err := rows.StructScan(trx); err != nil {
 			return nil, nil, err
 		}
-		if trx.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.SrcWorkchainId, trx.Src); err != nil {
-			// Maybe we shouldn't fail here?
-			return nil, nil, err
+		if trx.Src != "" {
+			if trx.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.SrcWorkchainId, trx.Src); err != nil {
+				log.Println("src string:\"", trx.Src, "\"")
+				log.Println("src bytes:\"", []byte(trx.Src), "\"")
+				// Maybe we shouldn't fail here?
+				return nil, nil, fmt.Errorf("error make uf address src: %w", err)
+			}
 		}
-		if trx.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.DestWorkchainId, trx.Dest); err != nil {
-			// Maybe we shouldn't fail here?
-			return nil, nil, err
+		if trx.Dest != "" {
+			if trx.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.DestWorkchainId, trx.Dest); err != nil {
+				// Maybe we shouldn't fail here?
+				return nil, nil, fmt.Errorf("error make uf address dest: %w", err)
+			}
 		}
 
 		feed = append(feed, trx)

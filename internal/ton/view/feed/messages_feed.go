@@ -174,13 +174,17 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 		if err := rows.StructScan(msg); err != nil {
 			return nil, nil, err
 		}
-		if msg.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.SrcWorkchainId, msg.Src); err != nil {
-			// Maybe we shouldn't fail here?
-			return nil, nil, err
+		if msg.Src != "" {
+			if msg.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.SrcWorkchainId, msg.Src); err != nil {
+				// Maybe we shouldn't fail here?
+				return nil, nil, err
+			}
 		}
-		if msg.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.DestWorkchainId, msg.Dest); err != nil {
-			// Maybe we shouldn't fail here?
-			return nil, nil, err
+		if msg.Dest != "" {
+			if msg.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.DestWorkchainId, msg.Dest); err != nil {
+				// Maybe we shouldn't fail here?
+				return nil, nil, err
+			}
 		}
 
 		feed = append(feed, msg)

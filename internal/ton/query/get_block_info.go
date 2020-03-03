@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -135,6 +136,8 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(query)
 
 	rows, err := q.conn.Query(query, args...)
 	if err != nil {

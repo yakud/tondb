@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -115,12 +116,14 @@ const (
 		WHERE %s
 		LIMIT 100
 	) ANY LEFT JOIN (
-	    SELECT
-			NextSeqNo
-		FROM ".inner._view_index_NextBlock"
-		WHERE %s
+	    %s
 	) USING (WorkchainId, Shard, SeqNo)
 `
+	blocksJoinQuery = `
+	SELECT
+		NextSeqNo
+	FROM ".inner._view_index_NextBlock"
+	WHERE %s`
 )
 
 type GetBlockInfo struct {
@@ -133,13 +136,15 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 		return nil, err
 	}
 
-	quryWithJoin, argsJoin, err := filter.RenderQuery(query, f)
+	quryWithJoin, argsJoin, err := filter.RenderQuery(blocksJoinQuery, f)
 	if err != nil {
 		return nil, err
 	}
 	args = append(args, argsJoin...)
+	finalQuery := fmt.Sprintf(query, quryWithJoin)
+	fmt.Println(finalQuery)
 
-	rows, err := q.conn.Query(quryWithJoin, args...)
+	rows, err := q.conn.Query(finalQuery, args...)
 	if err != nil {
 		if rows != nil {
 			rows.Close()

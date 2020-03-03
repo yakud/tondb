@@ -10,7 +10,7 @@ import (
 
 const (
 	queryGetBlockInfo = `
-	SELECT 
+	SELECT
 		WorkchainId,
 		Shard,
 		SeqNo,
@@ -58,10 +58,68 @@ const (
 		BlockStatsTrxTotalFeesNanograms,
 		BlockStatsMsgIhrFeeNanograms,
 		BlockStatsMsgImportFeeNanograms,
-		BlockStatsMsgFwdFeeNanograms
-	FROM blocks
-	WHERE %s
-	LIMIT 100;
+		BlockStatsMsgFwdFeeNanograms,
+	    SeqNo-1 as PrevSeqNo,
+	    NextSeqNo
+	FROM (
+		SELECT 
+			WorkchainId,
+			Shard,
+			SeqNo,
+			Time,
+			RootHash,
+			FileHash,
+			MinRefMcSeqno,
+			PrevKeyBlockSeqno,
+			GenCatchainSeqno,
+			Prev1RefEndLt,
+			Prev1RefSeqNo,
+			Prev1RefFileHash,
+			Prev1RefRootHash,
+			Prev2RefEndLt,
+			Prev2RefSeqNo,
+			Prev2RefFileHash,
+			Prev2RefRootHash,
+			MasterRefEndLt,
+			MasterRefSeqNo,
+			MasterRefFileHash,
+			MasterRefRootHash,
+			StartLt,
+			EndLt,
+			Version,
+			Flags,
+			KeyBlock,
+			NotMaster,
+			WantMerge,
+			WantSplit,
+			AfterMerge,
+			AfterSplit,
+			BeforeSplit,
+			ValueFlowFromPrevBlk,
+			ValueFlowToNextBlk,
+			ValueFlowImported,
+			ValueFlowExported,
+			ValueFlowFeesCollected,
+			ValueFlowFeesImported,
+			ValueFlowRecovered,
+			ValueFlowCreated,
+			ValueFlowMinted,
+			BlockStatsTrxCount,
+			BlockStatsMsgCount,
+			BlockStatsSentNanograms,
+			BlockStatsTrxTotalFeesNanograms,
+			BlockStatsMsgIhrFeeNanograms,
+			BlockStatsMsgImportFeeNanograms,
+			BlockStatsMsgFwdFeeNanograms
+		FROM blocks
+		WHERE %s
+		LIMIT 100
+	) ANY LEFT JOIN (
+	    SELECT
+			NextSeqNo
+		FROM ".inner._view_index_NextBlock"
+		WHERE %s
+	) USING (WorkchainId, Shard, SeqNo)
 `
 )
 
@@ -75,7 +133,13 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 		return nil, err
 	}
 
-	rows, err := q.conn.Query(query, args...)
+	quryWithJoin, argsJoin, err := filter.RenderQuery(query, f)
+	if err != nil {
+		return nil, err
+	}
+	args = append(args, argsJoin...)
+
+	rows, err := q.conn.Query(quryWithJoin, args...)
 	if err != nil {
 		rows.Close()
 		return nil, err
@@ -140,6 +204,8 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 			&blockInfo.BlockStats.MsgIhrFeeNanograms,
 			&blockInfo.BlockStats.MsgImportFeeNanograms,
 			&blockInfo.BlockStats.MsgFwdFeeNanograms,
+			&blockInfo.PrevSeqNo,
+			&blockInfo.NextSeqNo,
 		)
 		if err != nil {
 			rows.Close()

@@ -25,6 +25,9 @@ type BlockInfo struct {
 	BlockId
 	BlockHeader
 
+	PrevSeqNo uint64 `json:"prev_seq_no"` // virtual field. filled only in get block info query by join.
+	NextSeqNo uint64 `json:"next_seq_no"` // virtual field. same
+
 	MinRefMcSeqno     uint32    `json:"min_ref_mc_seqno"`
 	PrevKeyBlockSeqno uint32    `json:"prev_key_block_seqno"`
 	GenCatchainSeqno  uint32    `json:"gen_catchain_seqno"`

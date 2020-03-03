@@ -242,6 +242,14 @@ definitions:
         type: integer
         format: int64
         description: "Sequence number"
+      prev_seq_no:
+        type: integer
+        format: int64
+        description: "Previous sequence number"
+      next_seq_no:
+        type: integer
+        format: int64
+        description: "Next sequence number"
       root_hash:
         type: string
         description: "root_hash"

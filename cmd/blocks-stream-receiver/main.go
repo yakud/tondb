@@ -136,6 +136,12 @@ func main() {
 		log.Fatal("indexTransactionBlock CreateTable", err)
 	}
 
+	indexNextBlock := index.NewIndexNextBlock(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexNextBlock.CreateTable(); err != nil {
+		log.Fatal("indexNextBlock CreateTable", err)
+	}
+
 	stateAccountState := state.NewAccountState(chConnect)
 	//stateAccountState.DropTable()
 	if err := stateAccountState.CreateTable(); err != nil {

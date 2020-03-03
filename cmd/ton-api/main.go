@@ -210,15 +210,15 @@ func main() {
 	whalesCache.AddQuery(topWhales)
 
 	go func() {
-		metricsCache.RunTicker(ctxBgCache, 5 * time.Second)
+		metricsCache.RunTicker(ctxBgCache, 5*time.Second)
 	}()
 
 	go func() {
-		whalesCache.RunTicker(ctxBgCache, 10 * time.Second)
+		whalesCache.RunTicker(ctxBgCache, 10*time.Second)
 	}()
 
 	go func() {
-		blocksCache.RunTicker(ctxBgCache, 1 * time.Second)
+		blocksCache.RunTicker(ctxBgCache, 1*time.Second)
 	}()
 
 	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))

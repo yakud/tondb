@@ -83,7 +83,8 @@ const (
 	FROM ".inner._view_feed_MessagesFeedGlobal"
 	PREWHERE 
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
-		 (Lt <= TimeRange.3 AND MessageLt <= TimeRange.4)
+		 (Lt <= TimeRange.3 AND MessageLt <= TimeRange.4) AND 
+		 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
 	ORDER BY Time DESC, Lt DESC, MessageLt DESC, WorkchainId DESC
 	LIMIT :limit
 `

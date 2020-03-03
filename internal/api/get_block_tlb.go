@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 
@@ -36,7 +37,12 @@ func (m *GetBlockTlb) Handler(w http.ResponseWriter, r *http.Request, p httprout
 		http.Error(w, `{"error":true,"message":"tlb block fetch error"}`, http.StatusInternalServerError)
 		return
 	}
-	fileName := fmt.Sprintf("(%d,%s,%d).boc", block.WorkchainId, utils.DecToHex(block.Shard), block.SeqNo)
+	fileName := fmt.Sprintf(
+		"(%d,%s,%d).boc",
+		block.WorkchainId,
+		strings.ToUpper(utils.DecToHex(block.Shard)),
+		block.SeqNo,
+	)
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
 	w.WriteHeader(200)
 	w.Write(blockTlb)

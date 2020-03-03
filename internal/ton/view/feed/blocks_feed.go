@@ -60,20 +60,6 @@ const (
 	dropTransactionFeesFeed = `DROP TABLE _view_feed_TransactionFeesFeed`
 
 	queryBlocksFeedScoll = `
-SELECT
-	WorkchainId,
-	Shard,
-	SeqNo,
-	toUInt64(Time) as TimeUnix,
-    StartLt,
-    RootHash,
-	TotalFeesNanograms,
-	TrxCount,
-	ValueNanograms,
-	IhrFeeNanograms,
-	ImportFeeNanograms,
-	FwdFeeNanograms
-FROM (
 	WITH (
 		SELECT (min(Time), max(Time), max(StartLt), max(Shard))
 		FROM (
@@ -96,50 +82,18 @@ FROM (
 		 WorkchainId,
 		 Shard,
 		 SeqNo,
-		 Time,
+		 toUInt64(Time) as TimeUnix,
 	     StartLt,
-	     RootHash
+	     RootHash,
+	     BlockStatsTrxCount as TrxCount,
+		 BlockStatsSentNanograms as ValueNanograms,
+		 ValueFlowFeesCollected as TotalFeesNanograms
 	 FROM ".inner._view_feed_BlocksFeed"
 	 PREWHERE
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2)  AND
 		 (StartLt <= TimeRange.3 AND Shard <= TimeRange.4) AND
 		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
 	 ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
-) ANY LEFT JOIN (
-	WITH (
-		SELECT (min(Time), max(Time), max(StartLt), max(Shard))
-		FROM (
-			SELECT 
-			   Time,
-			   StartLt,
-			   Shard
-			FROM ".inner._view_feed_BlocksFeed"
-			PREWHERE
-				 if(:time == 0, 1,
-					(Time = :time AND StartLt <= :lt AND Shard < :shard) OR
-					(Time < :time)
-				 ) AND 
-				 if(:workchain_id == bitShiftLeft(toInt32(-1), 31), 1, WorkchainId = :workchain_id)
-			ORDER BY Time DESC, StartLt DESC, Shard DESC, WorkchainId DESC
-			LIMIT :limit
-		)
-	) as TimeRange
-	SELECT
-		WorkchainId,
-		Shard,
-		SeqNo,
-		TotalFeesNanograms,
-		TrxCount,
-		ValueNanograms,
-		IhrFeeNanograms,
-		ImportFeeNanograms,
-		FwdFeeNanograms
-	FROM ".inner._view_feed_TransactionFeesFeed"
-	PREWHERE
-		 Time >= TimeRange.1 AND Time <= TimeRange.2 AND
-		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1) AND 
-		 Shard <= TimeRange.4
-) USING (WorkchainId, Shard, SeqNo);
 `
 )
 
@@ -153,9 +107,6 @@ type BlockInFeed struct {
 	TotalFeesNanograms uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
 	TrxCount           uint64 `db:"TrxCount" json:"trx_count"`
 	ValueNanograms     uint64 `db:"ValueNanograms" json:"value_nanograms"`
-	IhrFeeNanograms    uint64 `db:"IhrFeeNanograms" json:"ihr_fee_nanograms"`
-	ImportFeeNanograms uint64 `db:"ImportFeeNanograms" json:"import_fee_nanograms"`
-	FwdFeeNanograms    uint64 `db:"FwdFeeNanograms" json:"fwd_fee_nanograms"`
 }
 
 type BlocksFeedScrollId struct {

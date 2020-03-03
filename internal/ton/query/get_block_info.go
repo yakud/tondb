@@ -51,7 +51,14 @@ const (
 		ValueFlowFeesImported,
 		ValueFlowRecovered,
 		ValueFlowCreated,
-		ValueFlowMinted
+		ValueFlowMinted,
+		BlockStatsTrxCount,
+		BlockStatsMsgCount,
+		BlockStatsSentNanograms,
+		BlockStatsTrxTotalFeesNanograms,
+		BlockStatsMsgIhrFeeNanograms,
+		BlockStatsMsgImportFeeNanograms,
+		BlockStatsMsgFwdFeeNanograms
 	FROM blocks
 	WHERE %s
 	LIMIT 100;
@@ -77,10 +84,11 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 	res := make([]*ton.BlockInfo, 0)
 	for rows.Next() {
 		blockInfo := &ton.BlockInfo{
-			Prev1Ref:  &ton.BlockRef{},
-			Prev2Ref:  &ton.BlockRef{},
-			MasterRef: &ton.BlockRef{},
-			ValueFlow: &ton.ValueFlow{},
+			Prev1Ref:   &ton.BlockRef{},
+			Prev2Ref:   &ton.BlockRef{},
+			MasterRef:  &ton.BlockRef{},
+			ValueFlow:  &ton.ValueFlow{},
+			BlockStats: &ton.BlockStats{},
 		}
 
 		err = rows.Scan(
@@ -125,6 +133,13 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 			&blockInfo.ValueFlow.Recovered,
 			&blockInfo.ValueFlow.Created,
 			&blockInfo.ValueFlow.Minted,
+			&blockInfo.BlockStats.TrxCount,
+			&blockInfo.BlockStats.MsgCount,
+			&blockInfo.BlockStats.SentNanograms,
+			&blockInfo.BlockStats.TrxTotalFeesNanograms,
+			&blockInfo.BlockStats.MsgIhrFeeNanograms,
+			&blockInfo.BlockStats.MsgImportFeeNanograms,
+			&blockInfo.BlockStats.MsgFwdFeeNanograms,
 		)
 		if err != nil {
 			rows.Close()

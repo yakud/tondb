@@ -41,10 +41,33 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		return nil, err
 	}
 
+	block.Info.BlockStats = &ton.BlockStats{}
+	block.Info.BlockStats.TrxCount += uint16(len(block.Transactions))
+
 	for _, tr := range block.Transactions {
 		tr.WorkchainId = block.Info.WorkchainId
 		tr.Shard = block.Info.Shard
 		tr.SeqNo = block.Info.SeqNo
+
+		block.Info.BlockStats.TrxTotalFeesNanograms += tr.TotalFeesNanograms
+
+		if tr.InMsg != nil {
+			block.Info.BlockStats.MsgCount++
+			block.Info.BlockStats.SentNanograms += tr.InMsg.ValueNanograms
+			block.Info.BlockStats.MsgIhrFeeNanograms += tr.InMsg.IhrFeeNanograms
+			block.Info.BlockStats.MsgImportFeeNanograms += tr.InMsg.ImportFeeNanograms
+			block.Info.BlockStats.MsgFwdFeeNanograms += tr.InMsg.FwdFeeNanograms
+		}
+
+		if tr.OutMsgs != nil {
+			block.Info.BlockStats.MsgCount += uint16(len(tr.OutMsgs))
+			for _, outMsg := range tr.OutMsgs {
+				block.Info.BlockStats.SentNanograms += outMsg.ValueNanograms
+				block.Info.BlockStats.MsgIhrFeeNanograms += outMsg.IhrFeeNanograms
+				block.Info.BlockStats.MsgImportFeeNanograms += outMsg.ImportFeeNanograms
+				block.Info.BlockStats.MsgFwdFeeNanograms += outMsg.FwdFeeNanograms
+			}
+		}
 	}
 
 	if err := c.extractTransactionsHash(node, &block.Transactions); err != nil {

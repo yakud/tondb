@@ -312,6 +312,35 @@ definitions:
       value_flow:
         $ref: '#/definitions/ValueFlow'
         description: "Value flow"
+      block_stats:
+        $ref: '#/definitions/BlockStats'
+        description: "Block stats"
+
+  BlockStats:
+    description: "Value flow"
+    type: object
+    properties:
+      trx_count:
+        type: integer
+        format: int32
+      msg_count:
+        type: integer
+        format: int32
+      sent_nanograms:
+        type: integer
+        format: int64
+      trx_total_fees_nanograms:
+        type: integer
+        format: int64
+      msg_ihr_fee_nanograms:
+        type: integer
+        format: int64
+      msg_import_fee_nanograms:
+        type: integer
+        format: int64
+      msg_fwd_fee_nanograms:
+        type: integer
+        format: int64
 
   ValueFlow:
     description: "Value flow"

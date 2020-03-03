@@ -79,6 +79,7 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 }
 
 func main() {
+	log.Println("started v0.0.1")
 	go func() {
 		for {
 			<-time.After(time.Second * 5)

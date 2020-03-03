@@ -116,6 +116,9 @@ const (
 		LIMIT 100
 	) ANY LEFT JOIN (
 	    SELECT
+			WorkchainId,
+		    Shard,
+		    SeqNo,
 			NextSeqNo
 		FROM ".inner._view_index_NextBlock"
 		WHERE %s

@@ -27,7 +27,10 @@ const (
 		SeqNo,
 		Time,
 		StartLt,
-		RootHash
+		RootHash,
+		BlockStatsTrxCount,
+		BlockStatsSentNanograms,
+		ValueFlowFeesCollected
 	FROM blocks
 `
 

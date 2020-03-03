@@ -18,18 +18,21 @@ func (f *Filters) Add(filter ...Filter) {
 
 // Render filters and include in query
 // Expected query like: SELECT 1 FROM table WHERE %s
-func RenderQuery(query string, filter Filter) (string, []interface{}, error) {
-	var queryWhere string
-	var err error
+func RenderQuery(query string, filters ...Filter) (string, []interface{}, error) {
+	var queryWhere []interface{}
 	var filtersArgs = make([]interface{}, 0)
 
-	if filter == nil {
-		queryWhere = "1=1"
+	if filters == nil {
+		queryWhere = []interface{}{"1=1"}
 	} else {
-		queryWhere, filtersArgs, err = filter.Build()
-		if err != nil {
-			return "", nil, err
+		for _, filter := range filters {
+			filterQueryWhere, filterArgs, err := filter.Build()
+			if err != nil {
+				return "", nil, err
+			}
+			queryWhere = append(queryWhere, filterQueryWhere)
+			filtersArgs = append(filtersArgs, filterArgs...)
 		}
 	}
-	return fmt.Sprintf(query, queryWhere), filtersArgs, nil
+	return fmt.Sprintf(query, queryWhere...), filtersArgs, nil
 }

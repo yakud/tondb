@@ -141,7 +141,9 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 
 	rows, err := q.conn.Query(quryWithJoin, args...)
 	if err != nil {
-		rows.Close()
+		if rows != nil {
+			rows.Close()
+		}
 		return nil, err
 	}
 

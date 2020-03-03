@@ -36,7 +36,7 @@ const (
 		   Shard,
 		   ShardSeqNo
 		FROM shards_descr
-		WHERE MasterSeqNo <= ? AND MasterSeqNo >= ?-50 AND Shard IN (SELECT Shard FROM shards_descr WHERE MasterSeqNo = ?)
+		PREWHERE MasterSeqNo <= ? AND MasterSeqNo >= ?-50 AND Shard IN (SELECT Shard FROM shards_descr WHERE MasterSeqNo = ?)
 		ORDER BY MasterSeqNo DESC, Shard DESC, ShardSeqNo DESC
 		LIMIT 2 BY Shard
 	) 

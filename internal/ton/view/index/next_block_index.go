@@ -17,9 +17,10 @@ const (
 	SELECT 
    		WorkchainId,
    		Shard,
-   		SeqNo as NextSeqNo,
-   		SeqNo-1 as SeqNo
-	FROM blocks;
+   		toUInt64(SeqNo) as NextSeqNo,
+   		toUInt64(SeqNo-1) as SeqNo
+	FROM blocks
+	WHERE SeqNo > 0;
 `
 	dropIndexNextBlock = `DROP TABLE _view_index_NextBlock`
 )

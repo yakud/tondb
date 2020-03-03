@@ -2,7 +2,6 @@ package query
 
 import (
 	"database/sql"
-	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -60,7 +59,7 @@ const (
 		BlockStatsMsgIhrFeeNanograms,
 		BlockStatsMsgImportFeeNanograms,
 		BlockStatsMsgFwdFeeNanograms,
-	    SeqNo-1 as PrevSeqNo,
+	    if(SeqNo > 1, SeqNo-1, 0) as PrevSeqNo,
 	    NextSeqNo
 	FROM (
 		SELECT 
@@ -113,7 +112,7 @@ const (
 			BlockStatsMsgImportFeeNanograms,
 			BlockStatsMsgFwdFeeNanograms
 		FROM blocks
-		WHERE %s
+		PREWHERE %s
 		LIMIT 100
 	) ANY LEFT JOIN (
 	    SELECT
@@ -122,7 +121,7 @@ const (
 		    SeqNo,
 			NextSeqNo
 		FROM ".inner._view_index_NextBlock"
-		WHERE %s
+		PREWHERE %s
 	) USING (WorkchainId, Shard, SeqNo)
 `
 )
@@ -136,8 +135,6 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(query)
 
 	rows, err := q.conn.Query(query, args...)
 	if err != nil {

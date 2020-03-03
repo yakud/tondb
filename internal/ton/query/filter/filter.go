@@ -23,9 +23,13 @@ func RenderQuery(query string, filters ...Filter) (string, []interface{}, error)
 	var filtersArgs = make([]interface{}, 0)
 
 	if filters == nil {
-		queryWhere = []interface{}{"1=1"}
+		queryWhere = append(queryWhere, "1=1")
 	} else {
 		for _, filter := range filters {
+			if filter == nil {
+				queryWhere = append(queryWhere, "1=1")
+				continue
+			}
 			filterQueryWhere, filterArgs, err := filter.Build()
 			if err != nil {
 				return "", nil, err

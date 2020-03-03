@@ -137,8 +137,8 @@ FROM (
 	FROM ".inner._view_feed_TransactionFeesFeed"
 	PREWHERE
 		 Time >= TimeRange.1 AND Time <= TimeRange.2 AND
-		 Shard <= TimeRange.4 AND
-		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1)
+		 if(:workchain_id != bitShiftLeft(toInt32(-1), 31), WorkchainId = :workchain_id, 1) AND 
+		 Shard <= TimeRange.4
 ) USING (WorkchainId, Shard, SeqNo);
 `
 )

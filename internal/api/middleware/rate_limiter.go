@@ -36,13 +36,13 @@ func RateLimit(rateLimiter *ratelimit.RateLimiter) func(h httprouter.Handle) htt
 				"/messages/feed":
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "main:",
-					PerSecondLimit: 15,
+					PerSecondLimit: 20,
 				}
 
 			default:
 				limits = ratelimit.LimitsConfig{
 					LimitPrefix:    "core:",
-					PerSecondLimit: 5,
+					PerSecondLimit: 10,
 				}
 			}
 

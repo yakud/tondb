@@ -2,6 +2,7 @@ package ton
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -96,6 +97,14 @@ type BlockId struct {
 	WorkchainId int32  `json:"workchain_id"`
 	Shard       uint64 `json:"shard"`
 	SeqNo       uint64 `json:"seq_no"`
+}
+
+func (b *BlockId) String() string {
+	return fmt.Sprintf("(%d,%s,%d)",
+		b.WorkchainId,
+		utils.DecToHex(b.Shard),
+		b.SeqNo,
+	)
 }
 
 func ParseBlockId(b string) (*BlockId, error) {

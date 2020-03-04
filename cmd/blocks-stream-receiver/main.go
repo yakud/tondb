@@ -142,6 +142,18 @@ func main() {
 		log.Fatal("indexNextBlock CreateTable", err)
 	}
 
+	indexReverseBlockSeqNo := index.NewIndexReverseBlockSeqNo(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexReverseBlockSeqNo.CreateTable(); err != nil {
+		log.Fatal("indexReverseBlockSeqNo CreateTable", err)
+	}
+
+	indexHash := index.NewIndexHash(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexHash.CreateTable(); err != nil {
+		log.Fatal("indexHash CreateTable", err)
+	}
+
 	stateAccountState := state.NewAccountState(chConnect)
 	//stateAccountState.DropTable()
 	if err := stateAccountState.CreateTable(); err != nil {

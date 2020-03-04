@@ -1,40 +1,59 @@
 package search
 
-/*
+import (
+	"net/url"
+	"strings"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/query"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
+)
+
 type Searcher struct {
+	accountStorage   *state.AccountState
+	getBlockQuery    *query.GetBlockInfo
+	indexBlocksSeqNo *index.IndexReverseBlockSeqNo
+	indexHash        *index.IndexHash
 }
 
-func (s *Searcher) Search(query string) ([]Result, error) {
-	if s.isAccountAddress(query) {
-
+func (s *Searcher) Search(q string) ([]Result, error) {
+	q = strings.TrimSpace(q)
+	unescapedQuery, err := url.QueryUnescape(q)
+	if err == nil {
+		q = unescapedQuery
 	}
-	if s.isFullBlockNum(query) {
 
+	if result, err := s.searchAccount(q); err == nil {
+		return result, nil
 	}
+
+	if result, err := s.searchBlockFull(q); err == nil {
+		return result, nil
+	}
+
+	if result, err := s.searchBlocksBySeqNo(q); err == nil {
+		return result, nil
+	}
+
+	if result, err := s.searchSomethingByHash(q); err == nil {
+		return result, nil
+	}
+
+	return nil, nil
 }
 
-func (s *Searcher) isAccountAddress(query string) bool {
-	if strings.Contains(query, ":") {
-		if parts := strings.Split(query, ":"); len(parts) == 2 && len(parts[1]) == 64 {
-			return true
-		}
+func NewSearcher(
+	accountStorage *state.AccountState,
+	getBlockQuery *query.GetBlockInfo,
+	indexBlocksSeqNo *index.IndexReverseBlockSeqNo,
+	indexHash *index.IndexHash,
+) *Searcher {
+	return &Searcher{
+		accountStorage:   accountStorage,
+		getBlockQuery:    getBlockQuery,
+		indexBlocksSeqNo: indexBlocksSeqNo,
+		indexHash:        indexHash,
 	}
-	if len(query) == 48 {
-		return true
-	}
-
-	return false
 }
-
-func (s *Searcher) isFullBlockNum(query string) bool {
-	if _, err := ton.ParseBlockId(query); err == nil {
-		return true
-	}
-
-	return false
-}
-
-func NewSearcher() *Searcher {
-	return &Searcher{}
-}
-*/

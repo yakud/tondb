@@ -6,6 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/search"
+
 	"github.com/jmoiron/sqlx"
 
 	"gitlab.flora.loc/mills/tondb/internal/api"
@@ -93,6 +97,15 @@ func main() {
 	blockchainHeightQuery := query.NewGetBlockchainHeight(chConnect)
 	searchTransactionsQuery := query.NewSearchTransactions(chConnect)
 	getBlockInfoQuery := query.NewGetBlockInfo(chConnect)
+	indexReverseBlockSeqNo := index.NewIndexReverseBlockSeqNo(chConnect)
+	indexHash := index.NewIndexHash(chConnect)
+
+	searcher := search.NewSearcher(
+		accountState,
+		getBlockInfoQuery,
+		indexReverseBlockSeqNo,
+		indexHash,
+	)
 
 	if err := ratelimit.RateLimitLua.Load(redisClient).Err(); err != nil {
 		log.Fatal("error load redis lua script:", err)
@@ -106,6 +119,7 @@ func main() {
 	router.GET("/workchain/block/master", rateLimitMiddleware(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
 	router.GET("/transaction", rateLimitMiddleware(api.NewGetTransactions(searchTransactionsQuery).Handler))
 	router.GET("/block/tlb", rateLimitMiddleware(api.NewGetBlockTlb(blocksFetcher).Handler))
+	router.GET("/search", rateLimitMiddleware(api.NewSearch(searcher).Handler))
 
 	// Block routes
 	getBlockInfo := api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage)

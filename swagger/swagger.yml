@@ -907,6 +907,19 @@ definitions:
       type: integer
       format: int64
 
+  SearchResult:
+    type: object
+    properties:
+      type:
+        description: "Search result type"
+        type: string
+      hint:
+        description: "Search hint"
+        type: string
+      link:
+        description: "API link"
+        type: string
+
   error:
     type: object
     required:
@@ -1532,6 +1545,31 @@ paths:
           description: OK
           schema:
             $ref: "#/definitions/MessagesMetrics"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /search:
+    get:
+      summary: "Get messages metrics"
+      tags:
+        - core
+      description: "Search between blocks, transactions, accounts, messages"
+      parameters:
+        - name: q
+          in: query
+          type: string
+          required: true
+          default: ""
+          description: "Query string (full block fromat, account addr user uf/raw, block height, any hash)"
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/SearchResult"
         default:
           description: generic error response
           schema:

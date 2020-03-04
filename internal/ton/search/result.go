@@ -10,6 +10,7 @@ const (
 )
 
 type Result struct {
-	Type ResultType
-	Link string
+	Type ResultType `json:"type"`
+	Hint string     `json:"hint"`
+	Link string     `json:"link"`
 }

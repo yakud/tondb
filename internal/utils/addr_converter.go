@@ -158,6 +158,10 @@ func parseAccountAddressRaw(addr string) (int32, string, error) {
 }
 
 func parseAccountAddressUserFriendly(addr string) (int32, string, error) {
+	if len(addr) != 48 {
+		return 0, "", fmt.Errorf("short addr length")
+	}
+
 	addrUfBytes := make([]byte, addrUserFriendlyBytesLength)
 	if _, err := base64.RawURLEncoding.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {
 		if _, err := base64.RawStdEncoding.Decode(addrUfBytes[:addrUserFriendlyBytesLength], []byte(addr)); err != nil {

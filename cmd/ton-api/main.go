@@ -116,6 +116,7 @@ func main() {
 	router.GET("/height/synced", rateLimitMiddleware(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
 	router.GET("/height/blockchain", rateLimitMiddleware(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
 	router.GET("/master/block/shards/range", rateLimitMiddleware(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
+	router.GET("/master/block/shards/actual", rateLimitMiddleware(api.NewMasterchainBlockShardsActual(shardsDescrStorage).Handler))
 	router.GET("/workchain/block/master", rateLimitMiddleware(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
 	router.GET("/transaction", rateLimitMiddleware(api.NewGetTransactions(searchTransactionsQuery).Handler))
 	router.GET("/block/tlb", rateLimitMiddleware(api.NewGetBlockTlb(blocksFetcher).Handler))

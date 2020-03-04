@@ -201,6 +201,23 @@ definitions:
     description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
     type: string
 
+  ShardBlock:
+    description: "Shard block"
+    type: object
+    properties:
+      workchain_id:
+        type: integer
+        format: int32
+        description: "Workchain ID"
+      shard:
+        type: integer
+        format: int64
+        description: "Shard DEC"
+      seq_no:
+        type: integer
+        format: int64
+        description: "Sequence number"
+
   ShardBlocksRange:
     description: "Shard blocks range"
     type: object
@@ -1007,6 +1024,30 @@ paths:
             type: array
             items:
               $ref: "#/definitions/ShardBlocksRange"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /master/block/shards/actual:
+    get:
+      summary: "Get master block actual shards"
+      description: "Get master block actual shards. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
+      tags:
+        - core
+      parameters:
+        - name: block_master
+          in: query
+          type: string
+          required: true
+          description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/ShardBlock"
         default:
           description: generic error response
           schema:

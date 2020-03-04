@@ -1407,7 +1407,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /messages/get:
+  /message/get:
     get:
       summary: "Get message"
       tags:

@@ -22,7 +22,7 @@ func (api *GetTopWhales) Handler(w http.ResponseWriter, r *http.Request, p httpr
 
 	limit, err := httpUtils.GetQueryValueUint32(r.URL, "limit")
 	if err != nil {
-		limit = uint32(stats.WhalesDefaultLimit / 2)
+		limit = uint32(stats.WhalesDefaultPageLimit)
 	}
 
 	offset, _ := httpUtils.GetQueryValueUint32(r.URL, "offset")

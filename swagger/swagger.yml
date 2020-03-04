@@ -679,6 +679,8 @@ definitions:
         type: integer
       bounce:
         type: boolean
+      body:
+        type: string
 
   TransactionsFeed:
     description: ""
@@ -1392,6 +1394,33 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/MessageFeedResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /messages/get:
+    get:
+      summary: "Get message"
+      tags:
+        - core
+      description: "Get message by transaction hash and message logical time"
+      parameters:
+        - name: trx_hash
+          in: query
+          type: string
+          description: "Transaction hash"
+          required: true
+        - name: message_lt
+          in: query
+          type: integer
+          description: "Message logical time"
+          required: true
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/TransactionMessage"
         default:
           description: generic error response
           schema:

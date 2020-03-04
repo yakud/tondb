@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -77,8 +78,8 @@ const (
 )
 
 type MessagesMetricsResult struct {
-	TotalTransactions  uint64 `json:"total_transactions"`
-	TotalMessages      uint64 `json:"total_messages"`
+	TotalTransactions uint64 `json:"total_transactions"`
+	TotalMessages     uint64 `json:"total_messages"`
 
 	Tps float64 `json:"tps"`
 	Mps float64 `json:"mps"`
@@ -114,7 +115,7 @@ func (t *MessagesMetrics) UpdateQuery() error {
 		return err
 	}
 	row = t.conn.QueryRow(queryTpsAndMps)
-	if err := row.Scan(&res.Tps, &res.Mps); err != nil {
+	if err := row.Scan(&res.Mps, &res.Tps); err != nil {
 		return err
 	}
 
@@ -137,11 +138,11 @@ func (t *MessagesMetrics) UpdateQuery() error {
 		return err
 	}
 	row = t.conn.QueryRow(queryTpsAndMps, args...)
-	if err := row.Scan(&resWorkchain.Tps, &resWorkchain.Mps); err != nil {
+	if err := row.Scan(&resWorkchain.Mps, &resWorkchain.Tps); err != nil {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyMessagesMetrics + "0", &resWorkchain)
+	t.resultCache.Set(cacheKeyMessagesMetrics+"0", &resWorkchain)
 
 	resMasterchain := MessagesMetricsResult{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
@@ -160,11 +161,11 @@ func (t *MessagesMetrics) UpdateQuery() error {
 		return err
 	}
 	row = t.conn.QueryRow(queryTpsAndMps, args...)
-	if err := row.Scan(&resMasterchain.Tps, &resMasterchain.Mps); err != nil {
+	if err := row.Scan(&resMasterchain.Mps, &resMasterchain.Tps); err != nil {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyMessagesMetrics + "-1", &resMasterchain)
+	t.resultCache.Set(cacheKeyMessagesMetrics+"-1", &resMasterchain)
 
 	return nil
 }
@@ -188,4 +189,3 @@ func NewMessagesMetrics(conn *sql.DB, cache cache.Cache) *MessagesMetrics {
 		resultCache: cache,
 	}
 }
-

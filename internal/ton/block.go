@@ -102,7 +102,7 @@ type BlockId struct {
 func (b *BlockId) String() string {
 	return fmt.Sprintf("(%d,%s,%d)",
 		b.WorkchainId,
-		utils.DecToHex(b.Shard),
+		strings.ToUpper(utils.DecToHex(b.Shard)),
 		b.SeqNo,
 	)
 }

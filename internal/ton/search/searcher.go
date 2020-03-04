@@ -1,7 +1,6 @@
 package search
 
 import (
-	"log"
 	"net/url"
 	"strings"
 
@@ -28,26 +27,18 @@ func (s *Searcher) Search(q string) ([]Result, error) {
 
 	if result, err := s.searchAccount(q); err == nil {
 		return result, nil
-	} else {
-		log.Println("searchAccount:", err)
 	}
 
 	if result, err := s.searchBlockFull(q); err == nil {
 		return result, nil
-	} else {
-		log.Println("searchBlockFull:", err)
 	}
 
 	if result, err := s.searchBlocksBySeqNo(q); err == nil {
 		return result, nil
-	} else {
-		log.Println("searchBlocksBySeqNo:", err)
 	}
 
 	if result, err := s.searchSomethingByHash(q); err == nil {
 		return result, nil
-	} else {
-		log.Println("searchSomethingByHash:", err)
 	}
 
 	return nil, nil

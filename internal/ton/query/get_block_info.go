@@ -124,10 +124,59 @@ const (
 		PREWHERE %s
 	) USING (WorkchainId, Shard, SeqNo)
 `
+
+	selectExistsBlocks = `
+	SELECT
+		WorkchainId,
+		Shard,
+		SeqNo,
+	FROM blocks
+	PREWHERE %s
+	LIMIT 100
+`
 )
 
 type GetBlockInfo struct {
 	conn *sql.DB
+}
+
+func (q *GetBlockInfo) BlockExists(f filter.Filter) ([]*ton.BlockId, error) {
+	query, args, err := filter.RenderQuery(selectExistsBlocks, f)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := q.conn.Query(query, args...)
+	if err != nil {
+		if rows != nil {
+			rows.Close()
+		}
+		return nil, err
+	}
+
+	res := make([]*ton.BlockId, 0)
+	for rows.Next() {
+		blockId := &ton.BlockId{
+			WorkchainId: 0,
+			Shard:       0,
+			SeqNo:       0,
+		}
+
+		err = rows.Scan(
+			&blockId.WorkchainId,
+			&blockId.Shard,
+			&blockId.SeqNo,
+		)
+
+		if err != nil {
+			rows.Close()
+			return nil, err
+		}
+		res = append(res, blockId)
+	}
+	rows.Close()
+
+	return res, nil
 }
 
 func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {

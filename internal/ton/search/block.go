@@ -46,21 +46,12 @@ func (s *Searcher) searchBlocksBySeqNo(q string) ([]Result, error) {
 		return nil, err
 	}
 
-	blocks, err := s.getBlockQuery.GetBlockInfo(filter.NewBlocks(blocksId...))
-	if err != nil {
-		return nil, err
-	}
-	if len(blocks) == 0 {
-		return nil, fmt.Errorf("block not found")
-	}
-
 	var result []Result
-	for _, block := range blocks {
-		blockIdStr := block.BlockId.String()
+	for _, blockId := range blocksId {
 		result = append(result, Result{
 			Type: ResultTypeBlock,
-			Hint: blockIdStr,
-			Link: "/block/info?block=" + blockIdStr,
+			Hint: blockId.String(),
+			Link: "/block/info?block=" + blockId.String(),
 		})
 	}
 

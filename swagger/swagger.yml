@@ -839,6 +839,14 @@ definitions:
         description: "Total number of messages"
         type: integer
         format: int64
+      trx_last_day:
+        description: "Total number of transactions for last 24 hours"
+        type: integer
+        format: int64
+      trx_last_month:
+        description: "Total number of transactions for last month"
+        type: integer
+        format: int64
 
   BlocksMetrics:
     description: ""

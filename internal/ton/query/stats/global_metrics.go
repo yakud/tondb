@@ -7,22 +7,49 @@ import (
 )
 
 const (
-	cacheKeyGlobalMetrics = "global_metrics"
-
-	getTotalAddrAndGram = `
+	getGlobalMetrics = `
 	SELECT
-		count() AS TotalAddr,
-		sum(BalanceNanogram) AS TotalNanogram
-    FROM ".inner._view_state_AccountState" FINAL
+		sum(TotalAddr) AS TotalAddr,
+	    sum(TotalNanogram) AS TotalNanogram,
+	    sum(TotalMessages) AS TotalMessages,
+	    sum(TotalBlocks) AS TotalBlocks,
+	    sum(TrxLastDay) AS TrxLastDay,
+	    sum(TrxLastMonth) AS TrxLastMonth
+	FROM (
+		SELECT
+			count() AS TotalAddr,
+			sum(BalanceNanogram) AS TotalNanogram,
+		    0 AS TotalMessages,
+		    0 AS TotalBlocks,
+		    0 AS TrxLastDay,
+		    0 AS TrxLastMonth
+		FROM ".inner._view_state_AccountState" FINAL
+
+	 	UNION ALL
+		
+		SELECT 
+		   	0 AS TotalAddr,
+		   	0 AS TotalNanogram,
+			sum(TotalMessages) AS TotalMessages,
+			0 AS TotalBlocks,
+			0 AS TrxLastDay,
+		    0 AS TrxLastMonth
+		FROM ".inner._view_feed_TotalTransactionsAndMessages"
+		    
+		UNION ALL  
+
+		SELECT
+		    0 AS TotalAddr,
+		    0 AS TotalNanogram,
+		    0 AS TotalMessages,
+		    count() AS TotalBlocks,
+    		sum(if(Time >= (now() - INTERVAL 1 DAY), BlockStatsTrxCount, 0)) AS TrxLastDay, 
+    		sum(if(Time >= (now() - INTERVAL 1 MONTH), BlockStatsTrxCount, 0)) AS TrxLastMonth
+		FROM blocks
+	)
 `
 
-	getTotalBlocks = `
-	SELECT count() FROM blocks;
-`
-
-	getTotalMessages = `
-	SELECT sum(TotalMessages) AS TotalMessages FROM ".inner._view_feed_TotalTransactionsAndMessages"
-`
+	cacheKeyGlobalMetrics = "global_metrics"
 )
 
 type GlobalMetricsResult struct {
@@ -30,6 +57,8 @@ type GlobalMetricsResult struct {
 	TotalNanogram uint64 `json:"total_nanogram"`
 	TotalBlocks   uint64 `json:"total_blocks"`
 	TotalMessages uint64 `json:"total_messages"`
+	TrxLastDay    uint64 `json:"trx_last_day"`
+	TrxLastMonth  uint64 `json:"trx_last_month"`
 }
 
 type GlobalMetrics struct {
@@ -40,18 +69,9 @@ type GlobalMetrics struct {
 func (t *GlobalMetrics) UpdateQuery() error {
 	res := GlobalMetricsResult{}
 
-	row := t.conn.QueryRow(getTotalAddrAndGram)
-	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram); err != nil {
-		return err
-	}
+	row := t.conn.QueryRow(getGlobalMetrics)
 
-	row = t.conn.QueryRow(getTotalBlocks)
-	if err := row.Scan(&res.TotalBlocks); err != nil {
-		return err
-	}
-
-	row = t.conn.QueryRow(getTotalMessages)
-	if err := row.Scan(&res.TotalMessages); err != nil {
+	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram, &res.TotalMessages, &res.TotalBlocks, &res.TrxLastDay, &res.TrxLastMonth); err != nil {
 		return err
 	}
 

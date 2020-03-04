@@ -56,7 +56,8 @@ const (
 		Messages.SrcAddr as MessagesSrcAddr,
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
-		Messages.BodyValue as MessagesBodyValue
+		Messages.BodyValue as MessagesBodyValue,
+   		arraySum(Messages.ValueNanograms) as TotalNanograms
 	FROM transactions
 	PREWHERE %s
 	LIMIT 1000
@@ -153,6 +154,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&messagesSrcAnycast,
 			&messagesBodyType,
 			&messagesBodyValue,
+			&transaction.TotalNanograms,
 		)
 		if err != nil {
 			rows.Close()

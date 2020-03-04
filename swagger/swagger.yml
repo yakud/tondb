@@ -448,6 +448,10 @@ definitions:
         type: integer
         format: int64
         description: "now"
+      total_nanograms:
+        type: integer
+        format: int64
+        description: "total_nanograms"
       total_fees_nanograms:
         type: integer
         format: int64

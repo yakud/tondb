@@ -20,6 +20,9 @@ type Transaction struct {
 	StateUpdateNewHash string `json:"state_update_new_hash"`
 	StateUpdateOldHash string `json:"state_update_old_hash"`
 
+	// virtual field. calculates only when retrieved from db
+	TotalNanograms uint64 `json:"total_nanograms"`
+
 	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
 	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`
 }

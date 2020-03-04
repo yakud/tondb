@@ -192,6 +192,14 @@ func main() {
 	blocksCache := cache.NewBackground()
 	whalesCache := cache.NewBackground()
 
+	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, metricsCache)
+	if err := messagesMetrics.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+	if err := messagesMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, metricsCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
@@ -204,14 +212,6 @@ func main() {
 
 	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, metricsCache)
 	if err := addressesMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
-	}
-
-	messagesMetrics := statsQ.NewMessagesMetrics(chConnect, metricsCache)
-	if err := messagesMetrics.CreateTable(); err != nil {
-		log.Fatal(err)
-	}
-	if err := messagesMetrics.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}
 

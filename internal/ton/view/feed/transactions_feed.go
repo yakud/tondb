@@ -34,6 +34,7 @@ const (
 	       	
 		Hash AS TrxHash,
 	    Type,
+	   	AccountAddr,
 	    Messages.CreatedLt[MsgInIndex]       AS MsgInCreatedLt,
 	    Messages.Type[MsgInIndex]            AS MsgInType,
 		Messages.SrcWorkchainId[MsgInIndex]  AS SrcWorkchainId, 
@@ -77,6 +78,7 @@ const (
 		MsgInCreatedLt,
 		TrxHash,
 		Type,
+		AccountAddr,
 		MsgInType,
 		SrcWorkchainId,
 		Src,
@@ -106,6 +108,8 @@ type TransactionInFeed struct {
 	MsgInCreatedLt          uint64 `db:"MsgInCreatedLt" json:"msg_in_created_lt"`
 	TrxHash                 string `db:"TrxHash" json:"trx_hash"`
 	Type                    string `db:"Type" json:"type"`
+	AccountAddr             string `db:"AccountAddr" json:"account_addr"`
+	AccountAddrUF           string `db:"-" json:"account_addr_uf"`
 	MsgInType               string `db:"MsgInType" json:"msg_in_type"`
 	SrcUf                   string `db:"-" json:"src_uf"`
 	SrcWorkchainId          int32  `db:"SrcWorkchainId" json:"src_workchain_id"`
@@ -201,6 +205,12 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 			if trx.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.DestWorkchainId, trx.Dest); err != nil {
 				// Maybe we shouldn't fail here?
 				return nil, nil, fmt.Errorf("error make uf address dest: %w", err)
+			}
+		}
+		if trx.AccountAddr != "" {
+			if trx.AccountAddrUF, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, trx.AccountAddr); err != nil {
+				// Maybe we shouldn't fail here?
+				return nil, nil, fmt.Errorf("error make uf address: %w", err)
 			}
 		}
 

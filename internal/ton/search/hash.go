@@ -21,15 +21,18 @@ func (s *Searcher) searchSomethingByHash(q string) ([]Result, error) {
 	for _, s := range something {
 		var searchResultType ResultType
 		var link string
+		var hint string
 
 		switch s.Type {
 		case index.TypeBlock:
 			searchResultType = ResultTypeBlock
 			link = "/block/info?block=" + strings.ToUpper(s.Data)
+			hint = s.Data
 
 		case index.TypeTransaction:
 			searchResultType = ResultTypeTransaction
 			link = "/transaction?hash=" + strings.ToUpper(s.Hash)
+			hint = q
 
 			// TODO: add message
 
@@ -39,7 +42,7 @@ func (s *Searcher) searchSomethingByHash(q string) ([]Result, error) {
 
 		result = append(result, Result{
 			Type: searchResultType,
-			Hint: q,
+			Hint: hint,
 			Link: link,
 		})
 	}

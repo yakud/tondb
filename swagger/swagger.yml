@@ -1390,7 +1390,7 @@ paths:
           schema:
             $ref: "#/definitions/error"
 
-  /messages/{trx_hash}/{message_lt}:
+  /messages/get:
     get:
       summary: "Get message"
       tags:
@@ -1398,12 +1398,12 @@ paths:
       description: "Get message by transaction hash and message logical time"
       parameters:
         - name: trx_hash
-          in: path
+          in: query
           type: string
           description: "Transaction hash"
           required: true
         - name: message_lt
-          in: path
+          in: query
           type: integer
           description: "Message logical time"
           required: true
@@ -1411,7 +1411,7 @@ paths:
         200:
           description: OK
           schema:
-            $ref: '#/definitions/MessageFeed'
+            $ref: "#/definitions/TransactionMessage"
         default:
           description: generic error response
           schema:

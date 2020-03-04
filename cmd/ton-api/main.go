@@ -147,7 +147,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	getMessageQuery := query.NewGetMessage(chConnect)
+
 	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
+	router.GET("/messages/get", rateLimitMiddleware(api.NewGetMessage(getMessageQuery).Handler))
 
 	// Transactions feed
 	transactionsFeed := feed.NewTransactionsFeed(chConnectSqlx)

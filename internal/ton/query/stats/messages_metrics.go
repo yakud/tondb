@@ -10,14 +10,14 @@ import (
 
 const (
 	createMessagesPerSecondView = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesPerSecond
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesPer10min
 	ENGINE = MergeTree()
-	PARTITION BY toStartOfYear(Time)
+	PARTITION BY tuple()
 	ORDER BY (Time, WorkchainId)
 	POPULATE AS
 	SELECT
 		WorkchainId,
-		Time,
+		toStartOfInterval(Time, INTERVAL 10 MINUTE) as Time,
 		count() AS TrxCount,
 		sum(length(Messages.Direction)) AS MsgCount
 	FROM transactions
@@ -42,7 +42,7 @@ const (
 
 	dropTotalTransactionsAndMessagesView = `DROP TABLE _view_feed_TotalTransactionsAndMessages`
 
-	dropMessagesPerSecondView = `DROP TABLE _view_feed_MessagesPerSecond`
+	dropMessagesPerSecondView = `DROP TABLE _view_feed_MessagesPer10min`
 
 	getTotalTransactionsAndMessages = `
 	SELECT
@@ -60,18 +60,11 @@ const (
 `
 
 	getTransactionsAndMessagesPerSecond = `
-	SELECT 
-		avg(MsgCount) AS MPS,
-		avg(TrxCount) AS TPS
-	FROM (
-		SELECT
-			sum(TrxCount) as TrxCount,
-			sum(MsgCount) as MsgCount
-		FROM ".inner._view_feed_MessagesPerSecond"
-		WHERE Time > now() - INTERVAL 1 WEEK AND Time <= now() AND %s
-		GROUP BY Time
-		ORDER BY Time WITH FILL
-	)
+	SELECT
+		sum(MsgCount) / (((7 * 24) * 60) * 60) AS MPS,
+		sum(TrxCount) / (((7 * 24) * 60) * 60) AS TPS
+	FROM ".inner._view_feed_MessagesPer10min"
+	PREWHERE Time > now() - INTERVAL 1 WEEK AND Time <= now() AND %s
 `
 
 	cacheKeyMessagesMetrics = "messages_metrics"

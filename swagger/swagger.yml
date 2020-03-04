@@ -576,8 +576,13 @@ definitions:
       addr_uf:
         type: string
         description: "User-friendly whale account address."
-      balance_gram:
-        type: string
+      balance_nanogram:
+        type: integer
+        description: "Account balance in nanograms."
+      balance_percentage_of_total:
+        type: number
+        format: double
+        description: "Ratio of this accounts balance to total nanograms."
 
   AddrTopByMessageCountResponse:
     description: ""

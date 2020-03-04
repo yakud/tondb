@@ -38,7 +38,9 @@ const (
 		Messages.DestAddr AS Dest, 
 		Messages.ValueNanograms as ValueNanograms,
 	    Messages.FwdFeeNanograms + Messages.IhrFeeNanograms + Messages.ImportFeeNanograms as TotalFeeNanograms, 
-		Messages.Bounce as Bounce
+		Messages.Bounce as Bounce,
+		Messages.BodyType as BodyType,
+	    Messages.BodyValue as BodyValue
 	FROM transactions
 	ARRAY JOIN Messages
 	WHERE Type = 'trans_ord' AND Messages.Type = 'int_msg_info'
@@ -79,7 +81,8 @@ const (
 		Dest,
 		ValueNanograms,
 		TotalFeeNanograms,
-		Bounce
+		Bounce,
+	    BodyValue
 	FROM ".inner._view_feed_MessagesFeedGlobal"
 	PREWHERE 
 		 (Time >= TimeRange.1 AND Time <= TimeRange.2) AND
@@ -108,6 +111,7 @@ type MessageInFeed struct {
 	ValueNanogram    uint64 `db:"ValueNanograms" json:"value_nanogram"`
 	TotalFeeNanogram uint64 `db:"TotalFeeNanograms" json:"total_fee_nanogram"`
 	Bounce           bool   `db:"Bounce" json:"bounce"`
+	Body             string `db:"BodyValue" json:"body"`
 }
 
 type MessagesFeedScrollId struct {

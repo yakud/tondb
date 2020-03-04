@@ -711,13 +711,17 @@ definitions:
       src_uf:
         type: string
       src_workchain_id:
+        type: integer
+      account_addr:
+        type: string
+      account_addr_uf:
         type: string
       src:
         type: string
       dest_uf:
         type: string
       dest_workchain_id:
-        type: string
+        type: integer
       dest:
         type: string
       total_nanograms:

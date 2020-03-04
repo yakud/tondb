@@ -14,7 +14,7 @@ const (
 	MaxTransactionsLimit     = 500
 
 	createTransactionsFeed = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionsFeed
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_TransactionsFeed2
 	ENGINE = MergeTree() 
 	PARTITION BY toYYYYMM(Time)
 	ORDER BY (Time, Lt, MsgInCreatedLt, WorkchainId)

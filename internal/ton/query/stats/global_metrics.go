@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
@@ -43,9 +44,21 @@ const (
 		    0 AS TotalNanogram,
 		    0 AS TotalMessages,
 		    count() AS TotalBlocks,
-    		sum(if(Time >= (now() - INTERVAL 1 DAY), BlockStatsTrxCount, 0)) AS TrxLastDay, 
-    		sum(if(Time >= (now() - INTERVAL 1 MONTH), BlockStatsTrxCount, 0)) AS TrxLastMonth
+    		0 AS TrxLastDay, 
+    		0 AS TrxLastMonth
 		FROM blocks
+		
+		UNION ALL  
+
+		SELECT
+		    0 AS TotalAddr,
+		    0 AS TotalNanogram,
+		    0 AS TotalMessages,
+		    0 AS TotalBlocks,
+    		countIf(Time >= (now() - INTERVAL 1 DAY)) AS TrxLastDay, 
+    		countIf(Time >= (now() - INTERVAL 1 MONTH)) AS TrxLastMonth
+		FROM ".inner._view_feed_TransactionsFeed"
+	    WHERE Time >= (now() - INTERVAL 1 MONTH)
 	)
 `
 

@@ -1552,7 +1552,7 @@ paths:
 
   /search:
     get:
-      summary: "Get messages metrics"
+      summary: "Search"
       tags:
         - core
       description: "Search between blocks, transactions, accounts, messages"

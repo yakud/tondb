@@ -19,8 +19,7 @@ func (s *Searcher) searchAccount(q string) ([]Result, error) {
 		Addr:        addr,
 	})
 
-	accState, err := s.accountStorage.GetAccount(accFilter)
-	if err != nil {
+	if _, err := s.accountStorage.GetAccount(accFilter); err != nil {
 		return nil, fmt.Errorf("account not found")
 	}
 
@@ -28,7 +27,7 @@ func (s *Searcher) searchAccount(q string) ([]Result, error) {
 		{
 			Type: ResultTypeAccount,
 			Hint: q,
-			Link: "/account?address=" + accState.AddrUf,
+			Link: "/account?address=" + q,
 		},
 	}, nil
 }

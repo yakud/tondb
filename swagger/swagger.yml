@@ -845,6 +845,10 @@ definitions:
         description: "Total number of messages"
         type: integer
         format: int64
+      total_transactions:
+        description: "Total number of transactions"
+        type: integer
+        format: int64
       trx_last_day:
         description: "Total number of transactions for last 24 hours"
         type: integer

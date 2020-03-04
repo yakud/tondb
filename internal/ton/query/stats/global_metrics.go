@@ -13,6 +13,7 @@ const (
 		sum(TotalAddr) AS TotalAddr,
 	    sum(TotalNanogram) AS TotalNanogram,
 	    sum(TotalMessages) AS TotalMessages,
+		sum(TotalTransactions) AS TotalTransactions,
 	    sum(TotalBlocks) AS TotalBlocks,
 	    sum(TrxLastDay) AS TrxLastDay,
 	    sum(TrxLastMonth) AS TrxLastMonth
@@ -21,6 +22,7 @@ const (
 			count() AS TotalAddr,
 			sum(BalanceNanogram) AS TotalNanogram,
 		    0 AS TotalMessages,
+		    0 AS TotalTransactions,
 		    0 AS TotalBlocks,
 		    0 AS TrxLastDay,
 		    0 AS TrxLastMonth
@@ -32,6 +34,7 @@ const (
 		   	0 AS TotalAddr,
 		   	0 AS TotalNanogram,
 			sum(TotalMessages) AS TotalMessages,
+			sum(TotalTransactions) AS TotalTransactions,
 			0 AS TotalBlocks,
 			0 AS TrxLastDay,
 		    0 AS TrxLastMonth
@@ -43,6 +46,7 @@ const (
 		    0 AS TotalAddr,
 		    0 AS TotalNanogram,
 		    0 AS TotalMessages,
+		    0 AS TotalTransactions,
 		    count() AS TotalBlocks,
     		0 AS TrxLastDay, 
     		0 AS TrxLastMonth
@@ -54,6 +58,7 @@ const (
 		    0 AS TotalAddr,
 		    0 AS TotalNanogram,
 		    0 AS TotalMessages,
+		    0 AS TotalTransactions,
 		    0 AS TotalBlocks,
     		countIf(Time >= (now() - INTERVAL 1 DAY)) AS TrxLastDay, 
     		countIf(Time >= (now() - INTERVAL 1 MONTH)) AS TrxLastMonth
@@ -66,12 +71,13 @@ const (
 )
 
 type GlobalMetricsResult struct {
-	TotalAddr     uint64 `json:"total_addr"`
-	TotalNanogram uint64 `json:"total_nanogram"`
-	TotalBlocks   uint64 `json:"total_blocks"`
-	TotalMessages uint64 `json:"total_messages"`
-	TrxLastDay    uint64 `json:"trx_last_day"`
-	TrxLastMonth  uint64 `json:"trx_last_month"`
+	TotalAddr         uint64 `json:"total_addr"`
+	TotalNanogram     uint64 `json:"total_nanogram"`
+	TotalBlocks       uint64 `json:"total_blocks"`
+	TotalMessages     uint64 `json:"total_messages"`
+	TotalTransactions uint64 `json:"total_transactions"`
+	TrxLastDay        uint64 `json:"trx_last_day"`
+	TrxLastMonth      uint64 `json:"trx_last_month"`
 }
 
 type GlobalMetrics struct {
@@ -84,7 +90,15 @@ func (t *GlobalMetrics) UpdateQuery() error {
 
 	row := t.conn.QueryRow(getGlobalMetrics)
 
-	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram, &res.TotalMessages, &res.TotalBlocks, &res.TrxLastDay, &res.TrxLastMonth); err != nil {
+	if err := row.Scan(
+		&res.TotalAddr,
+		&res.TotalNanogram,
+		&res.TotalMessages,
+		&res.TotalTransactions,
+		&res.TotalBlocks,
+		&res.TrxLastDay,
+		&res.TrxLastMonth,
+	); err != nil {
 		return err
 	}
 

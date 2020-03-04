@@ -11,7 +11,7 @@ import (
 func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
 	blockId, err := ton.ParseBlockId(q)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parse blocks id full '%s', %w", q, err)
 	}
 
 	blocks, err := s.getBlockQuery.GetBlockInfo(filter.NewBlocks(blockId))
@@ -19,7 +19,7 @@ func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
 		return nil, err
 	}
 	if len(blocks) == 0 {
-		return nil, fmt.Errorf("block not found")
+		return nil, fmt.Errorf("block not found '%s'", q)
 	}
 
 	var result []Result
@@ -37,8 +37,8 @@ func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
 
 func (s *Searcher) searchBlocksBySeqNo(q string) ([]Result, error) {
 	blockSeqNo, err := strconv.ParseUint(q, 10, 64)
-	if err == nil {
-		return nil, fmt.Errorf("is not number")
+	if err != nil {
+		return nil, fmt.Errorf("is not number '%s': %w", q, err)
 	}
 
 	blocksId, err := s.indexBlocksSeqNo.SelectBlocksBySeqNo(blockSeqNo)

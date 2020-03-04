@@ -11,7 +11,7 @@ import (
 func (s *Searcher) searchAccount(q string) ([]Result, error) {
 	workchainId, addr, err := utils.ParseAccountAddress(q)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parse acc query '%s': %w", q, err)
 	}
 
 	accFilter := filter.NewAccount(ton.AddrStd{
@@ -20,7 +20,7 @@ func (s *Searcher) searchAccount(q string) ([]Result, error) {
 	})
 
 	if _, err := s.accountStorage.GetAccount(accFilter); err != nil {
-		return nil, fmt.Errorf("account not found")
+		return nil, fmt.Errorf("account not found %s", q)
 	}
 
 	return []Result{

@@ -57,7 +57,8 @@ const (
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
 		Messages.BodyValue as MessagesBodyValue,
-   		arraySum(Messages.ValueNanograms) as TotalNanograms
+   		arraySum(Messages.ValueNanograms) as TotalNanograms,
+	   	IsTock
 	FROM transactions
 	PREWHERE %s
 	LIMIT 1000
@@ -111,6 +112,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyType := make([]string, 0)
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
+		var isTock uint8
 		err = rows.Scan(
 			&transaction.WorkchainId,
 			&transaction.Shard,
@@ -155,6 +157,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&messagesBodyType,
 			&messagesBodyValue,
 			&transaction.TotalNanograms,
+			&isTock,
 		)
 		if err != nil {
 			rows.Close()
@@ -165,6 +168,8 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		if err != nil {
 			return nil, err
 		}
+
+		transaction.IsTock = isTock == 1
 
 		transaction.Now = uint64(trTime.Unix())
 		for i, _ := range messagesDirection {

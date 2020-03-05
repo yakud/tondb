@@ -448,6 +448,10 @@ definitions:
         type: integer
         format: int64
         description: "now"
+      is_tock:
+        type: integer
+        format: int64
+        description: "is_tock"
       total_nanograms:
         type: integer
         format: int64
@@ -719,6 +723,8 @@ definitions:
       time:
         type: integer
         format: int64
+      is_tock:
+        type: integer
       lt:
         type: integer
         format: int64

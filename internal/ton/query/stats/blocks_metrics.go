@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -31,8 +32,8 @@ const (
 )
 
 type BlocksMetricsResult struct {
-	TotalBlocks  uint64 `json:"total_blocks"`
-	BlocksHeight uint64 `json:"blocks_height"`
+	TotalBlocks  uint64  `json:"total_blocks"`
+	BlocksHeight uint64  `json:"blocks_height"`
 	AvgBlockTime float64 `json:"avg_block_time"`
 }
 
@@ -85,7 +86,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyBlocksMetrics + "0", &resWorkchain)
+	t.resultCache.Set(cacheKeyBlocksMetrics+"0", &resWorkchain)
 
 	resMasterchain := BlocksMetricsResult{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
@@ -108,7 +109,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyBlocksMetrics + "-1", &resMasterchain)
+	t.resultCache.Set(cacheKeyBlocksMetrics+"-1", &resMasterchain)
 
 	return nil
 }
@@ -132,4 +133,3 @@ func NewBlocksMetrics(conn *sql.DB, cache cache.Cache) *BlocksMetrics {
 		resultCache: cache,
 	}
 }
-

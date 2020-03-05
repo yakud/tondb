@@ -29,6 +29,7 @@ const (
 		    bounce:nothing destroyed:0))
 	*/
 
+	// ALTER TABLE transactions ADD COLUMN IsTock UInt8 AFTER StateUpdateOldHash
 	queryCreateTableTransactions string = `CREATE TABLE IF NOT EXISTS transactions (
 		WorkchainId           Int32,
 		Shard                 UInt64,
@@ -47,6 +48,7 @@ const (
 		PrevTransHash 		  FixedString(64),
 		StateUpdateNewHash    FixedString(64),
 		StateUpdateOldHash    FixedString(64),
+		IsTock                UInt8,
 		
 		Messages Nested
     	(
@@ -99,6 +101,7 @@ const (
 	PrevTransHash,
 	StateUpdateNewHash,
 	StateUpdateOldHash,
+	IsTock,
 	Messages.Direction,
 	Messages.Type,
 	Messages.Init,
@@ -125,7 +128,7 @@ const (
 	Messages.SrcAnycast,
 	Messages.BodyType,
 	Messages.BodyValue
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropTransactions = `DROP TABLE transactions;`
 )
@@ -284,6 +287,11 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			messagesBodyValue = append(messagesBodyValue, tr.InMsg.BodyValue)
 		}
 
+		var isTock uint8
+		if tr.IsTock {
+			isTock = 1
+		}
+
 		// in order like BlocksFields
 		if _, err := stmt.Exec(
 			tr.WorkchainId,
@@ -302,6 +310,7 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			strings.TrimLeft(tr.PrevTransHash, "x"),
 			strings.TrimLeft(tr.StateUpdateNewHash, "x"),
 			strings.TrimLeft(tr.StateUpdateOldHash, "x"),
+			isTock,
 
 			clickhouse.Array(messagesDirection),
 			clickhouse.Array(messagesType),

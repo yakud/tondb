@@ -417,6 +417,9 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
 			return err
 		}
+
+		tr.IsTock, _ = transactionNode.GetBool("description", "is_tock")
+
 		if tr.Now, err = transactionNode.GetUint64("now"); err != nil {
 			return err
 		}

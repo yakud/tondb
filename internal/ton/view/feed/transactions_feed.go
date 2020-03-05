@@ -35,6 +35,7 @@ const (
 		Hash AS TrxHash,
 	    Type,
 	   	AccountAddr,
+	   	IsTock,
 	    Messages.CreatedLt[MsgInIndex]       AS MsgInCreatedLt,
 	    Messages.Type[MsgInIndex]            AS MsgInType,
 		Messages.SrcWorkchainId[MsgInIndex]  AS SrcWorkchainId, 
@@ -79,6 +80,7 @@ const (
 		TrxHash,
 		Type,
 		AccountAddr,
+		IsTock,
 		MsgInType,
 		SrcWorkchainId,
 		Src,
@@ -110,6 +112,7 @@ type TransactionInFeed struct {
 	Type                    string `db:"Type" json:"type"`
 	AccountAddr             string `db:"AccountAddr" json:"account_addr"`
 	AccountAddrUF           string `db:"-" json:"account_addr_uf"`
+	IsTock                  uint8  `db:"IsTock" json:"is_tock"`
 	MsgInType               string `db:"MsgInType" json:"msg_in_type"`
 	SrcUf                   string `db:"-" json:"src_uf"`
 	SrcWorkchainId          int32  `db:"SrcWorkchainId" json:"src_workchain_id"`

@@ -22,6 +22,7 @@ type Transaction struct {
 
 	// virtual field. calculates only when retrieved from db
 	TotalNanograms uint64 `json:"total_nanograms"`
+	IsTock         bool   `json:"is_tock"`
 
 	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
 	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`

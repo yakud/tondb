@@ -16,6 +16,7 @@ const (
 	)
 	ENGINE MergeTree
 	ORDER BY (MasterSeqNo, Shard, ShardSeqNo)
+	SETTINGS index_granularity = 64
 `
 
 	queryInsertShardsDescr = `INSERT INTO shards_descr (MasterShard,MasterSeqNo,ShardWorkchainId,Shard,ShardSeqNo) VALUES (?,?,?,?,?);`

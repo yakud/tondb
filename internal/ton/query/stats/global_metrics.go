@@ -20,13 +20,41 @@ const (
 	FROM (
 		SELECT
 			count() AS TotalAddr,
-			sum(BalanceNanogram) AS TotalNanogram,
+			0 AS TotalNanogram,
 		    0 AS TotalMessages,
 		    0 AS TotalTransactions,
 		    0 AS TotalBlocks,
 		    0 AS TrxLastDay,
 		    0 AS TrxLastMonth
 		FROM ".inner._view_state_AccountState" FINAL
+
+		UNION ALL
+
+		-- Sum ValueFlow.ToNextBlk by all shards in master head block
+		SELECT
+			0 AS TotalAddr,
+			sum(ValueFlowToNextBlk) AS TotalNanogram,
+		    0 AS TotalMessages,
+		    0 AS TotalTransactions,
+		    0 AS TotalBlocks,
+		    0 AS TrxLastDay,
+		    0 AS TrxLastMonth
+		FROM blocks
+		PREWHERE (WorkchainId, Shard, SeqNo) IN (
+			SELECT
+				ShardWorkchainId as WorkchainId,
+				Shard,
+				ShardSeqNo as SeqNo
+			FROM shards_descr
+			PREWHERE MasterSeqNo = (SELECT MasterSeqNo FROM shards_descr ORDER BY MasterSeqNo DESC LIMIT 1)
+
+			UNION ALL
+
+			SELECT 
+				-1 as WorkchainId,
+				9223372036854775808 as Shard,
+				(SELECT MasterSeqNo FROM shards_descr ORDER BY MasterSeqNo DESC LIMIT 1) as SeqNo
+		)
 
 	 	UNION ALL
 		

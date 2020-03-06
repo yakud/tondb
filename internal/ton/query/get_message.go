@@ -35,7 +35,7 @@ const (
 		Messages.BodyType as MessagesBodyType,
 		if(
 	        (substr(Messages.BodyValue, 1, 10) = 'x{00000000' AND Messages.BodyValue != 'x{00000000}'),
-	        unhex(replaceRegexpAll(Messages.BodyValue,'x{|}|\t|\n|\ ', '')),
+	        unhex(substring(replaceRegexpAll(Messages.BodyValue,'x{|}|\t|\n|\ ', ''), 9, length(Messages.BodyValue))),
 	        ''
 	    ) AS BodyValue
 	FROM(

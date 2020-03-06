@@ -33,7 +33,11 @@ const (
 		Messages.SrcAddr as MessagesSrcAddr,
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
-		Messages.BodyValue as MessagesBodyValue
+		if(
+	        (substr(Messages.BodyValue, 1, 10) = 'x{00000000' AND Messages.BodyValue != 'x{00000000}'),
+	        unhex(replaceRegexpAll(Messages.BodyValue,'x{|}|\t|\n|\ ', '')),
+	        ''
+	    ) AS BodyValue
 	FROM(
  		SELECT 
 			Messages.Type,

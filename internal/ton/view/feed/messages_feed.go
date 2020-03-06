@@ -39,8 +39,11 @@ const (
 		Messages.ValueNanograms as ValueNanograms,
 	    Messages.FwdFeeNanograms + Messages.IhrFeeNanograms + Messages.ImportFeeNanograms as TotalFeeNanograms, 
 		Messages.Bounce as Bounce,
-		Messages.BodyType as BodyType,
-	    Messages.BodyValue as BodyValue
+	    if(
+	        (substr(Messages.BodyValue, 1, 10) = 'x{00000000' AND Messages.BodyValue != 'x{00000000}'),
+	        unhex(replaceRegexpAll(Messages.BodyValue,'x{|}|\t|\n|\ ', '')),
+	        ''
+	    ) AS BodyValue
 	FROM transactions
 	ARRAY JOIN Messages
 	WHERE Type = 'trans_ord' AND Messages.Type = 'int_msg_info'

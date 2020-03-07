@@ -221,11 +221,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	sentAndFees := timeseriesQ.NewSentAndFees(chConnect, whalesCache)
+	if err := sentAndFees.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
 	metricsCache.AddQuery(globalMetrics)
 	metricsCache.AddQuery(addressesMetrics)
 	metricsCache.AddQuery(messagesMetrics)
 	blocksCache.AddQuery(blocksMetrics)
 	whalesCache.AddQuery(topWhales)
+	whalesCache.AddQuery(sentAndFees)
 
 	go func() {
 		metricsCache.RunTicker(ctxBgCache, 5*time.Second)
@@ -243,6 +249,7 @@ func main() {
 	router.GET("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
 	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
 	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
+	router.GET("/timeseries/sent-and-fees", rateLimitMiddleware(timeseries.NewSentAndFees(sentAndFees).Handler))
 	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
 	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(topWhales).Handler))
 	router.GET("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))

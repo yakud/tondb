@@ -838,6 +838,21 @@ definitions:
         description: "array of msg count"
         $ref: "#/definitions/int64Array"
 
+  SentAndFees:
+    type: object
+    properties:
+      time:
+        description: "time of beginning of the day for which these metrics were calculated"
+        type: string
+      avg_sent:
+        description: "average sent nanograms for every block of that day"
+        type: number
+        format: double
+      avg_fees:
+        description: "average fees in nanograms for every block of that day"
+        type: number
+        format: double
+
   TimeseriesBlocksByWorkchain:
     description: ""
     type: object
@@ -1427,6 +1442,24 @@ paths:
           description: OK
           schema:
             $ref: "#/definitions/MessagesOrdCountResult"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /timeseries/sent-and-fees:
+    get:
+      summary: "Average sent and fees in nanograms for all blocks of every day for last 30 days"
+      tags:
+        - main
+      description: ""
+      responses:
+        200:
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/SentAndFees"
         default:
           description: generic error response
           schema:

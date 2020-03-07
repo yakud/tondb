@@ -876,6 +876,11 @@ definitions:
         description: "Total number of transactions"
         type: integer
         format: int64
+
+  TrxMetrics:
+    description: ""
+    type: object
+    properties:
       trx_last_day:
         description: "Total number of transactions for last 24 hours"
         type: integer
@@ -1646,6 +1651,28 @@ paths:
           description: OK
           schema:
             $ref: "#/definitions/MessagesMetrics"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/error"
+
+  /stats/transactions:
+    get:
+      summary: "Get transactions metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          type: string
+          default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        200:
+          description: OK
+          schema:
+            $ref: "#/definitions/TrxMetrics"
         default:
           description: generic error response
           schema:

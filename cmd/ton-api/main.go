@@ -37,9 +37,12 @@ import (
 	"github.com/rs/cors"
 )
 
+const ApiV1 = "/v1"
+
 var (
 	blocksRootAliases  = [...]string{"/blocks", "/block", "/b"}
 	addressRootAliases = [...]string{"/address", "/account", "/a"}
+	router = httprouter.New()
 )
 
 func main() {
@@ -67,8 +70,6 @@ func main() {
 	if pong, err := redisClient.Ping().Result(); pong != "PONG" || err != nil {
 		log.Fatalf("error redis connect: %s %v", config.RedisAddr, err)
 	}
-
-	router := httprouter.New()
 
 	// Core API
 	//blocksStorage := storage.NewBlocks(chConnect)
@@ -113,23 +114,23 @@ func main() {
 	rateLimiter := ratelimit.NewRateLimiter(redisClient)
 	rateLimitMiddleware := middleware.RateLimit(rateLimiter)
 
-	router.GET("/height/synced", rateLimitMiddleware(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
-	router.GET("/height/blockchain", rateLimitMiddleware(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
-	router.GET("/master/block/shards/range", rateLimitMiddleware(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
-	router.GET("/master/block/shards/actual", rateLimitMiddleware(api.NewMasterchainBlockShardsActual(shardsDescrStorage).Handler))
-	router.GET("/workchain/block/master", rateLimitMiddleware(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
-	router.GET("/transaction", rateLimitMiddleware(api.NewGetTransactions(searchTransactionsQuery).Handler))
-	router.GET("/block/tlb", rateLimitMiddleware(api.NewGetBlockTlb(blocksFetcher).Handler))
-	router.GET("/search", rateLimitMiddleware(api.NewSearch(searcher).Handler))
+	routerGetVersioning("/height/synced", rateLimitMiddleware(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
+	routerGetVersioning("/height/blockchain", rateLimitMiddleware(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
+	routerGetVersioning("/master/block/shards/range", rateLimitMiddleware(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
+	routerGetVersioning("/master/block/shards/actual", rateLimitMiddleware(api.NewMasterchainBlockShardsActual(shardsDescrStorage).Handler))
+	routerGetVersioning("/workchain/block/master", rateLimitMiddleware(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
+	routerGetVersioning("/transaction", rateLimitMiddleware(api.NewGetTransactions(searchTransactionsQuery).Handler))
+	routerGetVersioning("/block/tlb", rateLimitMiddleware(api.NewGetBlockTlb(blocksFetcher).Handler))
+	routerGetVersioning("/search", rateLimitMiddleware(api.NewSearch(searcher).Handler))
 
 	// Block routes
 	getBlockInfo := api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage)
 	getBlockTransactions := api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage)
 	getBlocksFeed := apifeed.NewGetBlocksFeed(blocksFeed)
 	for _, blockRoot := range blocksRootAliases {
-		router.GET(blockRoot+"/info", rateLimitMiddleware(getBlockInfo.Handler))
-		router.GET(blockRoot+"/transactions", rateLimitMiddleware(getBlockTransactions.Handler))
-		router.GET(blockRoot+"/feed", rateLimitMiddleware(getBlocksFeed.Handler))
+		routerGetVersioning(blockRoot+"/info", rateLimitMiddleware(getBlockInfo.Handler))
+		routerGetVersioning(blockRoot+"/transactions", rateLimitMiddleware(getBlockTransactions.Handler))
+		routerGetVersioning(blockRoot+"/feed", rateLimitMiddleware(getBlocksFeed.Handler))
 	}
 
 	// Address (account) routes
@@ -137,9 +138,9 @@ func main() {
 	getAccountTransactions := api.NewGetAccountTransactions(accountTransactions)
 	getAccountQR := api.NewGetAccountQR()
 	for _, addrRoot := range addressRootAliases {
-		router.GET(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
-		router.GET(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
-		router.GET(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
+		routerGetVersioning(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
+		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
+		routerGetVersioning(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
 	}
 
 	// Messages feed
@@ -150,8 +151,8 @@ func main() {
 
 	getMessageQuery := query.NewGetMessage(chConnect)
 
-	router.GET("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
-	router.GET("/message/get", rateLimitMiddleware(api.NewGetMessage(getMessageQuery).Handler))
+	routerGetVersioning("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
+	routerGetVersioning("/message/get", rateLimitMiddleware(api.NewGetMessage(getMessageQuery).Handler))
 
 	// Transactions feed
 	transactionsFeed := feed.NewTransactionsFeed(chConnectSqlx)
@@ -159,7 +160,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	router.GET("/transactions/feed", rateLimitMiddleware(apifeed.NewGetTransactionsFeed(transactionsFeed).Handler))
+	routerGetVersioning("/transactions/feed", rateLimitMiddleware(apifeed.NewGetTransactionsFeed(transactionsFeed).Handler))
 
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
@@ -239,16 +240,16 @@ func main() {
 		blocksCache.RunTicker(ctxBgCache, 1*time.Second)
 	}()
 
-	router.GET("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
-	router.GET("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
-	router.GET("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
-	router.GET("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
-	router.GET("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
-	router.GET("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(topWhales).Handler))
-	router.GET("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
-	router.GET("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
-	router.GET("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))
-	router.GET("/stats/messages", rateLimitMiddleware(statsApi.NewMessagesMetrics(messagesMetrics).Handler))
+	routerGetVersioning("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
+	routerGetVersioning("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
+	routerGetVersioning("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
+	routerGetVersioning("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
+	routerGetVersioning("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
+	routerGetVersioning("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(topWhales).Handler))
+	routerGetVersioning("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
+	routerGetVersioning("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
+	routerGetVersioning("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))
+	routerGetVersioning("/stats/messages", rateLimitMiddleware(statsApi.NewMessagesMetrics(messagesMetrics).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{
@@ -259,4 +260,9 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func routerGetVersioning(path string, handle httprouter.Handle) {
+	router.GET(path, handle)
+	router.GET(ApiV1+path, handle)
 }

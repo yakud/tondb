@@ -28,6 +28,7 @@ const (
 		Time,
 		StartLt,
 		RootHash,
+	    FileHash,
 		BlockStatsTrxCount,
 		BlockStatsSentNanograms,
 		ValueFlowFeesCollected
@@ -88,6 +89,7 @@ const (
 		 toUInt64(Time) as TimeUnix,
 	     StartLt,
 	     RootHash,
+	     FileHash,
 	     BlockStatsTrxCount as TrxCount,
 		 BlockStatsSentNanograms as ValueNanograms,
 		 ValueFlowFeesCollected as TotalFeesNanograms
@@ -107,6 +109,7 @@ type BlockInFeed struct {
 	Time               uint64 `db:"TimeUnix" json:"time"`
 	StartLt            uint64 `db:"StartLt" json:"start_lt"`
 	RootHash           string `db:"RootHash" json:"root_hash"`
+	FileHash           string `db:"FileHash" json:"file_hash"`
 	TotalFeesNanograms uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
 	TrxCount           uint64 `db:"TrxCount" json:"trx_count"`
 	ValueNanograms     uint64 `db:"ValueNanograms" json:"value_nanograms"`

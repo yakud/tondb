@@ -101,6 +101,8 @@ definitions:
         format: int64
       root_hash:
         type: string
+      file_hash:
+        type: string
       trx_count:
         type: integer
         format: int64

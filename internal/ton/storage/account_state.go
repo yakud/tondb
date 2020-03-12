@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"strings"
+	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 
@@ -138,7 +139,7 @@ func (s *AccountState) InsertManyExec(states []*ton.AccountState, bdTx *sql.Tx) 
 			st.SeqNo,
 			strings.TrimLeft(st.RootHash, "x"),
 			strings.TrimLeft(st.FileHash, "x"),
-			st.Time,
+			time.Unix(int64(st.Time), 0),
 			addr,
 			st.Anycast,
 			st.Status,

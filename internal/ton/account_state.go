@@ -2,7 +2,6 @@ package ton
 
 import (
 	"gitlab.flora.loc/mills/tondb/internal/utils"
-	"time"
 )
 
 type AccountState struct {
@@ -11,7 +10,7 @@ type AccountState struct {
 
 	Addr                   string    `json:"addr"`
 	AddrUf                 string    `json:"addr_uf"`
-	Time                   time.Time `json:"time"`
+	Time                   uint64    `json:"time"`
 	Anycast                string    `json:"anycast"`
 	Status                 string    `json:"status"`
 	BalanceNanogram        uint64    `json:"balance_nanogram"`

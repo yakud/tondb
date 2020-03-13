@@ -3,9 +3,10 @@ package timeseries
 import (
 	"database/sql"
 	"errors"
-	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"math"
 	"time"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 	SELECT
 		toStartOfDay(Time) AS Time,
 		avg(BlockStatsSentNanograms) AS AvgSent,
-		avg(BlockStatsTrxTotalFeesNanograms) AS AvgFees
+		avg(ValueFlowFeesCollected) AS AvgFees
 	FROM blocks
 	PREWHERE Time >= now() - INTERVAL 30 DAY
 	GROUP BY Time
@@ -28,7 +29,6 @@ type SentAndFeesResult struct {
 	AvgSent float64   `json:"avg_sent"`
 	AvgFees float64   `json:"avg_fees"`
 }
-
 
 type SentAndFees struct {
 	conn        *sql.DB

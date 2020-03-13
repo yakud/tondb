@@ -878,12 +878,17 @@ components:
           description: Total number of transactions
           type: integer
           format: int64
+
+    TrxMetrics:
+      description: ""
+      type: object
+      properties:
         trx_last_day:
-          description: Total number of transactions for last 24 hours
+          description: "Total number of transactions for last 24 hours"
           type: integer
           format: int64
         trx_last_month:
-          description: Total number of transactions for last month
+          description: "Total number of transactions for last month"
           type: integer
           format: int64
 
@@ -1798,6 +1803,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MessagesMetrics"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/transactions:
+    get:
+      summary: "Get transactions metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          schema:
+            type: string
+            default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrxMetrics"
         default:
           description: generic error response
           content:

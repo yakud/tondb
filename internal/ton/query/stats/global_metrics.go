@@ -14,18 +14,14 @@ const (
 	    sum(TotalNanogram) AS TotalNanogram,
 	    sum(TotalMessages) AS TotalMessages,
 		sum(TotalTransactions) AS TotalTransactions,
-	    sum(TotalBlocks) AS TotalBlocks,
-	    sum(TrxLastDay) AS TrxLastDay,
-	    sum(TrxLastMonth) AS TrxLastMonth
+	    sum(TotalBlocks) AS TotalBlocks
 	FROM (
 		SELECT
 			count() AS TotalAddr,
 			0 AS TotalNanogram,
 		    0 AS TotalMessages,
 		    0 AS TotalTransactions,
-		    0 AS TotalBlocks,
-		    0 AS TrxLastDay,
-		    0 AS TrxLastMonth
+		    0 AS TotalBlocks
 		FROM ".inner._view_state_AccountState" FINAL
 
 		UNION ALL
@@ -36,9 +32,7 @@ const (
 			sum(ValueFlowToNextBlk) AS TotalNanogram,
 		    0 AS TotalMessages,
 		    0 AS TotalTransactions,
-		    0 AS TotalBlocks,
-		    0 AS TrxLastDay,
-		    0 AS TrxLastMonth
+		    0 AS TotalBlocks
 		FROM blocks
 		PREWHERE (WorkchainId, Shard, SeqNo) IN (
 			SELECT
@@ -63,9 +57,7 @@ const (
 		   	0 AS TotalNanogram,
 			sum(TotalMessages) AS TotalMessages,
 			sum(TotalTransactions) AS TotalTransactions,
-			0 AS TotalBlocks,
-			0 AS TrxLastDay,
-		    0 AS TrxLastMonth
+			0 AS TotalBlocks
 		FROM ".inner._view_feed_TotalTransactionsAndMessages"
 		    
 		UNION ALL  
@@ -75,23 +67,8 @@ const (
 		    0 AS TotalNanogram,
 		    0 AS TotalMessages,
 		    0 AS TotalTransactions,
-		    count() AS TotalBlocks,
-    		0 AS TrxLastDay, 
-    		0 AS TrxLastMonth
+		    count() AS TotalBlocks
 		FROM blocks
-		
-		UNION ALL  
-
-		SELECT
-		    0 AS TotalAddr,
-		    0 AS TotalNanogram,
-		    0 AS TotalMessages,
-		    0 AS TotalTransactions,
-		    0 AS TotalBlocks,
-    		countIf(Time >= (now() - INTERVAL 1 DAY)) AS TrxLastDay, 
-    		countIf(Time >= (now() - INTERVAL 1 MONTH)) AS TrxLastMonth
-		FROM ".inner._view_feed_TransactionsFeed"
-	    WHERE Time >= (now() - INTERVAL 1 MONTH)
 	)
 `
 
@@ -104,8 +81,6 @@ type GlobalMetricsResult struct {
 	TotalBlocks       uint64 `json:"total_blocks"`
 	TotalMessages     uint64 `json:"total_messages"`
 	TotalTransactions uint64 `json:"total_transactions"`
-	TrxLastDay        uint64 `json:"trx_last_day"`
-	TrxLastMonth      uint64 `json:"trx_last_month"`
 }
 
 type GlobalMetrics struct {
@@ -124,8 +99,6 @@ func (t *GlobalMetrics) UpdateQuery() error {
 		&res.TotalMessages,
 		&res.TotalTransactions,
 		&res.TotalBlocks,
-		&res.TrxLastDay,
-		&res.TrxLastMonth,
 	); err != nil {
 		return err
 	}

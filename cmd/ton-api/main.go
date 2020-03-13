@@ -222,6 +222,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	trxMetrics := statsQ.NewTrxMetrics(chConnect, metricsCache)
+	if err := trxMetrics.UpdateQuery(); err != nil {
+		log.Fatal(err)
+	}
+
 	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, globalMetrics)
 	if err := topWhales.UpdateQuery(); err != nil {
 		log.Fatal(err)
@@ -235,6 +240,7 @@ func main() {
 	metricsCache.AddQuery(globalMetrics)
 	metricsCache.AddQuery(addressesMetrics)
 	metricsCache.AddQuery(messagesMetrics)
+	metricsCache.AddQuery(trxMetrics)
 	blocksCache.AddQuery(blocksMetrics)
 	whalesCache.AddQuery(topWhales)
 	whalesCache.AddQuery(sentAndFees)
@@ -262,6 +268,7 @@ func main() {
 	routerGetVersioning("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
 	routerGetVersioning("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))
 	routerGetVersioning("/stats/messages", rateLimitMiddleware(statsApi.NewMessagesMetrics(messagesMetrics).Handler))
+	routerGetVersioning("/stats/transactions", rateLimitMiddleware(statsApi.NewTrxMetrics(trxMetrics).Handler))
 
 	handler := cors.AllowAll().Handler(router)
 	srv := &http.Server{

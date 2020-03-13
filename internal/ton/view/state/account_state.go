@@ -30,7 +30,7 @@ const (
 		SeqNo,
 		RootHash,
 		FileHash,
-		Time,
+		toUInt64(Time),
 		Addr,
 		Anycast,
 		Status,

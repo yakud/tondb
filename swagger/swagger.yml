@@ -30,11 +30,20 @@ definitions:
       seq_no:
         type: integer
         format: int64
+      root_hash:
+        type: string
+      file_hash:
+        type: string
       addr:
         type: string
       addr_uf:
         type: string
         description: "User-friendly account address."
+      time:
+        type: integer
+        format: int64
+      anycast:
+        type: string
       status:
         type: string
       balance_nanogram:

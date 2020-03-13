@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/api/swagger"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/search"
@@ -42,7 +44,7 @@ const ApiV1 = "/v1"
 var (
 	blocksRootAliases  = [...]string{"/blocks", "/block", "/b"}
 	addressRootAliases = [...]string{"/address", "/account", "/a"}
-	router = httprouter.New()
+	router             = httprouter.New()
 )
 
 func main() {
@@ -113,6 +115,9 @@ func main() {
 	}
 	rateLimiter := ratelimit.NewRateLimiter(redisClient)
 	rateLimitMiddleware := middleware.RateLimit(rateLimiter)
+
+	router.GET("/docs", swagger.NewGetSwaggerDocs().Handler)
+	router.GET("/swagger.json", swagger.NewGetSwaggerJson().Handler)
 
 	routerGetVersioning("/height/synced", rateLimitMiddleware(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
 	routerGetVersioning("/height/blockchain", rateLimitMiddleware(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))

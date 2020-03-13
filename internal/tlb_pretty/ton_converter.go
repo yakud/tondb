@@ -3,12 +3,10 @@ package tlb_pretty
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
-
-	errors2 "github.com/pkg/errors"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -939,7 +937,7 @@ func (c *AstTonConverter) ConvertToState(node *AstNode) (*ton.AccountState, erro
 	state.BlockId.SeqNo = blockInfo.SeqNo
 	state.FileHash = blockInfo.FileHash
 	state.RootHash = blockInfo.RootHash
-	state.Time = time.Unix(int64(blockInfo.GenUtime), 0).UTC()
+	state.Time = uint64(blockInfo.GenUtime)
 
 	addrNode, err := node.GetNode("state", "account", "addr")
 	if err != nil {

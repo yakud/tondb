@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -19,8 +20,8 @@ const (
 )
 
 type TrxMetricsResult struct {
-	TrxLastDay    uint64 `json:"trx_last_day"`
-	TrxLastMonth  uint64 `json:"trx_last_month"`
+	TrxLastDay   uint64 `json:"trx_last_day"`
+	TrxLastMonth uint64 `json:"trx_last_month"`
 }
 
 type TrxMetrics struct {
@@ -50,7 +51,7 @@ func (t *TrxMetrics) UpdateQuery() error {
 		return err
 	}
 	row = t.conn.QueryRow(queryGetTrxMetrics, args...)
-	if err := row.Scan(&res.TrxLastDay, &res.TrxLastMonth); err != nil {
+	if err := row.Scan(&resWorkchain.TrxLastDay, &resWorkchain.TrxLastMonth); err != nil {
 		return err
 	}
 
@@ -64,7 +65,7 @@ func (t *TrxMetrics) UpdateQuery() error {
 		return err
 	}
 	row = t.conn.QueryRow(queryGetTrxMetrics, args...)
-	if err := row.Scan(&res.TrxLastDay, &res.TrxLastMonth); err != nil {
+	if err := row.Scan(&resMasterchain.TrxLastDay, &resMasterchain.TrxLastMonth); err != nil {
 		return err
 	}
 

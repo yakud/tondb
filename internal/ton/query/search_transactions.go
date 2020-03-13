@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
@@ -12,7 +14,7 @@ import (
 const (
 	// todo: very ugly query, beautify it later
 	querySelectTransactionsByFilter = `
-	SELECT 
+	SELECT
 		WorkchainId,
 		Shard,
 		SeqNo,
@@ -28,82 +30,38 @@ const (
 		PrevTransLt,
 		PrevTransHash,
 		StateUpdateNewHash,
-	    StateUpdateOldHash,
-		groupArray(MessageDirection),
-		groupArray(MessageType),
-		groupArray(MessageInit),
-		groupArray(MessageBounce),
-		groupArray(MessageBounced),
-		groupArray(MessageCreatedAt),
-		groupArray(MessageCreatedLt),
-		groupArray(MessageValueNanograms),
-		groupArray(MessageValueNanogramsLen),
-		groupArray(MessageFwdFeeNanograms),
-		groupArray(MessageFwdFeeNanogramsLen),
-		groupArray(MessageIhrDisabled),
-		groupArray(MessageIhrFeeNanograms),
-		groupArray(MessageIhrFeeNanogramsLen),
-		groupArray(MessageImportFeeNanograms),
-		groupArray(MessageImportFeeNanogramsLen),
-		groupArray(MessageDestIsEmpty),
-		groupArray(MessageDestWorkchainId),
-		groupArray(MessageDestAddr),
-		groupArray(MessageDestAnycast),
-		groupArray(MessageSrcIsEmpty),
-		groupArray(MessageSrcWorkchainId),
-		groupArray(MessageSrcAddr),
-		groupArray(MessageSrcAnycast),
-		groupArray(MessageBodyType),
-		groupArray(MessageBodyValue)
-	FROM (
-		SELECT
-			WorkchainId,
-			Shard,
-			SeqNo,
-		    Hash,
-			Type,
-			Lt,
-			Time,
-			TotalFeesNanograms,
-			TotalFeesNanogramsLen,
-			AccountAddr,
-			OrigStatus,
-			EndStatus,
-			PrevTransLt,
-			PrevTransHash,
-			StateUpdateNewHash,
-			StateUpdateOldHash,
-			Message.Direction as MessageDirection,
-			Message.Type as MessageType,
-			Message.Init as MessageInit,
-			Message.Bounce as MessageBounce,
-			Message.Bounced as MessageBounced,
-			Message.CreatedAt as MessageCreatedAt,
-			Message.CreatedLt as MessageCreatedLt,
-			Message.ValueNanograms as MessageValueNanograms,
-			Message.ValueNanogramsLen as MessageValueNanogramsLen,
-			Message.FwdFeeNanograms as MessageFwdFeeNanograms,
-			Message.FwdFeeNanogramsLen as MessageFwdFeeNanogramsLen,
-			Message.IhrDisabled as MessageIhrDisabled,
-			Message.IhrFeeNanograms as MessageIhrFeeNanograms,
-			Message.IhrFeeNanogramsLen as MessageIhrFeeNanogramsLen,
-			Message.ImportFeeNanograms as MessageImportFeeNanograms,
-			Message.ImportFeeNanogramsLen as MessageImportFeeNanogramsLen,
-			Message.DestIsEmpty as MessageDestIsEmpty,
-			Message.DestWorkchainId as MessageDestWorkchainId,
-			Message.DestAddr as MessageDestAddr,
-			Message.DestAnycast as MessageDestAnycast,
-			Message.SrcIsEmpty as MessageSrcIsEmpty,
-			Message.SrcWorkchainId as MessageSrcWorkchainId,
-			Message.SrcAddr as MessageSrcAddr,
-			Message.SrcAnycast as MessageSrcAnycast,
-			Message.BodyType as MessageBodyType,
-			Message.BodyValue as MessageBodyValue
-		FROM transactions
-		ARRAY JOIN Messages as Message
-		WHERE %s
-	    LIMIT 1000
-	) GROUP BY WorkchainId,Shard,SeqNo,Hash,Type,Lt,Time,TotalFeesNanograms,TotalFeesNanogramsLen,AccountAddr,OrigStatus,EndStatus,PrevTransLt,PrevTransHash,StateUpdateNewHash,StateUpdateOldHash
+		StateUpdateOldHash,
+		Messages.Direction as MessagesDirection,
+		Messages.Type as MessagesType,
+		Messages.Init as MessagesInit,
+		Messages.Bounce as MessagesBounce,
+		Messages.Bounced as MessagesBounced,
+		Messages.CreatedAt as MessagesCreatedAt,
+		Messages.CreatedLt as MessagesCreatedLt,
+		Messages.ValueNanograms as MessagesValueNanograms,
+		Messages.ValueNanogramsLen as MessagesValueNanogramsLen,
+		Messages.FwdFeeNanograms as MessagesFwdFeeNanograms,
+		Messages.FwdFeeNanogramsLen as MessagesFwdFeeNanogramsLen,
+		Messages.IhrDisabled as MessagesIhrDisabled,
+		Messages.IhrFeeNanograms as MessagesIhrFeeNanograms,
+		Messages.IhrFeeNanogramsLen as MessagesIhrFeeNanogramsLen,
+		Messages.ImportFeeNanograms as MessagesImportFeeNanograms,
+		Messages.ImportFeeNanogramsLen as MessagesImportFeeNanogramsLen,
+		Messages.DestIsEmpty as MessagesDestIsEmpty,
+		Messages.DestWorkchainId as MessagesDestWorkchainId,
+		Messages.DestAddr as MessagesDestAddr,
+		Messages.DestAnycast as MessagesDestAnycast,
+		Messages.SrcIsEmpty as MessagesSrcIsEmpty,
+		Messages.SrcWorkchainId as MessagesSrcWorkchainId,
+		Messages.SrcAddr as MessagesSrcAddr,
+		Messages.SrcAnycast as MessagesSrcAnycast,
+		Messages.BodyType as MessagesBodyType,
+		Messages.BodyValue as MessagesBodyValue,
+   		arraySum(Messages.ValueNanograms) as TotalNanograms,
+	   	IsTock
+	FROM transactions
+	PREWHERE %s
+	LIMIT 1000
 `
 )
 
@@ -154,6 +112,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyType := make([]string, 0)
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
+		var isTock uint8
 		err = rows.Scan(
 			&transaction.WorkchainId,
 			&transaction.Shard,
@@ -197,15 +156,44 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&messagesSrcAnycast,
 			&messagesBodyType,
 			&messagesBodyValue,
+			&transaction.TotalNanograms,
+			&isTock,
 		)
 		if err != nil {
 			rows.Close()
 			return nil, err
 		}
 
+		transaction.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(transaction.WorkchainId, transaction.AccountAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		transaction.IsTock = isTock == 1
+
 		transaction.Now = uint64(trTime.Unix())
 		for i, _ := range messagesDirection {
 			direction := messagesDirection[i]
+			var srcUf, destUf string
+
+			if messagesDestIsEmpty[i] != 1 {
+				messagesDestAddr[i] = utils.NullAddrToString(messagesDestAddr[i])
+				destUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesDestWorkchainId[i], messagesDestAddr[i])
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
+			if messagesSrcIsEmpty[i] != 1 {
+				messagesSrcAddr[i] = utils.NullAddrToString(messagesSrcAddr[i])
+				srcUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesSrcWorkchainId[i], messagesSrcAddr[i])
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
 			msg := &ton.TransactionMessage{
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
@@ -226,12 +214,14 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 					IsEmpty:     messagesDestIsEmpty[i] == 1,
 					WorkchainId: messagesDestWorkchainId[i],
 					Addr:        messagesDestAddr[i],
+					AddrUf:      destUf,
 					Anycast:     messagesDestAnycast[i],
 				},
 				Src: ton.AddrStd{
 					IsEmpty:     messagesSrcIsEmpty[i] == 1,
 					WorkchainId: messagesSrcWorkchainId[i],
 					Addr:        messagesSrcAddr[i],
+					AddrUf:      srcUf,
 					Anycast:     messagesSrcAnycast[i],
 				},
 				BodyType:  messagesBodyType[i],

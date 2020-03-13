@@ -17,24 +17,34 @@ var astTonConverter = tlb_pretty.NewAstTonConverter()
 
 func handler() func(resp []byte) error {
 
-	return func(resp []byte) error {
-		fmt.Print(".")
+	return func(blockPretty []byte) error {
+		//fmt.Println(string(blockPretty))
 
-		node := tlbParser.Parse(resp)
-		simplifiedNode, err := treeSimplifier.Simplify(node)
+		astPretty := tlbParser.Parse(blockPretty)
+		astPretty, err := treeSimplifier.Simplify(astPretty)
 		if err != nil {
-			fmt.Println(string(resp))
-			log.Fatal(err)
+			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
 		}
 
-		block, err := astTonConverter.ConvertToBlock(simplifiedNode)
-		if err != nil {
-			fmt.Println(string(resp))
-			log.Fatal(err)
-		}
+		if t, err := astPretty.Type(); err == nil && t == "account_state" {
+			//st, err := astTonConverter.ConvertToState(astPretty)
+			//if err != nil {
+			//	log.Fatal(err, "state:", string(blockPretty))
+			//}
 
-		fmt.Println(block.Info.WorkchainId, block.Info.Shard, block.Info.SeqNo)
-		//fmt.Print(".")
+		} else {
+			block, err := astTonConverter.ConvertToBlock(astPretty)
+			if err != nil {
+				log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			}
+
+			//fmt.Println(block.Info.ShardWorkchainId, block.Info.SeqNo)
+			fmt.Print(".")
+
+			if block.Info.WorkchainId == -1 {
+				fmt.Print("(-1;", block.Info.SeqNo, ")")
+			}
+		}
 
 		return nil
 	}
@@ -48,7 +58,7 @@ func main() {
 	//	}
 	//}()
 
-	tcpServer := blocks_receiver.NewTcpReceiver("0.0.0.0:8188")
+	tcpServer := blocks_receiver.NewTcpReceiver("0.0.0.0:8189")
 
 	ctx, _ := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}

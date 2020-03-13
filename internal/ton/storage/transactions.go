@@ -13,6 +13,23 @@ import (
 )
 
 const (
+
+	/*
+			TODO: parse action
+			https://test.ton.org/testnet/transaction?account=kQCdg18XAu8jH9hu-7quHh_-dzYXZs4RHf20PfOLuf1q3o3e&lt=1237041000001&hash=F637ED15777330A0EC006716F5730C9A94F67CE2EFA213C86D112E1451BC458B
+		 action:(just
+		      value:^(tr_phase_action success:0 valid:0 no_funds:0
+		        status_change:acst_unchanged
+		        total_fwd_fees:nothing
+		        total_action_fees:nothing result_code:34
+		        result_arg:nothing tot_actions:1 spec_actions:0 skipped_actions:0 msgs_created:0 action_list_hash:xB8E7CDD84A94754E8727D53B154094FE9CB1802D7A81668D8CABC680368D8268
+		        tot_msg_size:(storage_used_short
+		          cells:(var_uint len:0 value:0)
+		          bits:(var_uint len:0 value:0)))) aborted:1
+		    bounce:nothing destroyed:0))
+	*/
+
+	// ALTER TABLE transactions ADD COLUMN IsTock UInt8 AFTER StateUpdateOldHash
 	queryCreateTableTransactions string = `CREATE TABLE IF NOT EXISTS transactions (
 		WorkchainId           Int32,
 		Shard                 UInt64,
@@ -31,6 +48,7 @@ const (
 		PrevTransHash 		  FixedString(64),
 		StateUpdateNewHash    FixedString(64),
 		StateUpdateOldHash    FixedString(64),
+		IsTock                UInt8,
 		
 		Messages Nested
     	(
@@ -83,6 +101,7 @@ const (
 	PrevTransHash,
 	StateUpdateNewHash,
 	StateUpdateOldHash,
+	IsTock,
 	Messages.Direction,
 	Messages.Type,
 	Messages.Init,
@@ -109,7 +128,7 @@ const (
 	Messages.SrcAnycast,
 	Messages.BodyType,
 	Messages.BodyValue
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropTransactions = `DROP TABLE transactions;`
 )
@@ -268,6 +287,11 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			messagesBodyValue = append(messagesBodyValue, tr.InMsg.BodyValue)
 		}
 
+		var isTock uint8
+		if tr.IsTock {
+			isTock = 1
+		}
+
 		// in order like BlocksFields
 		if _, err := stmt.Exec(
 			tr.WorkchainId,
@@ -286,6 +310,7 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			strings.TrimLeft(tr.PrevTransHash, "x"),
 			strings.TrimLeft(tr.StateUpdateNewHash, "x"),
 			strings.TrimLeft(tr.StateUpdateOldHash, "x"),
+			isTock,
 
 			clickhouse.Array(messagesDirection),
 			clickhouse.Array(messagesType),

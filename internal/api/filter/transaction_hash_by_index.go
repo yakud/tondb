@@ -3,6 +3,7 @@ package filter
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -17,5 +18,5 @@ func TransactionHashByIndexFilterFromRequest(r *http.Request, field string) (*fi
 		return nil, errors.New("maximum 1 transaction hash")
 	}
 
-	return filter.NewTransactionHashByIndex(trHash[0])
+	return filter.NewTransactionHashByIndex(strings.ToUpper(trHash[0]))
 }

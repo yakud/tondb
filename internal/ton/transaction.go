@@ -10,6 +10,7 @@ type Transaction struct {
 	TotalFeesNanograms    uint64 `json:"total_fees_nanograms"`
 	TotalFeesNanogramsLen uint8  `json:"total_fees_nanograms_len"`
 	AccountAddr           string `json:"account_addr"`
+	AccountAddrUf         string `json:"account_addr_uf"`
 	OrigStatus            string `json:"orig_status"`
 	EndStatus             string `json:"end_status"`
 
@@ -18,6 +19,10 @@ type Transaction struct {
 
 	StateUpdateNewHash string `json:"state_update_new_hash"`
 	StateUpdateOldHash string `json:"state_update_old_hash"`
+
+	// virtual field. calculates only when retrieved from db
+	TotalNanograms uint64 `json:"total_nanograms"`
+	IsTock         bool   `json:"is_tock"`
 
 	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
 	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`

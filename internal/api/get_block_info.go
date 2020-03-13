@@ -93,6 +93,11 @@ func (m *GetBlockInfo) Handler(w http.ResponseWriter, r *http.Request, p httprou
 		return
 	}
 
+	if len(blockInfo) == 0 {
+		http.Error(w, `Block not found`, http.StatusNotFound)
+		return
+	}
+
 	resp, err := json.Marshal(blockInfo)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)

@@ -2,6 +2,8 @@ package stats
 
 import (
 	"database/sql"
+
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (
@@ -28,7 +30,7 @@ const (
     WorkchainId,
     Addr,
     sum(Count) AS cnt
-FROM _view_stats_AddrMessagesCountTop
+FROM ".inner._view_stats_AddrMessagesCountTop"
 GROUP BY
     Direction,
     Addr,
@@ -43,6 +45,7 @@ LIMIT ? BY Direction
 type AddrCount struct {
 	WorkchainId int32  `json:"workchain_id"`
 	Addr        string `json:"addr"`
+	AddrUf      string `json:"addr_uf"`
 	Count       int64  `json:"count"`
 }
 
@@ -84,6 +87,13 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 		)
 		if err != nil {
 			rows.Close()
+			return nil, nil, err
+		}
+
+		row.Addr = utils.NullAddrToString(row.Addr)
+
+		if row.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(row.WorkchainId, row.Addr); err != nil {
+			// Maybe we shouldn't fail here
 			return nil, nil, err
 		}
 

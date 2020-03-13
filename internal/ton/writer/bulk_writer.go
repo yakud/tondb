@@ -15,6 +15,7 @@ type BulkWriter struct {
 	blocksStorage       *storage.Blocks
 	transactionsStorage *storage.Transactions
 	shardsDescrStorage  *storage.ShardsDescr
+	accountStateStorage *storage.AccountState
 
 	in chan *Bulk
 
@@ -61,12 +62,14 @@ func (t *BulkWriter) handleBulk(bulk *Bulk, onHandle func(b *Bulk, delay time.Du
 	blocksInsert := make([]*ton.Block, 0, bulk.Length())
 	transactionsInsert := make([]*ton.Transaction, 0, bulk.LengthTransactions())
 	shardsDescr := make([]*ton.ShardDescr, 0, bulk.LengthShardDescr())
+	accountState := make([]*ton.AccountState, 0, bulk.LengthAccountStates())
 
 	for _, block := range bulk.Blocks() {
 		blocksInsert = append(blocksInsert, block)
 		transactionsInsert = append(transactionsInsert, block.Transactions...)
 		shardsDescr = append(shardsDescr, block.ShardDescr...)
 	}
+	accountState = append(accountState, bulk.AccountStates()...)
 
 	if len(blocksInsert) > 0 {
 		if err := t.blocksStorage.InsertMany(blocksInsert); err != nil {
@@ -89,6 +92,13 @@ func (t *BulkWriter) handleBulk(bulk *Bulk, onHandle func(b *Bulk, delay time.Du
 		}
 	}
 
+	if len(accountState) > 0 {
+		if err := t.accountStateStorage.InsertMany(accountState); err != nil {
+			// @TODO: retry, no return
+			return errors.WithStack(err)
+		}
+	}
+
 	if onHandle != nil {
 		onHandle(bulk, time.Now().Sub(start))
 	}
@@ -100,12 +110,14 @@ func NewBulkWriter(
 	blocksStorage *storage.Blocks,
 	transactionsStorage *storage.Transactions,
 	shardsDescrStorage *storage.ShardsDescr,
+	accountStateStorage *storage.AccountState,
 	in chan *Bulk,
 ) *BulkWriter {
 	return &BulkWriter{
 		blocksStorage:       blocksStorage,
 		transactionsStorage: transactionsStorage,
 		shardsDescrStorage:  shardsDescrStorage,
+		accountStateStorage: accountStateStorage,
 		in:                  in,
 	}
 }

@@ -24,9 +24,7 @@ const (
 	ARRAY JOIN Messages
 	WHERE 
 		Type = 'trans_ord' AND 
-		Messages.ValueNanograms > 0 AND 
-		Messages.Direction = 'in' AND 
-		Messages.DestAddr != '3333333333333333333333333333333333333333333333333333333333333333'
+		Messages.ValueNanograms > 0
 	GROUP BY Time, WorkchainId
 `
 	dropTsMessagesOrdCount = `DROP TABLE _view_ts_MessagesOrdCount`
@@ -118,6 +116,6 @@ func (t *MessagesOrdCount) GetMessagesOrdCount() (*MessagesOrdCountResult, error
 func NewMessagesOrdCount(conn *sql.DB) *MessagesOrdCount {
 	return &MessagesOrdCount{
 		conn:        conn,
-		resultCache: cache.NewWithTimer(time.Second),
+		resultCache: cache.NewWithTimer(time.Second * 5),
 	}
 }

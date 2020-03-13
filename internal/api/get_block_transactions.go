@@ -100,12 +100,20 @@ func (m *GetBlockTransactions) Handler(w http.ResponseWriter, r *http.Request, p
 		getTransactionsFilter.And(messageDirectionFilter)
 	}
 
-	// addr
-	if messageAddrFilter, err := apiFilter.MessageAddrFromRequest(r); err != nil {
+	// addr + lt
+	if addrAndLtFilter, err := apiFilter.AddrAndLtFromRequest(r); err != nil {
 		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
 		return
-	} else if messageAddrFilter != nil {
-		getTransactionsFilter.And(messageAddrFilter)
+	} else if addrAndLtFilter != nil {
+		getTransactionsFilter.And(addrAndLtFilter)
+	} else {
+		// addr
+		if messageAddrFilter, err := apiFilter.MessageAddrFromRequest(r); err != nil {
+			http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
+			return
+		} else if messageAddrFilter != nil {
+			getTransactionsFilter.And(messageAddrFilter)
+		}
 	}
 
 	// message_type

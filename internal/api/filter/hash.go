@@ -2,6 +2,7 @@ package filter
 
 import (
 	"net/http"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -15,7 +16,7 @@ func HashFromRequest(r *http.Request) (filter.Filter, error) {
 	orFilter := filter.NewOr()
 	for _, v := range typeQuery {
 		orFilter.Or(
-			filter.NewKV("Hash", v),
+			filter.NewKV("Hash", strings.TrimSpace(v)),
 		)
 	}
 

@@ -3,6 +3,7 @@ package tlb_pretty
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,10 +39,33 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		return nil, err
 	}
 
+	block.Info.BlockStats = &ton.BlockStats{}
+	block.Info.BlockStats.TrxCount += uint16(len(block.Transactions))
+
 	for _, tr := range block.Transactions {
 		tr.WorkchainId = block.Info.WorkchainId
 		tr.Shard = block.Info.Shard
 		tr.SeqNo = block.Info.SeqNo
+
+		block.Info.BlockStats.TrxTotalFeesNanograms += tr.TotalFeesNanograms
+
+		if tr.InMsg != nil {
+			block.Info.BlockStats.MsgCount++
+			block.Info.BlockStats.SentNanograms += tr.InMsg.ValueNanograms
+			block.Info.BlockStats.MsgIhrFeeNanograms += tr.InMsg.IhrFeeNanograms
+			block.Info.BlockStats.MsgImportFeeNanograms += tr.InMsg.ImportFeeNanograms
+			block.Info.BlockStats.MsgFwdFeeNanograms += tr.InMsg.FwdFeeNanograms
+		}
+
+		if tr.OutMsgs != nil {
+			block.Info.BlockStats.MsgCount += uint16(len(tr.OutMsgs))
+			for _, outMsg := range tr.OutMsgs {
+				block.Info.BlockStats.SentNanograms += outMsg.ValueNanograms
+				block.Info.BlockStats.MsgIhrFeeNanograms += outMsg.IhrFeeNanograms
+				block.Info.BlockStats.MsgImportFeeNanograms += outMsg.ImportFeeNanograms
+				block.Info.BlockStats.MsgFwdFeeNanograms += outMsg.FwdFeeNanograms
+			}
+		}
 	}
 
 	if err := c.extractTransactionsHash(node, &block.Transactions); err != nil {
@@ -149,6 +173,11 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	nodeInfo, err := node.GetNode("info")
 	if err != nil {
 		return nil, err
+	}
+
+	valueFlow, err := c.extractValueFlow(node)
+	if err == nil {
+		info.ValueFlow = valueFlow
 	}
 
 	nodeShard, err := nodeInfo.GetNode("shard")
@@ -297,6 +326,35 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	return info, nil
 }
 
+func (c *AstTonConverter) extractValueFlow(node *AstNode) (*ton.ValueFlow, error) {
+	valueFlowRoot, err := node.GetNode("value_flow")
+	if err != nil {
+		return nil, err
+	}
+	valueFlow := &ton.ValueFlow{
+		FromPrevBlk:  0,
+		ToNextBlk:    0,
+		Imported:     0,
+		Exported:     0,
+		FeesImported: 0,
+		Recovered:    0,
+		Created:      0,
+		Minted:       0,
+	}
+
+	valueFlow.FeesCollected, _ = valueFlowRoot.GetUint64("fees_collected", "grams", "amount", "value")
+	valueFlow.Exported, _ = valueFlowRoot.GetUint64("value_0", "exported", "grams", "amount", "value")
+	valueFlow.FromPrevBlk, _ = valueFlowRoot.GetUint64("value_0", "from_prev_blk", "grams", "amount", "value")
+	valueFlow.ToNextBlk, _ = valueFlowRoot.GetUint64("value_0", "to_next_blk", "grams", "amount", "value")
+	valueFlow.Imported, _ = valueFlowRoot.GetUint64("value_0", "imported", "grams", "amount", "value")
+	valueFlow.Created, _ = valueFlowRoot.GetUint64("value_1", "created", "grams", "amount", "value")
+	valueFlow.FeesImported, _ = valueFlowRoot.GetUint64("value_1", "fees_imported", "grams", "amount", "value")
+	valueFlow.Minted, _ = valueFlowRoot.GetUint64("value_1", "minted", "grams", "amount", "value")
+	valueFlow.Recovered, _ = valueFlowRoot.GetUint64("value_1", "recovered", "grams", "amount", "value")
+
+	return valueFlow, nil
+}
+
 func (c *AstTonConverter) extractTransactions(node *AstNode, transactions *[]*ton.Transaction) error {
 	accountBlocksRoot, err := node.GetNode("extra", "account_blocks", "value_0")
 	if err != nil {
@@ -357,6 +415,9 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
 			return err
 		}
+
+		tr.IsTock, _ = transactionNode.GetBool("description", "is_tock")
+
 		if tr.Now, err = transactionNode.GetUint64("now"); err != nil {
 			return err
 		}
@@ -387,10 +448,271 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.TotalFeesNanogramsLen, err = transactionNode.GetUint8("total_fees", "grams", "amount", "len"); err != nil {
 			return err
 		}
+		/*
 
+			// Description and phases
+			descriptionNode, err := transactionNode.GetNode("description")
+			if err != nil {
+				return err
+			}
+			//
+			//if aborted, err := descriptionNode.GetBool("aborted"); err != nil {
+			//	return err
+			//}
+			//
+			//if destroyed, err := descriptionNode.GetBool("destroyed"); err != nil {
+			//	return err
+			//}
+			//
+			//if is_tock, err := descriptionNode.GetBool("is_tock"); err != nil {
+			//	return err
+			//}
+			//
+			//bounce, err := descriptionNode.GetString("bounce")
+			//if err != nil {
+			//	return err
+			//}
+
+			// actionPhase
+			type ActionPhase struct {
+				Success           bool   `json:"success"`
+				Valid             bool   `json:"valid"`
+				NoFunds           bool   `json:"no_funds"`
+				CodeChanged       bool   `json:"code_changed"`
+				ActionListInvalid bool   `json:"action_list_invalid"`
+				AccDeleteReq      bool   `json:"acc_delete_req"`
+				AccStatusChange   string `json:"acc_status_change"`
+				TotalFwdFees      uint64 `json:"total_fwd_fees"`
+				TotalActionFees   uint64 `json:"total_action_fees"`
+				ResultCode        int32  `json:"result_code"`
+				ResultArg         int32  `json:"result_arg"`
+				TotActions        uint32 `json:"tot_actions"`
+				SpecActions       uint32 `json:"spec_actions"`
+				SkippedActions    uint32 `json:"skipped_actions"`
+				MsgsCreated       uint32 `json:"msgs_created"`
+
+				RemainingBalance uint64 `json:"remaining_balance"`
+				ReservedBalance  uint64 `json:"reserved_balance"`
+				EndLt            uint64 `json:"end_lt"`
+				TotMsgBits       uint64 `json:"tot_msg_bits"`
+				TotMsgCells      uint64 `json:"tot_msg_cells"`
+			}
+
+			// TODO: THAT FIELDS!!!!!
+			actionPhase := &ActionPhase{
+				CodeChanged:       false,
+				ActionListInvalid: false,
+				AccDeleteReq:      false,
+				RemainingBalance:  0,
+				ReservedBalance:   0,
+				EndLt:             0,
+			}
+
+			actionNode, err := descriptionNode.GetNode("actionPhase", "value")
+			if err != nil {
+				return err
+			}
+
+			if actionPhase.MsgsCreated, err = actionNode.GetUint32("msgs_created"); err != nil {
+				return err
+			}
+
+			if actionPhase.TotActions, err = actionNode.GetUint32("tot_actions"); err != nil {
+				return err
+			}
+
+			if actionPhase.NoFunds, err = actionNode.GetBool("no_funds"); err != nil {
+				return err
+			}
+
+			if actionPhase.ResultArg, err = actionNode.GetInt32("result_arg", "value"); err != nil {
+				return err
+			}
+
+			if actionPhase.Success, err = actionNode.GetBool("success"); err != nil {
+				return err
+			}
+
+			if actionPhase.Valid, err = actionNode.GetBool("valid"); err != nil {
+				return err
+			}
+
+			if actionPhase.ResultCode, err = actionNode.GetInt32("result_code"); err != nil {
+				return err
+			}
+
+			if actionPhase.SkippedActions, err = actionNode.GetUint32("skipped_actions"); err != nil {
+				return err
+			}
+
+			if actionPhase.SpecActions, err = actionNode.GetUint32("spec_actions"); err != nil {
+				return err
+			}
+
+			if actionPhase.TotMsgBits, err = actionNode.GetUint64("tot_msg_size", "bits", "value"); err != nil {
+				return err
+			}
+
+			if actionPhase.TotMsgCells, err = actionNode.GetUint64("tot_msg_size", "cells", "value"); err != nil {
+				return err
+			}
+
+			if actionPhase.TotalActionFees, err = actionNode.GetUint64("total_action_fees", "amount", "value"); err != nil {
+				return err
+			}
+
+			if actionPhase.TotalFwdFees, err = actionNode.GetUint64("total_fwd_fees", "amount", "value"); err != nil {
+				return err
+			}
+
+			if actionPhase.AccStatusChange, err = actionNode.GetString("status_change"); err != nil {
+				return err
+			}
+
+			// compute_ph
+			type ComputePhase struct {
+				AccountActivated bool   `json:"account_activated"`
+				Success          bool   `json:"success"`
+				MsgStateUsed     bool   `json:"msg_state_used"`
+				OutOfGas         bool   `json:"out_of_gas"`
+				Accepted         bool   `json:"accepted"`
+				ExitArg          int32  `json:"exit_arg"`
+				ExitCode         int32  `json:"exit_code"`
+				Mode             int32  `json:"mode"`
+				VmSteps          uint32 `json:"vm_steps"`
+
+				GasUsed   uint64 `json:"gas_used"`
+				GasMax    uint64 `json:"gas_max"`
+				GasCredit uint64 `json:"gas_credit"`
+				GasLimit  uint64 `json:"gas_limit"`
+				GasFees   uint64 `json:"gas_fees"`
+			}
+
+			// TODO: THAT FIELDS!!!!!
+			computePhase := &ComputePhase{
+				OutOfGas: false,
+				Accepted: false,
+				GasMax:   0,
+			}
+
+			computePh, err := descriptionNode.GetNode("compute_ph")
+			if err != nil {
+				return err
+			}
+
+			if computePhase.AccountActivated, err = computePh.GetBool("account_activated"); err != nil {
+				return err
+			}
+
+			if computePhase.Success, err = computePh.GetBool("success"); err != nil {
+				return err
+			}
+
+			if computePhase.GasFees, err = computePh.GetUint64("gas_fees", "amount", "value"); err != nil {
+				return err
+			}
+
+			if computePhase.MsgStateUsed, err = computePh.GetBool("msg_state_used"); err != nil {
+				return err
+			}
+
+			computePhValue, err := computePh.GetNode("value_0")
+			if err != nil {
+				return err
+			}
+
+			if computePhase.ExitArg, err = computePhValue.GetInt32("exit_arg"); err != nil {
+				return err
+			}
+
+			if computePhase.ExitCode, err = computePhValue.GetInt32("exit_code"); err != nil {
+				return err
+			}
+
+			if computePhase.GasCredit, err = computePhValue.GetUint64("gas_credit", "value"); err != nil {
+				return err
+			}
+
+			if computePhase.GasLimit, err = computePhValue.GetUint64("gas_limit", "value"); err != nil {
+				return err
+			}
+
+			if computePhase.GasUsed, err = computePhValue.GetUint64("gas_used", "value"); err != nil {
+				return err
+			}
+			if computePhase.Mode, err = computePhValue.GetInt32("mode"); err != nil {
+				return err
+			}
+			if computePhase.VmSteps, err = computePhValue.GetUint32("vm_steps"); err != nil {
+				return err
+			}
+
+			// storage_ph
+			type StoragePhase struct {
+				Status        string `json:"status"`
+				FeesCollected uint64 `json:"fees_collected"`
+				FeesDue       uint64 `json:"fees_due"`
+			}
+			storagePhase := &StoragePhase{}
+
+			storagePh, err := descriptionNode.GetNode("storage_ph")
+			if err != nil {
+				return err
+			}
+			if storagePhase.Status, err = storagePh.GetString("status_change"); err != nil {
+				return err
+			}
+			if storagePhase.FeesCollected, err = storagePh.GetUint64("storage_fees_collected", "amount", "value"); err != nil {
+				return err
+			}
+			if storagePhase.FeesDue, err = storagePh.GetUint64("storage_fees_due", "amount", "value"); err != nil {
+				return err
+			}
+
+			// TODO:::!!!!!!!
+			type CreditPhase struct {
+				DueFeesCollected uint64 `json:"due_fees_collected"`
+				Credit           uint64 `json:"credit"`
+			}
+			creditPhase := &CreditPhase{}
+
+			creditPh, err := descriptionNode.GetNode("credit_ph", "value")
+			if err != nil {
+				return err
+			}
+
+			if creditPhase.Credit, err = creditPh.GetUint64("credit", "grams", "amount", "value"); err != nil {
+				return err
+			}
+
+			if creditPhase.DueFeesCollected, err = creditPh.GetUint64("due_fees_collected", "amount", "value"); err != nil {
+				return err
+			}
+
+			//struct CreditPhase {
+			//	td::RefInt256 due_fees_collected;
+			//	block::CurrencyCollection credit;
+			//	td::RefInt256 credit;
+			//	Ref<vm::Cell> credit_extra;
+			//};
+
+			//
+			//fmt.Println("actionStatusChange: ", actionStatusChange)
+
+			//descriptionNode
+
+			//if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
+			//	return err
+			//}
+			//destroyed
+
+			// actionPhase
+			// compute_ph
+			// storage_ph
+		*/
 		//switch tr.Type {
 		//case "trans_ord":
-		//	if tr.Type, err = transactionNode.GetString("description", "action"); err != nil {
+		//	if tr.Type, err = transactionNode.GetString("description", "actionPhase"); err != nil {
 		//		return err
 		//	}
 		//case "trans_tick_tock":
@@ -584,6 +906,7 @@ func (c *AstTonConverter) extractAddrStd(node *AstNode) (addr ton.AddrStd, err e
 		return
 	}
 	if addr.WorkchainId, err = node.GetInt32("workchain_id"); err != nil {
+		err = errors2.Wrap(err, "node addr std workchain_id")
 		return
 	}
 
@@ -592,6 +915,86 @@ func (c *AstTonConverter) extractAddrStd(node *AstNode) (addr ton.AddrStd, err e
 
 func (c *AstTonConverter) ConvertShardPrefixToShard(shardPrefix uint64, shardPfxBits uint8) uint64 {
 	return shardPrefix | (1 << (63 - shardPfxBits))
+}
+
+func (c *AstTonConverter) ConvertToState(node *AstNode) (*ton.AccountState, error) {
+	if !node.IsType("account_state") {
+		return nil, errors.New("node is not account_state type")
+	}
+
+	state := &ton.AccountState{}
+
+	var err error
+	//node.
+
+	blockInfo, err := c.extractBlockInfo(node)
+	if err != nil {
+		return nil, err
+	}
+
+	state.BlockId.WorkchainId = blockInfo.WorkchainId
+	state.BlockId.Shard = blockInfo.Shard
+	state.BlockId.SeqNo = blockInfo.SeqNo
+	state.FileHash = blockInfo.FileHash
+	state.RootHash = blockInfo.RootHash
+	state.Time = uint64(blockInfo.GenUtime)
+
+	addrNode, err := node.GetNode("state", "account", "addr")
+	if err != nil {
+		return nil, err
+	}
+
+	if addrStd, err := c.extractAddrStd(addrNode); err != nil {
+		return nil, err
+	} else {
+		state.Addr = addrStd.Addr
+		state.Anycast = addrStd.Anycast
+	}
+
+	storageNode, err := node.GetNode("state", "account", "storage")
+	if err != nil {
+		return nil, err
+	}
+
+	stateNode, err := storageNode.GetNode("state")
+	if err != nil {
+		if state.Status, err = storageNode.GetString("state"); err != nil {
+			return nil, err
+		}
+	} else {
+		if state.Status, err = stateNode.Type(); err != nil {
+			return nil, err
+		}
+	}
+
+	if state.LastTransLtStorage, err = storageNode.GetUint64("last_trans_lt"); err != nil {
+		return nil, err
+	}
+
+	state.BalanceNanogram, err = storageNode.GetUint64("balance", "grams", "amount", "value")
+	if err != nil {
+		return nil, err
+	}
+
+	state.Tick, _ = storageNode.GetUint64("state", "value_0", "special", "value", "tick")
+	state.Tock, _ = storageNode.GetUint64("state", "value_0", "special", "value", "tock")
+
+	if nodeStorageStat, err := node.GetNode("state", "account", "storage_stat"); err == nil {
+		state.StorageUsedBits, _ = nodeStorageStat.GetUint64("used", "bits", "value")
+		state.StorageUsedCells, _ = nodeStorageStat.GetUint64("used", "cells", "value")
+		state.StorageUsedPublicCells, _ = nodeStorageStat.GetUint64("used", "public_cells", "value")
+		state.LastPaid, _ = nodeStorageStat.GetUint64("last_paid")
+	}
+
+	if state.LastTransHash, err = node.GetString("state", "last_trans_hash"); err != nil {
+		return nil, err
+	}
+
+	if state.LastTransLt, err = node.GetUint64("state", "last_trans_lt"); err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }
 
 func NewAstTonConverter() *AstTonConverter {

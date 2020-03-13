@@ -8,7 +8,7 @@ func (f *TransactionHashByIndex) Build() (string, []interface{}, error) {
 	filter := `((WorkchainId, Shard, SeqNo) IN (
 		SELECT 
 			WorkchainId, Shard, SeqNo 
-		FROM _view_index_TransactionBlock 
+		FROM ".inner._view_index_TransactionBlock"
 		WHERE cityHash64(?) = Hash
 	)) AND Hash = ?`
 	args := []interface{}{f.hash, f.hash}

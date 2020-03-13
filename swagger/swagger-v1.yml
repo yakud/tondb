@@ -6,7 +6,7 @@ info:
   title: TON Blockchain History APIs
   version: 0.0.1
   x-logo:
-    url: /TENGRAM_logo.svg
+    url: https://tengram.com/TENGRAM_logo.svg
     altText: Tengram
 
 tags:

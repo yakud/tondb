@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -24,6 +24,22 @@ func TestConvertRawToUserFriendly(t *testing.T) {
 		"0:A0201CEA76F1185807624ED15BEE6E0290066CFEAAFAF57D2BD270817BEEFACB":  "EQCgIBzqdvEYWAdiTtFb7m4CkAZs_qr69X0r0nCBe-76y6Va",
 	}
 	for raw, uf := range addrs {
+		wcRaw, addrRaw, err := ParseAccountAddress(raw)
+		if err != nil {
+			t.Fatalf("Couldn't parse raw address! address: %s\nerr: %s", raw, err)
+		}
+
+		wcUf, addrUf, err := ParseAccountAddress(uf)
+		if err != nil {
+			t.Fatalf("Couldn't parse user friendly address! address: %s\nerr: %s", raw, err)
+		}
+
+		if wcRaw != wcUf || addrRaw != addrUf {
+			t.Fatalf("User friendly and raw addresses parsing results mismatch!\n\n" +
+				"Raw:\n\toriginal: %s\n\tresult: %d:%s\n\n" +
+				"User friendly: \n\toriginal: %s\n\tresult: %d:%s", raw, wcRaw, addrRaw, uf, wcUf, addrUf)
+		}
+
 		ufAddr, err := ConvertRawToUserFriendly(raw, AddrTagBounceable)
 		if err != nil {
 			t.Fatal(err)
@@ -33,6 +49,22 @@ func TestConvertRawToUserFriendly(t *testing.T) {
 			t.Fatalf("error expected: %s actual: %s", uf, ufAddr)
 		}
 
-		fmt.Println("RESULT:", ufAddr)
+		raw2, err := ConvertUserFriendlyToRaw(ufAddr)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if strings.ToUpper(raw) != raw2 {
+			t.Fatalf("error raw addr expected: %s actual: %s", raw, raw2)
+		}
+
+		raw2, err = ConvertUserFriendlyToRaw(uf)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if strings.ToUpper(raw) != raw2 {
+			t.Fatalf("error raw addr expected: %s actual: %s", raw, raw2)
+		}
 	}
 }

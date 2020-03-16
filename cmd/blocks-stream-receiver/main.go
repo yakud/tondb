@@ -79,6 +79,7 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 }
 
 func main() {
+	log.Println("started v0.0.1")
 	go func() {
 		for {
 			<-time.After(time.Second * 5)
@@ -98,7 +99,8 @@ func main() {
 
 	chAddr := os.Getenv("CH_ADDR")
 	if chAddr == "" {
-		chAddr = "http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton?max_query_size=3145728000"
+		chAddr = "http://127.0.0.1:8123/default?max_query_size=3145728000"
+		//chAddr = "http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton?max_query_size=3145728000"
 	}
 	chConnect, err := ch.Connect(&chAddr)
 	if err != nil {
@@ -133,6 +135,24 @@ func main() {
 	//shardsDescrStorage.DropTable()
 	if err := indexTransactionBlock.CreateTable(); err != nil {
 		log.Fatal("indexTransactionBlock CreateTable", err)
+	}
+
+	indexNextBlock := index.NewIndexNextBlock(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexNextBlock.CreateTable(); err != nil {
+		log.Fatal("indexNextBlock CreateTable", err)
+	}
+
+	indexReverseBlockSeqNo := index.NewIndexReverseBlockSeqNo(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexReverseBlockSeqNo.CreateTable(); err != nil {
+		log.Fatal("indexReverseBlockSeqNo CreateTable", err)
+	}
+
+	indexHash := index.NewIndexHash(chConnect)
+	//shardsDescrStorage.DropTable()
+	if err := indexHash.CreateTable(); err != nil {
+		log.Fatal("indexHash CreateTable", err)
 	}
 
 	stateAccountState := state.NewAccountState(chConnect)

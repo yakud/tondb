@@ -26,6 +26,16 @@ nohup /data/ton/bin/blocks-stream-reader \
   --workers 3 \
   >> /data/ton/log/stream-reader.log &
 
+nohup /data/ton/bin/blocks-fetcher \
+  --streamblocksfile /data/ton/ton-stream/blocks.log \
+  --streamblocksindexfile /data/ton/ton-stream/blocks.log.index \
+  --tlbblocksindexfile /data/ton/ton-stream/tlb-blocks.index \
+  --host "10.236.0.3" \
+  --port 13699 \
+  --workers 1 \
+  >> /data/ton/log/blocks-fetcher.log &
+
+
 CH_ADDR=http://clickhouse01.pay-mills.loc:8123/default?max_query_size=3145728000 \
   ADDR=0.0.0.0:8512 \
   nohup /data/ton/bin/ton-api >> /data/ton/log/api.log &

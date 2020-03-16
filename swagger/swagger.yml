@@ -1,776 +1,1213 @@
----
-consumes:
-- application/json
+openapi: 3.0.0
+
 info:
-  description: This API provides a number of methods to retrieve historical data across multiple dimensions of the TON blockchain.
+  description: This API provides a number of methods to retrieve historical data across
+    multiple dimensions of the TON blockchain.
   title: TON Blockchain History APIs
   version: 0.0.1
   x-logo:
-    url: "/TENGRAM_logo.svg"
-    altText: "Tengram"
-produces:
-- application/json
-schemes:
-- https
-swagger: "2.0"
-basePath: /
-host: api.tengram.com
+    url: https://tengram.com/TENGRAM_logo.svg
+    altText: Tengram
 
-securityDefinitions:
-  basicAuth:
-    type: basic
+tags:
+  - name: core
+    description: The Core methods.
+  - name: main
+    description: The Main methods.
 
-security:
-  - basicAuth: []
+servers:
+  - url: https://api.tengram.com/
 
-definitions:
-  Account:
-    description: "Account"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-      shard:
-        type: integer
-        format: int64
-      seq_no:
-        type: integer
-        format: int64
-      addr:
-        type: string
-      status:
-        type: string
-      balance_nanogram:
-        type: integer
-        format: int64
-      tick:
-        type: integer
-        format: int64
-      tock:
-        type: integer
-        format: int64
-      storage_used_bits:
-        type: integer
-        format: int64
-      storage_used_cells:
-        type: integer
-        format: int64
-      storage_used_public_cells:
-        type: integer
-        format: int64
-      last_trans_hash:
-        type: string
-      last_trans_lt:
-        type: integer
-        format: int64
-      last_trans_lt_storage:
-        type: integer
-        format: int64
-      last_paid:
-        type: integer
-        format: int64
+components:
+  schemas:
 
-  BlockInFeed:
-    description: "Block in feed"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-      shard:
-        type: integer
-        format: int64
-      seq_no:
-        type: integer
-        format: int64
-      time:
-        type: integer
-        format: int64
-      start_lt:
-        type: integer
-        format: int64
-      end_lt:
-        type: integer
-        format: int64
+    Account:
+      description: Account
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        shard:
+          type: integer
+          format: int64
+        seq_no:
+          type: integer
+          format: int64
+        addr:
+          type: string
+        addr_uf:
+          type: string
+          description: User-friendly account address.
+        status:
+          type: string
+        balance_nanogram:
+          type: integer
+          format: int64
+        tick:
+          type: integer
+          format: int64
+        tock:
+          type: integer
+          format: int64
+        storage_used_bits:
+          type: integer
+          format: int64
+        storage_used_cells:
+          type: integer
+          format: int64
+        storage_used_public_cells:
+          type: integer
+          format: int64
+        last_trans_hash:
+          type: string
+        last_trans_lt:
+          type: integer
+          format: int64
+        last_trans_lt_storage:
+          type: integer
+          format: int64
+        last_paid:
+          type: integer
+          format: int64
 
-  AccountTransaction:
-    description: "Account transaction"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-      shard:
-        type: string
-      seq_no:
-        type: integer
-        format: int64
-      account_addr:
-        type: string
-      lt:
-        type: integer
-        format: int64
-      time:
-        type: integer
-        format: int64
-      type:
-        type: string
-      message_type:
-        type: string
-      message_lt:
-        type: integer
-        format: int64
-      direction:
-        type: string
-      src_workchain_id:
-        type: integer
-        format: int32
-      src:
-        type: string
-      dest_workchain_id:
-        type: integer
-        format: int32
-      dest:
-        type: string
-      value_nanograms:
-        type: string
-      fwd_fee_nanograms:
-        type: string
-      ihr_fee_nanograms:
-        type: string
-      import_fee_nanograms:
-        type: string
-      bounce:
-        type: integer
-        format: int32
-      bounced:
-        type: integer
-        format: int32
+    BlocksFeedResponse:
+      type: object
+      properties:
+        scroll_id:
+          type: string
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockInFeed"
 
-  BlockId:
-    description: "Block ID"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-        description: "Workchain ID"
-      shard:
-        type: integer
-        format: int64
-        description: "Shard DEC"
-      seq_no:
-        type: integer
-        format: int64
-        description: "Sequence number"
+    SentAndFees:
+      type: object
+      properties:
+        time:
+          description: "time of beginning of the day for which these metrics were calculated"
+          type: string
+        avg_sent:
+          description: "average sent nanograms for every block of that day"
+          type: number
+          format: double
+        avg_fees:
+          description: "average fees in nanograms for every block of that day"
+          type: number
+          format: double
 
-  BlockIdString:
-    description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
-    type: string
+    BlockInFeed:
+      description: Block in feed
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        shard:
+          type: integer
+          format: int64
+        seq_no:
+          type: integer
+          format: int64
+        time:
+          type: integer
+          format: int64
+        start_lt:
+          type: integer
+          format: int64
+        total_fees_nanograms:
+          type: integer
+          format: int64
+        root_hash:
+          type: string
+        trx_count:
+          type: integer
+          format: int64
+        value_nanograms:
+          type: integer
+          format: int64
+        ihr_fee_nanograms:
+          type: integer
+          format: int64
+        import_fee_nanograms:
+          type: integer
+          format: int64
+        fwd_fee_nanograms:
+          type: integer
+          format: int64
 
-  ShardBlocksRange:
-    description: "Shard blocks range"
-    type: object
-    properties:
-      master_seq:
-        type: integer
-        format: int64
-        description: "Master block sequence number"
-      workchain_id:
-        type: integer
-        format: int32
-        description: "Workchain ID"
-      shard:
-        type: integer
-        format: int64
-        description: "Shard DEC"
-      from_seq:
-        type: integer
-        format: int64
-        description: "From sequence number"
-      to_seq:
-        type: integer
-        format: int64
-        description: "From sequence number"
+    AccountTransaction:
+      description: Account transaction
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        shard:
+          type: string
+        seq_no:
+          type: integer
+          format: int64
+        account_addr:
+          type: string
+        account_addr_uf:
+          type: string
+          description: User-friendly account address.
+        lt:
+          type: integer
+          format: int64
+        time:
+          type: integer
+          format: int64
+        type:
+          type: string
+        message_type:
+          type: string
+        message_lt:
+          type: integer
+          format: int64
+        direction:
+          type: string
+        src_workchain_id:
+          type: integer
+          format: int32
+        src:
+          type: string
+        src_uf:
+          type: string
+          description: User-friendly source address.
+        dest_workchain_id:
+          type: integer
+          format: int32
+        dest:
+          type: string
+        dest_uf:
+          type: string
+          description: User-friendly destination address.
+        value_nanograms:
+          type: string
+        fwd_fee_nanograms:
+          type: string
+        ihr_fee_nanograms:
+          type: string
+        import_fee_nanograms:
+          type: string
+        bounce:
+          type: integer
+          format: int32
+        bounced:
+          type: integer
+          format: int32
 
-  BlockInfo:
-    description: "Block info"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-        description: "Workchain ID"
-      shard:
-        type: integer
-        format: int64
-        description: "Shard DEC"
-      seq_no:
-        type: integer
-        format: int64
-        description: "Sequence number"
-      root_hash:
-        type: string
-        description: "root_hash"
-      file_hash:
-        type: string
-        description: "file_hash"
-      min_ref_mc_seqno:
-        type: integer
-        format: int64
-        description: "min_ref_mc_seqno"
-      prev_key_block_seqno:
-        type: integer
-        format: int64
-        description: "prev_key_block_seqno"
-      gen_catchain_seqno:
-        type: integer
-        format: int64
-        description: "gen_catchain_seqno"
-      gen_utime:
-        type: integer
-        format: int64
-        description: "gen_utime"
-      prev1_ref:
-        $ref: "#/definitions/BlockRef"
-        description: "prev1_ref"
-      prev2_ref:
-        $ref: "#/definitions/BlockRef"
-        description: "prev2_ref"
-      master_ref:
-        $ref: "#/definitions/BlockRef"
-        description: "master_ref"
-      start_lt:
-        type: integer
-        format: int64
-        description: "start_lt"
-      end_lt:
-        type: integer
-        format: int64
-        description: "end_lt"
-      version:
-        type: integer
-        format: int32
-        description: "version"
-      flags:
-        type: integer
-        description: "flags"
-      key_block:
-        type: boolean
-        description: "key_block"
-      not_master:
-        type: boolean
-        description: "not_master"
-      want_merge:
-        type: boolean
-        description: "want_merge"
-      want_split:
-        type: boolean
-        description: "want_split"
-      after_merge:
-        type: boolean
-        description: "after_merge"
-      after_split:
-        type: boolean
-        description: "after_split"
-      before_split:
-        type: boolean
-        description: "before_split"
+    BlockId:
+      description: Block ID
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        shard:
+          type: integer
+          format: int64
+          description: Shard DEC
+        seq_no:
+          type: integer
+          format: int64
+          description: Sequence number
 
-  BlockRef:
-    description: "Block ref"
-    type: object
-    properties:
-      end_lt:
-        type: integer
-        format: int64
-        description: "end_lt"
-      seq_no:
-        type: integer
-        format: int64
-        description: "seq_no"
-      file_hash:
-        type: string
-        description: "file_hash"
-      root_hash:
-        type: string
-        description: "root_hash"
-
-  Transaction:
-    description: "Transaction"
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-        description: "Workchain ID"
-      shard:
-        type: integer
-        format: int64
-        description: "Shard DEC"
-      seq_no:
-        type: integer
-        format: int64
-        description: "Sequence number"
-      hash:
-        type: string
-        description: "Transaction hash"
-      type:
-        type: string
-        description: "Transaction type"
-      lt:
-        type: integer
-        format: int64
-        description: "lt"
-      now:
-        type: integer
-        format: int64
-        description: "now"
-      total_fees_nanograms:
-        type: integer
-        format: int64
-        description: "total_fees_nanograms"
-      total_fees_nanograms_len:
-        type: integer
-        format: int32
-        description: "total_fees_nanograms_len"
-      account_addr:
-        type: string
-        description: "account_addr"
-      orig_status:
-        type: string
-        description: "orig_status"
-      end_status:
-        type: string
-        description: "end_status"
-      prev_trans_lt:
-        type: integer
-        format: int64
-        description: "prev_trans_lt"
-      prev_trans_hash:
-        type: string
-        description: "prev_trans_hash"
-      state_update_new_hash:
-        type: string
-        description: "state_update_new_hash"
-      state_update_old_hash:
-        type: string
-        description: "state_update_old_hash"
-      in_msg:
-        $ref: "#/definitions/TransactionMessage"
-        description: "In message"
-      out_msgs:
-        type: array
-        items:
-          $ref: "#/definitions/TransactionMessage"
-        description: "Out messages"
-
-  TransactionMessage:
-    description: "Transaction message"
-    type: object
-    properties:
-      type:
-        type: string
-        description: "Message type"
-      init:
-        type: string
-        description: "init"
-      bounce:
-        type: boolean
-        description: "bounce"
-      bounced:
-        type: boolean
-        description: "bounced"
-      created_at:
-        type: integer
-        format: int64
-        description: "created_at"
-      created_lt:
-        type: integer
-        format: int64
-        description: "created_lt"
-      value_nanograms:
-        type: integer
-        format: int64
-        description: "value_nanograms"
-      value_nanograms_len:
-        type: integer
-        format: int32
-        description: "value_nanograms_len"
-      fwd_fee_nanograms:
-        type: integer
-        format: int64
-        description: "fwd_fee_nanograms"
-      fwd_fee_nanograms_len:
-        type: integer
-        format: int32
-        description: "fwd_fee_nanograms_len"
-      ihr_disabled:
-        type: boolean
-        description: "ihr_disabled"
-      ihr_fee_nanograms:
-        type: integer
-        format: int64
-        description: "ihr_fee_nanograms"
-      ihr_fee_nanograms_len:
-        type: integer
-        format: int32
-        description: "ihr_fee_nanograms_len"
-      import_fee_nanograms:
-        type: integer
-        format: int64
-        description: "import_fee_nanograms"
-      import_fee_nanograms_len:
-        type: integer
-        format: int32
-        description: "import_fee_nanograms_len"
-      dest:
-        $ref: "#/definitions/AddrStd"
-        description: "Dest addr"
-      src:
-        $ref: "#/definitions/AddrStd"
-        description: "Src addr"
-      body_type:
-        type: string
-        description: "Body type"
-      body_value:
-        type: string
-        description: "Body value"
-
-  AddrStd:
-    description: "Addr"
-    type: object
-    properties:
-      is_empty:
-        type: boolean
-        description: "Is empty"
-      workchain_id:
-        type: integer
-        format: int32
-        description: "Workchain ID"
-      addr:
-        type: string
-        description: "Addr HEX"
-      anycast:
-        type: string
-        description: "anycast"
-
-  AccountWhale:
-    description: ""
-    type: object
-    properties:
-      addr:
-        type: string
-      balance_gram:
-        type: string
-
-
-  AddrTopByMessageCountResponse:
-    description: ""
-    type: object
-    properties:
-      top_in:
-        type: array
-        items:
-          $ref: "#/definitions/AddrCount"
-      top_out:
-        type: array
-        items:
-          $ref: "#/definitions/AddrCount"
-
-  AddrCount:
-    description: ""
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-      addr:
-        type: string
-      count:
-        type: integer
-        format: int64
-
-  MessageFeedGlobal:
-    description: ""
-    type: object
-    properties:
-      workchain_id:
-        type: integer
-        format: int32
-      shard:
-        type: integer
-        format: int64
-      seq_no:
-        type: integer
-        format: int64
-      lt:
-        type: integer
-        format: int64
-      time:
-        type: integer
-        format: int64
-      direction:
-        type: string
-      src:
-        type: string
-      dest:
-        type: string
-      value_grams:
-        type: string
-      total_fee_grams:
-        type: string
-      bounce:
-        type: boolean
-
-  MessagesByTypeResult:
-    description: ""
-    type: object
-    properties:
-      rows:
-        type: array
-        items:
-          $ref: "#/definitions/MessagesByTypeTimeseries"
-
-  MessagesByTypeTimeseries:
-    type: object
-    properties:
-      workchain_id:
-        description: "workchain_id"
-        type: string
-      type:
-        description: "type"
-        type: string
-      time:
-        description: "array of timestamps with 5 MINUTE step"
-        $ref: "#/definitions/int64Array"
-      messages_count:
-        description: "array of messages count"
-        $ref: "#/definitions/int64Array"
-
-  VolumeByGramsResult:
-    description: ""
-    type: object
-    properties:
-      rows:
-        type: array
-        items:
-          $ref: "#/definitions/VolumeByGramsTimeseries"
-
-  VolumeByGramsTimeseries:
-    type: object
-    properties:
-      workchain_id:
-        description: "workchain_id"
-        type: string
-      time:
-        description: "array of timestamps with 10 MINUTE step"
-        $ref: "#/definitions/int64Array"
-      volume_grams:
-        description: "array of volume by grams"
-        $ref: "#/definitions/stringArray"
-
-  MessagesOrdCountResult:
-    description: ""
-    type: object
-    properties:
-      rows:
-        type: array
-        items:
-          $ref: "#/definitions/MessagesOrdCountTimeseries"
-
-  MessagesOrdCountTimeseries:
-    type: object
-    properties:
-      workchain_id:
-        description: "workchain_id"
-        type: string
-      time:
-        description: "array of timestamps with 10 MINUTE step"
-        $ref: "#/definitions/int64Array"
-      count:
-        description: "array of msg count"
-        $ref: "#/definitions/int64Array"
-
-  TimeseriesBlocksByWorkchain:
-    description: ""
-    type: object
-    properties:
-      time:
-        description: "array of timestamps with 8 MINUTE step"
-        $ref: "#/definitions/int64Array"
-      masterchain:
-        description: "array count blocks in masterchain"
-        $ref: "#/definitions/int64Array"
-      workchain0:
-        description: "array count blocks in workchain 0"
-        $ref: "#/definitions/int64Array"
-
-  stringArray:
-    description: "String array type"
-    type: array
-    items:
+    BlockIdString:
+      description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
       type: string
 
-  int64Array:
-    description: "Int64 array type"
-    type: array
-    items:
-      type: integer
-      format: int64
+    ShardBlock:
+      description: Shard block
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        shard:
+          type: integer
+          format: int64
+          description: Shard DEC
+        seq_no:
+          type: integer
+          format: int64
+          description: Sequence number
 
-  error:
-    type: object
-    required:
-      - message
-    properties:
-      error:
-        type: boolean
-        description: "Error"
-      message:
+    ShardBlocksRange:
+      description: Shard blocks range
+      type: object
+      properties:
+        master_seq:
+          type: integer
+          format: int64
+          description: Master block sequence number
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        shard:
+          type: integer
+          format: int64
+          description: Shard DEC
+        from_seq:
+          type: integer
+          format: int64
+          description: From sequence number
+        to_seq:
+          type: integer
+          format: int64
+          description: From sequence number
+
+    BlockInfo:
+      description: Block info
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        shard:
+          type: integer
+          format: int64
+          description: Shard DEC
+        seq_no:
+          type: integer
+          format: int64
+          description: Sequence number
+        prev_seq_no:
+          type: integer
+          format: int64
+          description: Previous sequence number
+        next_seq_no:
+          type: integer
+          format: int64
+          description: Next sequence number
+        root_hash:
+          type: string
+          description: root_hash
+        file_hash:
+          type: string
+          description: file_hash
+        min_ref_mc_seqno:
+          type: integer
+          format: int64
+          description: min_ref_mc_seqno
+        prev_key_block_seqno:
+          type: integer
+          format: int64
+          description: prev_key_block_seqno
+        gen_catchain_seqno:
+          type: integer
+          format: int64
+          description: gen_catchain_seqno
+        gen_utime:
+          type: integer
+          format: int64
+          description: gen_utime
+        prev1_ref:
+          $ref: "#/components/schemas/BlockRef"
+        prev2_ref:
+          $ref: "#/components/schemas/BlockRef"
+        master_ref:
+          $ref: "#/components/schemas/BlockRef"
+        start_lt:
+          type: integer
+          format: int64
+          description: start_lt
+        end_lt:
+          type: integer
+          format: int64
+          description: end_lt
+        version:
+          type: integer
+          format: int32
+          description: version
+        flags:
+          type: integer
+          description: flags
+        key_block:
+          type: boolean
+          description: key_block
+        not_master:
+          type: boolean
+          description: not_master
+        want_merge:
+          type: boolean
+          description: want_merge
+        want_split:
+          type: boolean
+          description: want_split
+        after_merge:
+          type: boolean
+          description: after_merge
+        after_split:
+          type: boolean
+          description: after_split
+        before_split:
+          type: boolean
+          description: before_split
+        value_flow:
+          $ref: "#/components/schemas/ValueFlow"
+        block_stats:
+          $ref: "#/components/schemas/BlockStats"
+
+    BlockStats:
+      description: Value flow
+      type: object
+      properties:
+        trx_count:
+          type: integer
+          format: int32
+        msg_count:
+          type: integer
+          format: int32
+        sent_nanograms:
+          type: integer
+          format: int64
+        trx_total_fees_nanograms:
+          type: integer
+          format: int64
+        msg_ihr_fee_nanograms:
+          type: integer
+          format: int64
+        msg_import_fee_nanograms:
+          type: integer
+          format: int64
+        msg_fwd_fee_nanograms:
+          type: integer
+          format: int64
+
+    ValueFlow:
+      description: Value flow
+      type: object
+      properties:
+        from_prev_blk:
+          type: integer
+          format: int64
+        to_next_blk:
+          type: integer
+          format: int64
+        imported:
+          type: integer
+          format: int64
+        exported:
+          type: integer
+          format: int64
+        fees_collected:
+          type: integer
+          format: int64
+        fees_imported:
+          type: integer
+          format: int64
+        recovered:
+          type: integer
+          format: int64
+        created:
+          type: integer
+          format: int64
+        minted:
+          type: integer
+          format: int64
+
+    BlockRef:
+      description: Block ref
+      type: object
+      properties:
+        end_lt:
+          type: integer
+          format: int64
+          description: end_lt
+        seq_no:
+          type: integer
+          format: int64
+          description: seq_no
+        file_hash:
+          type: string
+          description: file_hash
+        root_hash:
+          type: string
+          description: root_hash
+
+    Transaction:
+      description: Transaction
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        shard:
+          type: integer
+          format: int64
+          description: Shard DEC
+        seq_no:
+          type: integer
+          format: int64
+          description: Sequence number
+        hash:
+          type: string
+          description: Transaction hash
+        type:
+          type: string
+          description: Transaction type
+        lt:
+          type: integer
+          format: int64
+          description: lt
+        now:
+          type: integer
+          format: int64
+          description: now
+        is_tock:
+          type: integer
+          format: int64
+          description: is_tock
+        total_nanograms:
+          type: integer
+          format: int64
+          description: total_nanograms
+        total_fees_nanograms:
+          type: integer
+          format: int64
+          description: total_fees_nanograms
+        total_fees_nanograms_len:
+          type: integer
+          format: int32
+          description: total_fees_nanograms_len
+        account_addr:
+          type: string
+          description: account_addr
+        account_addr_uf:
+          type: string
+          description: User-friendly account address.
+        orig_status:
+          type: string
+          description: orig_status
+        end_status:
+          type: string
+          description: end_status
+        prev_trans_lt:
+          type: integer
+          format: int64
+          description: prev_trans_lt
+        prev_trans_hash:
+          type: string
+          description: prev_trans_hash
+        state_update_new_hash:
+          type: string
+          description: state_update_new_hash
+        state_update_old_hash:
+          type: string
+          description: state_update_old_hash
+        in_msg:
+          $ref: "#/components/schemas/TransactionMessage"
+        out_msgs:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionMessage"
+          description: Out messages
+
+    TransactionMessage:
+      description: Transaction message
+      type: object
+      properties:
+        type:
+          type: string
+          description: Message type
+        init:
+          type: string
+          description: init
+        bounce:
+          type: boolean
+          description: bounce
+        bounced:
+          type: boolean
+          description: bounced
+        created_at:
+          type: integer
+          format: int64
+          description: created_at
+        created_lt:
+          type: integer
+          format: int64
+          description: created_lt
+        value_nanograms:
+          type: integer
+          format: int64
+          description: value_nanograms
+        value_nanograms_len:
+          type: integer
+          format: int32
+          description: value_nanograms_len
+        fwd_fee_nanograms:
+          type: integer
+          format: int64
+          description: fwd_fee_nanograms
+        fwd_fee_nanograms_len:
+          type: integer
+          format: int32
+          description: fwd_fee_nanograms_len
+        ihr_disabled:
+          type: boolean
+          description: ihr_disabled
+        ihr_fee_nanograms:
+          type: integer
+          format: int64
+          description: ihr_fee_nanograms
+        ihr_fee_nanograms_len:
+          type: integer
+          format: int32
+          description: ihr_fee_nanograms_len
+        import_fee_nanograms:
+          type: integer
+          format: int64
+          description: import_fee_nanograms
+        import_fee_nanograms_len:
+          type: integer
+          format: int32
+          description: import_fee_nanograms_len
+        dest:
+          $ref: "#/components/schemas/AddrStd"
+        src:
+          $ref: "#/components/schemas/AddrStd"
+        body_type:
+          type: string
+          description: Body type
+        body_value:
+          type: string
+          description: Body value
+
+    AddrStd:
+      description: Addr
+      type: object
+      properties:
+        is_empty:
+          type: boolean
+          description: Is empty
+        workchain_id:
+          type: integer
+          format: int32
+          description: Workchain ID
+        addr:
+          type: string
+          description: Addr HEX
+        addr_uf:
+          type: string
+          description: User-friendly account address.
+        anycast:
+          type: string
+          description: anycast
+
+    AccountWhale:
+      description: ""
+      type: object
+      properties:
+        addr_raw:
+          type: string
+          description: Raw whale account address.
+        addr_uf:
+          type: string
+          description: User-friendly whale account address.
+        balance_nanogram:
+          type: integer
+          description: Account balance in nanograms.
+        balance_percentage_of_total:
+          type: number
+          format: double
+          description: Ratio of this accounts balance to total nanograms.
+
+    AddrTopByMessageCountResponse:
+      description: ""
+      type: object
+      properties:
+        top_in:
+          type: array
+          items:
+            $ref: "#/components/schemas/AddrCount"
+        top_out:
+          type: array
+          items:
+            $ref: "#/components/schemas/AddrCount"
+
+    AddrCount:
+      description: ""
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        addr:
+          type: string
+        addr_uf:
+          type: string
+          description: User-friendly account address.
+        count:
+          type: integer
+          format: int64
+
+    MessageFeedResponse:
+      type: object
+      properties:
+        scroll_id:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageFeed"
+
+    TransactionsFeedResponse:
+      type: object
+      properties:
+        scroll_id:
+          type: string
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionsFeed"
+
+    MessageFeed:
+      description: ""
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        shard:
+          type: integer
+          format: int64
+        seq_no:
+          type: integer
+          format: int64
+        lt:
+          type: integer
+          format: int64
+        time:
+          type: integer
+          format: int64
+        message_lt:
+          type: integer
+          format: int64
+        trx_hash:
+          type: string
+        direction:
+          type: string
+        src_workchain_id:
+          type: string
+        src:
+          type: string
+        src_uf:
+          type: string
+          description: User-friendly source account address.
+        dest_workchain_id:
+          type: string
+        dest:
+          type: string
+        dest_uf:
+          type: string
+          description: User-friendly destination account address.
+        value_nanogram:
+          type: integer
+        total_fee_nanogram:
+          type: integer
+        bounce:
+          type: boolean
+        body:
+          type: string
+
+    TransactionsFeed:
+      description: ""
+      type: object
+      properties:
+        workchain_id:
+          type: integer
+          format: int32
+        shard:
+          type: integer
+          format: int64
+        seq_no:
+          type: integer
+          format: int64
+        time:
+          type: integer
+          format: int64
+        is_tock:
+          type: integer
+        lt:
+          type: integer
+          format: int64
+        msg_in_created_lt:
+          type: integer
+          format: int64
+        trx_hash:
+          type: string
+        type:
+          type: string
+        msg_in_type:
+          type: string
+        src_uf:
+          type: string
+        src_workchain_id:
+          type: integer
+        account_addr:
+          type: string
+        account_addr_uf:
+          type: string
+        src:
+          type: string
+        dest_uf:
+          type: string
+        dest_workchain_id:
+          type: integer
+        dest:
+          type: string
+        total_nanograms:
+          type: integer
+          format: int64
+        total_fees_nanograms:
+          type: integer
+          format: int64
+        total_fwd_fee_nanograms:
+          type: integer
+          format: int64
+        total_ihr_fee_nanograms:
+          type: integer
+          format: int64
+        total_import_fee_nanograms:
+          type: integer
+          format: int64
+
+    MessagesByTypeResult:
+      description: ""
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessagesByTypeTimeseries"
+
+    MessagesByTypeTimeseries:
+      type: object
+      properties:
+        workchain_id:
+          description: workchain_id
+          type: string
+        type:
+          description: type
+          type: string
+        time:
+          $ref: "#/components/schemas/int64Array"
+        messages_count:
+          $ref: "#/components/schemas/int64Array"
+
+    VolumeByGramsResult:
+      description: ""
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/VolumeByGramsTimeseries"
+
+    VolumeByGramsTimeseries:
+      type: object
+      properties:
+        workchain_id:
+          description: workchain_id
+          type: string
+        time:
+          $ref: "#/components/schemas/int64Array"
+        volume_grams:
+          $ref: "#/components/schemas/stringArray"
+
+    MessagesOrdCountResult:
+      description: ""
+      type: object
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessagesOrdCountTimeseries"
+
+    MessagesOrdCountTimeseries:
+      type: object
+      properties:
+        workchain_id:
+          description: workchain_id
+          type: string
+        time:
+          $ref: "#/components/schemas/int64Array"
+        count:
+          $ref: "#/components/schemas/int64Array"
+
+    TimeseriesBlocksByWorkchain:
+      description: ""
+      type: object
+      properties:
+        time:
+          $ref: "#/components/schemas/int64Array"
+        masterchain:
+          $ref: "#/components/schemas/int64Array"
+        workchain0:
+          $ref: "#/components/schemas/int64Array"
+
+    GlobalMetrics:
+      description: ""
+      type: object
+      properties:
+        total_addr:
+          description: Total number of addresses
+          type: integer
+          format: int64
+        total_nanogram:
+          description: Total number of nanograms
+          type: integer
+          format: int64
+        total_blocks:
+          description: Total number of blocks
+          type: integer
+          format: int64
+        total_messages:
+          description: Total number of messages
+          type: integer
+          format: int64
+        total_transactions:
+          description: Total number of transactions
+          type: integer
+          format: int64
+
+    TrxMetrics:
+      description: ""
+      type: object
+      properties:
+        trx_last_day:
+          description: "Total number of transactions for last 24 hours"
+          type: integer
+          format: int64
+        trx_last_month:
+          description: "Total number of transactions for last month"
+          type: integer
+          format: int64
+
+    BlocksMetrics:
+      description: ""
+      type: object
+      properties:
+        total_blocks:
+          description: Total number of blocks
+          type: integer
+          format: int64
+        blocks_height:
+          description: Maximum SeqNo
+          type: integer
+          format: int64
+        avg_block_time:
+          description: Average time between blocks
+          type: number
+          format: double
+
+    AddressesMetrics:
+      description: ""
+      type: object
+      properties:
+        total_addr:
+          description: Total number of addresses
+          type: integer
+          format: int64
+        total_nanogram:
+          description: Total number of nanograms
+          type: integer
+          format: int64
+        daily_active:
+          description: Daily active accounts
+          type: integer
+          format: int64
+        monthly_active:
+          description: Monthly active accounts
+          type: integer
+          format: int64
+
+    MessagesMetrics:
+      description: ""
+      type: object
+      properties:
+        total_transactions:
+          description: Total number of transactions
+          type: integer
+          format: int64
+        total_messages:
+          description: Total number of messages
+          type: integer
+          format: int64
+        tps:
+          description: Transactions per second
+          type: number
+          format: double
+        mps:
+          description: Messages per second
+          type: number
+          format: double
+
+    stringArray:
+      description: String array type
+      type: array
+      items:
         type: string
-        description: "Error message"
+
+    int64Array:
+      description: Int64 array type
+      type: array
+      items:
+        type: integer
+        format: int64
+
+    SearchResult:
+      type: object
+      properties:
+        type:
+          description: Search result type
+          type: string
+        hint:
+          description: Search hint
+          type: string
+        link:
+          description: API link
+          type: string
+
+    error:
+      type: object
+      required:
+        - message
+      properties:
+        error:
+          type: boolean
+          description: Error
+        message:
+          type: string
+          description: Error message
 
 paths:
-  /height/synced:
+  /v1/height/synced:
     get:
-      summary: "Get synced height"
-      description: "Get synced master height"
+      summary: Get synced height
+      description: Get synced master height
       tags:
         - core
-      security:
-        - basicAuth: []
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/BlockId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockId"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /height/blockchain:
+  /v1/height/blockchain:
     get:
-      summary: "Get blockchain height"
-      description: "Get master blockchain height"
+      summary: Get blockchain height
+      description: Get master blockchain height
       tags:
         - core
-      security:
-        - basicAuth: []
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/BlockId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockId"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /master/block/shards/range:
+  /v1/master/block/shards/range:
     get:
-      summary: "Get master block shards range"
+      summary: Get master block shards range
       description: "Get master block shards range. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
       tags:
         - core
-      security:
-        - basicAuth: []
       parameters:
         - name: block_master
           in: query
-          type: string
           required: true
           description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
-      responses:
-        200:
-          description: OK
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/ShardBlocksRange"
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShardBlocksRange"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /workchain/block/master:
+  /v1/master/block/shards/actual:
     get:
-      summary: "Get master block by workchain block"
-      description: "Get master block by workchain block."
+      summary: Get master block actual shards
+      description: "Get master block actual shards. You can set multiply block_master's like: ?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)"
       tags:
         - core
-      security:
-        - basicAuth: []
+      parameters:
+        - name: block_master
+          in: query
+          required: true
+          description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShardBlock"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/workchain/block/master:
+    get:
+      summary: Get master block by workchain block
+      description: Get master block by workchain block.
+      tags:
+        - core
       parameters:
         - name: block
           in: query
-          type: string
           required: true
           description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
-      responses:
-        200:
-          description: OK
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/BlockId"
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlockId"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /block/info:
+  /v1/block/info:
     get:
-      summary: "Get block info"
+      summary: Get block info
       tags:
         - core
       description: >
         Get block info by filters. <br>
+        This method is available by following paths: /v1/block/info, /v1/blocks/info, /v1/b/info <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
         You can set multiply <b>block_master</b>'s like:
         <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
-          type: string
-          description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+          description: "Block ID string in format:
+                  (WorkchainId,ShardHEX,SeqNo)"
+          schema:
+            type: string
         - name: block_master
           in: query
-          type: string
-          description: "Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block."
+          description: "Master Block ID string in format:
+                  (WorkchainId,ShardHEX,SeqNo). Search only in shards
+                  block."
+          schema:
+            type: string
         - name: block_from
           in: query
-          type: string
-          description: "Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+          description: "Block range from. Block ID string in format:
+                  (WorkchainId,ShardHEX,SeqNo)"
+          schema:
+            type: string
         - name: block_to
           in: query
-          type: string
-          description: "Block range to. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
-      responses:
-        200:
-          description: OK
+          description: "Block range to. Block ID string in format:
+                  (WorkchainId,ShardHEX,SeqNo)"
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/BlockInfo"
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BlockInfo"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
-
-  /block/transactions:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+  /v1/block/tlb:
     get:
-      summary: "Get block transactions"
+      summary: Get block in TL-B format
+      tags:
+        - core
+      description: >
+        Get block in TL-B format. <br>
+      parameters:
+        - name: block
+          in: query
+          description: "Block ID string in format:
+              (WorkchainId,ShardHEX,SeqNo)"
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                description: return block in TL-B binary format
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/block/transactions:
+    get:
+      summary: Get block transactions
       tags:
         - core
       description: >
         Get block transactions by filters. <br>
+        This method is available by following paths: /v1/block/transactions, /v1/blocks/transactions, /v1/b/transactions <br>
         <b style='color: red;'>You should</b> set at least one of: <b>block</b>, <b>block_master</b>, (<b>block_from</b>, <b>block_to</b>)<br>
         You can set multiply <b>block</b>'s like:
         <pre style='font-size:11px;'>?block=(-1,8000000000000000,100000)&block=(0,6000000000000000,1097422)</pre>
@@ -778,305 +1215,677 @@ paths:
         <pre style='font-size:11px;'>?block_master=(-1,8000000000000000,100000)&block_master=(-1,8000000000000000,100001)</pre>
         You can set multiply <b>addr</b>'s like:
         <pre style='font-size:11px;'>?addr=ADDR_1&addr=ADDR_2</pre>
-      security:
-        - basicAuth: []
       parameters:
         - name: block
           in: query
-          type: string
           description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+          schema:
+            type: string
         - name: block_master
           in: query
-          type: string
           description: "Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block."
+          schema:
+            type: string
         - name: block_from
           in: query
-          type: string
           description: "Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+          schema:
+            type: string
         - name: block_to
           in: query
-          type: string
           description: "Block range to. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
+          schema:
+            type: string
         - name: dir
           in: query
-          type: string
-          enum:
-            - in
-            - out
-          description: "Message dir"
+          description: Message dir
+          schema:
+            type: string
+            enum:
+              - in
+              - out
         - name: addr
           in: query
-          type: string
-          description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiply <b>addr</b>'s."
+          description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiple <b>addr</b>'s. Accepts <b>addr</b>'s in both raw and user-friendly format."
+          schema:
+            type: string
         - name: message_type
           in: query
-          type: string
-          description: "Message type"
+          description: Message type
+          schema:
+            type: string
         - name: type
           in: query
-          type: string
-          description: "Transaction type"
+          description: Transaction type
+          schema:
+            type: string
         - name: hash
           in: query
-          type: string
-          description: "Transaction hash"
+          description: Transaction hash
+          schema:
+            type: string
         - name: lt
           in: query
-          type: integer
-          format: int64
-          description: "Logical Time"
-      responses:
-        200:
-          description: OK
+          description: Logical Time
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Transaction"
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /transaction:
+  /v1/transaction:
     get:
-      summary: "Get transaction"
+      summary: Get transaction
       tags:
         - core
       description: >
         Get transaction by hash.
-      security:
-        - basicAuth: []
       parameters:
         - name: hash
           in: query
-          type: string
-          description: "Transaction hash"
-      responses:
-        200:
-          description: OK
+          description: Transaction hash
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Transaction"
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transaction"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /account:
+  /v1/account:
     get:
-      summary: "Get account"
+      summary: Get account
       tags:
         - core
       description: >
-        Get account by address. Support only raw address format yet. Another formats soon...
-      security:
-        - basicAuth: []
+        Get account by address. Both raw and user-friendly addresses formats supported. <br>
+        This method is available by following paths: /v1/account, /v1/address, /v1/a
       parameters:
         - name: address
           in: query
-          type: string
           required: true
-          description: "Account address"
-      responses:
-        200:
-          description: OK
+          description: Account address (both raw and user-friendly addresses formats
+            supported).
           schema:
-            $ref: "#/definitions/Account"
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /account/transactions:
+  /v1/account/qr:
     get:
-      summary: "Get account transactions"
+      summary: Get account QR code
+      tags:
+        - main
+      description: >
+        Get account QR code with link by address. Both raw and user-friendly addresses formats supported. <br>
+        This method is available by following paths: /v1/account, /v1/address, /v1/a
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: "Account address (both raw and user-friendly addresses formats supported)."
+          schema:
+            type: string
+        - name: format
+          in: query
+          description: Image format png or png_base64
+          schema:
+            type: string
+            enum:
+              - png
+              - png_base64
+      responses:
+        "200":
+          description: QR code png
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/account/transactions:
+    get:
+      summary: Get account transactions
       tags:
         - core
       description: >
-        Get account transactions
-      security:
-        - basicAuth: []
+        Get account transactions <br>
+        This method is available by following paths: /v1/account/transactions, /v1/address/transactions, /v1/a/transactions
       parameters:
         - name: address
           in: query
-          type: string
           required: true
-          description: "Account address"
+          description: Account address (both raw and user-friendly addresses formats
+            supported).
+          schema:
+            type: string
         - name: before_lt
           in: query
-          type: integer
-          description: "Get transactions before lt"
+          description: Get transactions before lt
+          schema:
+            type: integer
         - name: limit
           in: query
-          type: integer
-          default: 30
-          description: "Limit transactions"
-      responses:
-        200:
-          description: OK
+          description: Limit transactions
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/AccountTransaction"
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountTransaction"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /blocks/feed:
+  /v1/blocks/feed:
     get:
-      summary: "Get blocks feed"
+      summary: Get blocks feed
       tags:
         - core
       description: >
-        Get blocks feed
-      security:
-        - basicAuth: []
+        Get blocks feed <br>
+        This method is available by following paths: /v1/block/feed, /v1/blocks/feed, /v1/b/feed
       parameters:
-        - name: before_time
+        - name: scroll_id
           in: query
-          type: integer
-          default: 0
-          description: "Get blocks before time"
+          description: Scroll ID
+          schema:
+            type: string
         - name: limit
           in: query
-          type: integer
-          default: 30
-          description: "Limit blocks"
-      responses:
-        200:
-          description: OK
+          description: Limit blocks
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/BlockInFeed"
+            type: integer
+            default: 30
+        - name: workchain_id
+          in: query
+          description: Workchain Id filter
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlocksFeedResponse"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /timeseries/blocks-by-workchain:
-  get:
-    summary: "Blocks by workchain"
-    tags:
-      - main
-    description: ""
-    responses:
-      200:
-        description: OK
-        schema:
-          $ref: "#/definitions/TimeseriesBlocksByWorkchain"
-      default:
-        description: generic error response
-        schema:
-          $ref: "#/definitions/error"
-
-  /timeseries/messages-by-type:
+  /v1/timeseries/blocks-by-workchain:
     get:
-      summary: "Messages by type"
+      summary: Blocks by workchain
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/MessagesByTypeResult"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeseriesBlocksByWorkchain"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /timeseries/volume-by-grams:
+  /v1/timeseries/messages-by-type:
     get:
-      summary: "Volume by grams"
+      summary: Messages by type
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/VolumeByGramsResult"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagesByTypeResult"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /timeseries/messages-ord-count:
+  /v1/timeseries/volume-by-grams:
     get:
-      summary: "Messages ord count"
+      summary: Volume by grams
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/MessagesOrdCountResult"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolumeByGramsResult"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /messages/latest:
+  /v1/timeseries/messages-ord-count:
     get:
-      summary: "Latest messages feed"
+      summary: Messages ord count
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/MessageFeedGlobal"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagesOrdCountResult"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /addr/top-by-message-count:
+  /v1/messages/feed:
     get:
-      summary: "Top account by message in/out"
+      summary: Messages feed
+      tags:
+        - core
+      description: ""
+      parameters:
+        - name: scroll_id
+          in: query
+          description: Scroll ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Limit messages
+          schema:
+            type: integer
+            default: 50
+        - name: workchain_id
+          in: query
+          description: Workchain Id filter
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageFeedResponse"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/message/get:
+    get:
+      summary: Get message
+      tags:
+        - core
+      description: Get message by transaction hash and message logical time
+      parameters:
+        - name: trx_hash
+          in: query
+          description: Transaction hash
+          required: true
+          schema:
+            type: string
+        - name: message_lt
+          in: query
+          description: Message logical time
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionMessage"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/transactions/feed:
+    get:
+      summary: Transactions feed
+      description: ""
+      tags:
+        - core
+      parameters:
+        - name: scroll_id
+          in: query
+          description: Scroll ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Limit messages
+          schema:
+            type: integer
+            default: 50
+        - name: workchain_id
+          in: query
+          description: Workchain Id filter
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionsFeedResponse"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/addr/top-by-message-count:
+    get:
+      summary: Top account by message in/out
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            $ref: "#/definitions/AddrTopByMessageCountResponse"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddrTopByMessageCountResponse"
         default:
           description: generic error response
-          schema:
-            $ref: "#/definitions/error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
-  /top/whales:
+  /v1/top/whales:
     get:
-      summary: "Top whales account by gram amount"
+      summary: Top whales accounts by gram amount held
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          description: Get top whales for specific WorckchainId. Do not specify to get
+            workchain agnostic stats.
+          schema:
+            type: string
+            default: ""
+        - name: limit
+          in: query
+          description: Get top whales with limit. Do not specify to get first 50 whales.
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          description: Get top whales with offset. Do not specify to get first whales (with no offset applied).
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccountWhale"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/global:
+    get:
+      summary: Get some global blockchain metrics
       tags:
         - main
       description: ""
       responses:
-        200:
+        "200":
           description: OK
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/AccountWhale"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobalMetrics"
         default:
           description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/blocks:
+    get:
+      summary: Get blocks metrics
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          description: Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats.
           schema:
-            $ref: "#/definitions/error"
+            type: string
+            default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlocksMetrics"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/addresses:
+    get:
+      summary: Get addresses metrics
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          description: Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats.
+          schema:
+            type: string
+            default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressesMetrics"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/messages:
+    get:
+      summary: Get messages metrics
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          description: Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats.
+          schema:
+            type: string
+            default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagesMetrics"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/stats/transactions:
+    get:
+      summary: "Get transactions metrics"
+      tags:
+        - main
+      description: ""
+      parameters:
+        - name: workchain_id
+          in: query
+          schema:
+            type: string
+            default: ""
+          description: "Get stats for specific WorckchainId. Do not specify to get workchain agnostic stats."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrxMetrics"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+
+  /v1/search:
+    get:
+      summary: Search
+      tags:
+        - core
+      description: Search between blocks, transactions, accounts, messages
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Query string (full block fromat, account addr user uf/raw, block height, any hash)
+          schema:
+            type: string
+            default: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SearchResult"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
 
-tags:
-  - name: core
-    description: The Core methods.
-  - name: main
-    description: The Main methods.
-#  - name: timeseries
-#    description: The Core methods.
+  /v1/timeseries/sent-and-fees:
+    get:
+      summary: "Average sent and fees in nanograms for all blocks of every day for last 30 days"
+      tags:
+        - main
+      description: ""
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentAndFees"
+        default:
+          description: generic error response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"

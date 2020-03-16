@@ -10,6 +10,7 @@ type Transaction struct {
 	TotalFeesNanograms    uint64 `json:"total_fees_nanograms"`
 	TotalFeesNanogramsLen uint8  `json:"total_fees_nanograms_len"`
 	AccountAddr           string `json:"account_addr"`
+	AccountAddrUf         string `json:"account_addr_uf"`
 	OrigStatus            string `json:"orig_status"`
 	EndStatus             string `json:"end_status"`
 
@@ -21,7 +22,6 @@ type Transaction struct {
 
 	Aborted     bool   `json:"aborted"`
 	Destroyed   bool   `json:"destroyed"`
-	IsTock      bool   `json:"is_tock"`
 	CreditFirst bool   `json:"credit_first"`
 
 	ActionPhase  *ActionPhase  `json:"action_phase,omitempty"`
@@ -29,6 +29,10 @@ type Transaction struct {
 	StoragePhase *StoragePhase `json:"storage_phase,omitempty"`
 	CreditPhase  *CreditPhase  `json:"credit_phase,omitempty"`
 	BouncePhase  *BouncePhase  `json:"bounce_phase,omitempty"`
+
+	// virtual field. calculates only when retrieved from db
+	TotalNanograms uint64 `json:"total_nanograms"`
+	IsTock         bool   `json:"is_tock"`
 
 	InMsg   *TransactionMessage   `json:"in_msg,omitempty"`
 	OutMsgs []*TransactionMessage `json:"out_msgs,omitempty"`

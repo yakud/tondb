@@ -32,6 +32,7 @@ CH_ADDR=http://default:V9AQZJFNX4ygj2vP@192.168.100.3:8123/ton2?max_query_size=3
 
 CH_ADDR=http://clickhouse01.pay-mills.loc:8123/default?max_query_size=3145728000 \
   ADDR=192.168.100.3:8512 \
+  TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699 \
   nohup /tmp/ton-api >> /data/ton/log/api.log &
 
 curl -XGET 'http://144.76.140.152:8512/workchain/block/masterchain?shard_hex=e000000000000000&seq_no=612162'

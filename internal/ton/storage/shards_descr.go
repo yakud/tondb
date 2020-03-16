@@ -16,11 +16,20 @@ const (
 	)
 	ENGINE MergeTree
 	ORDER BY (MasterSeqNo, Shard, ShardSeqNo)
+	SETTINGS index_granularity = 64
 `
 
 	queryInsertShardsDescr = `INSERT INTO shards_descr (MasterShard,MasterSeqNo,ShardWorkchainId,Shard,ShardSeqNo) VALUES (?,?,?,?,?);`
 	queryDropShardsDescr   = `DROP TABLE shards_descr;`
 
+	querySelectShardSeqByMCSeq = `
+	SELECT
+		ShardWorkchainId,
+		Shard,
+		ShardSeqNo
+	FROM shards_descr
+	PREWHERE MasterSeqNo = ?
+`
 	querySelectShardSeqRangesByMCSeq = `
 	SELECT 
 	   ? as MasterSeqNo,
@@ -36,7 +45,7 @@ const (
 		   Shard,
 		   ShardSeqNo
 		FROM shards_descr
-		WHERE MasterSeqNo <= ? AND MasterSeqNo >= ?-50 AND Shard IN (SELECT Shard FROM shards_descr WHERE MasterSeqNo = ?)
+		PREWHERE MasterSeqNo <= ? AND MasterSeqNo >= ?-50 AND Shard IN (SELECT Shard FROM shards_descr WHERE MasterSeqNo = ?)
 		ORDER BY MasterSeqNo DESC, Shard DESC, ShardSeqNo DESC
 		LIMIT 2 BY Shard
 	) 
@@ -61,6 +70,12 @@ type ShardBlocksRange struct {
 	Shard       uint64 `json:"shard"`
 	FromSeq     uint64 `json:"from_seq"`
 	ToSeq       uint64 `json:"to_seq"`
+}
+
+type ShardBlock struct {
+	WorkchainId int32  `json:"workchain_id"`
+	Shard       uint64 `json:"shard"`
+	SeqNo       uint64 `json:"seq_no"`
 }
 
 type ShardsDescr struct {
@@ -162,6 +177,27 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 
 		if s.FromSeq > s.ToSeq {
 			continue
+		}
+
+		resp = append(resp, s)
+	}
+
+	rows.Close()
+
+	return resp, nil
+}
+func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]ShardBlock, error) {
+	rows, err := c.conn.Query(querySelectShardSeqByMCSeq, masterSeq)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]ShardBlock, 0)
+	for rows.Next() {
+		s := ShardBlock{}
+		if err := rows.Scan(&s.WorkchainId, &s.Shard, &s.SeqNo); err != nil {
+			rows.Close()
+			return nil, err
 		}
 
 		resp = append(resp, s)

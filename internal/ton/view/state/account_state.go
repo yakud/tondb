@@ -4,9 +4,9 @@ import (
 	"database/sql"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 		SeqNo,
 		RootHash,
 		FileHash,
-		Time,
+		toUInt64(Time),
 		Addr,
 		Anycast,
 		Status,
@@ -94,6 +94,13 @@ func (t *AccountState) GetAccount(f filter.Filter) (*ton.AccountState, error) {
 		&res.LastPaid,
 	)
 	if err != nil {
+		return nil, err
+	}
+
+	res.Addr = utils.NullAddrToString(res.Addr)
+
+	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(res.WorkchainId, res.Addr); err != nil {
+		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err
 	}
 

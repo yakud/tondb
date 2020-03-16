@@ -3,13 +3,11 @@ package tlb_pretty
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"log"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
-
-	errors2 "github.com/pkg/errors"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -42,10 +40,33 @@ func (c *AstTonConverter) ConvertToBlock(node *AstNode) (*ton.Block, error) {
 		return nil, err
 	}
 
+	block.Info.BlockStats = &ton.BlockStats{}
+	block.Info.BlockStats.TrxCount += uint16(len(block.Transactions))
+
 	for _, tr := range block.Transactions {
 		tr.WorkchainId = block.Info.WorkchainId
 		tr.Shard = block.Info.Shard
 		tr.SeqNo = block.Info.SeqNo
+
+		block.Info.BlockStats.TrxTotalFeesNanograms += tr.TotalFeesNanograms
+
+		if tr.InMsg != nil {
+			block.Info.BlockStats.MsgCount++
+			block.Info.BlockStats.SentNanograms += tr.InMsg.ValueNanograms
+			block.Info.BlockStats.MsgIhrFeeNanograms += tr.InMsg.IhrFeeNanograms
+			block.Info.BlockStats.MsgImportFeeNanograms += tr.InMsg.ImportFeeNanograms
+			block.Info.BlockStats.MsgFwdFeeNanograms += tr.InMsg.FwdFeeNanograms
+		}
+
+		if tr.OutMsgs != nil {
+			block.Info.BlockStats.MsgCount += uint16(len(tr.OutMsgs))
+			for _, outMsg := range tr.OutMsgs {
+				block.Info.BlockStats.SentNanograms += outMsg.ValueNanograms
+				block.Info.BlockStats.MsgIhrFeeNanograms += outMsg.IhrFeeNanograms
+				block.Info.BlockStats.MsgImportFeeNanograms += outMsg.ImportFeeNanograms
+				block.Info.BlockStats.MsgFwdFeeNanograms += outMsg.FwdFeeNanograms
+			}
+		}
 	}
 
 	if err := c.extractTransactionsHash(node, &block.Transactions); err != nil {
@@ -153,6 +174,11 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	nodeInfo, err := node.GetNode("info")
 	if err != nil {
 		return nil, err
+	}
+
+	valueFlow, err := c.extractValueFlow(node)
+	if err == nil {
+		info.ValueFlow = valueFlow
 	}
 
 	nodeShard, err := nodeInfo.GetNode("shard")
@@ -301,6 +327,35 @@ func (c *AstTonConverter) extractBlockInfo(node *AstNode) (*ton.BlockInfo, error
 	return info, nil
 }
 
+func (c *AstTonConverter) extractValueFlow(node *AstNode) (*ton.ValueFlow, error) {
+	valueFlowRoot, err := node.GetNode("value_flow")
+	if err != nil {
+		return nil, err
+	}
+	valueFlow := &ton.ValueFlow{
+		FromPrevBlk:  0,
+		ToNextBlk:    0,
+		Imported:     0,
+		Exported:     0,
+		FeesImported: 0,
+		Recovered:    0,
+		Created:      0,
+		Minted:       0,
+	}
+
+	valueFlow.FeesCollected, _ = valueFlowRoot.GetUint64("fees_collected", "grams", "amount", "value")
+	valueFlow.Exported, _ = valueFlowRoot.GetUint64("value_0", "exported", "grams", "amount", "value")
+	valueFlow.FromPrevBlk, _ = valueFlowRoot.GetUint64("value_0", "from_prev_blk", "grams", "amount", "value")
+	valueFlow.ToNextBlk, _ = valueFlowRoot.GetUint64("value_0", "to_next_blk", "grams", "amount", "value")
+	valueFlow.Imported, _ = valueFlowRoot.GetUint64("value_0", "imported", "grams", "amount", "value")
+	valueFlow.Created, _ = valueFlowRoot.GetUint64("value_1", "created", "grams", "amount", "value")
+	valueFlow.FeesImported, _ = valueFlowRoot.GetUint64("value_1", "fees_imported", "grams", "amount", "value")
+	valueFlow.Minted, _ = valueFlowRoot.GetUint64("value_1", "minted", "grams", "amount", "value")
+	valueFlow.Recovered, _ = valueFlowRoot.GetUint64("value_1", "recovered", "grams", "amount", "value")
+
+	return valueFlow, nil
+}
+
 func (c *AstTonConverter) extractTransactions(node *AstNode, transactions *[]*ton.Transaction) error {
 	accountBlocksRoot, err := node.GetNode("extra", "account_blocks", "value_0")
 	if err != nil {
@@ -361,6 +416,9 @@ func (c *AstTonConverter) extractTransaction(node *AstNode, transactions *[]*ton
 		if tr.Type, err = transactionNode.GetString("description", "@type"); err != nil {
 			return err
 		}
+
+		tr.IsTock, _ = transactionNode.GetBool("description", "is_tock")
+
 		if tr.Now, err = transactionNode.GetUint64("now"); err != nil {
 			return err
 		}
@@ -876,7 +934,7 @@ func (c *AstTonConverter) ConvertToState(node *AstNode) (*ton.AccountState, erro
 	state.BlockId.SeqNo = blockInfo.SeqNo
 	state.FileHash = blockInfo.FileHash
 	state.RootHash = blockInfo.RootHash
-	state.Time = time.Unix(int64(blockInfo.GenUtime), 0).UTC()
+	state.Time = uint64(blockInfo.GenUtime)
 
 	addrNode, err := node.GetNode("state", "account", "addr")
 	if err != nil {

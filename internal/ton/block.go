@@ -2,6 +2,7 @@ package ton
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -24,6 +25,9 @@ type WorkchainId int32
 type BlockInfo struct {
 	BlockId
 	BlockHeader
+
+	PrevSeqNo uint64 `json:"prev_seq_no"` // virtual field. filled only in get block info query by join.
+	NextSeqNo uint64 `json:"next_seq_no"` // virtual field. same
 
 	MinRefMcSeqno     uint32    `json:"min_ref_mc_seqno"`
 	PrevKeyBlockSeqno uint32    `json:"prev_key_block_seqno"`
@@ -50,6 +54,31 @@ type BlockInfo struct {
 	AfterMerge  bool  `json:"after_merge"`
 	AfterSplit  bool  `json:"after_split"`
 	BeforeSplit bool  `json:"before_split"`
+
+	BlockStats *BlockStats `json:"block_stats"`
+	ValueFlow  *ValueFlow  `json:"value_flow"`
+}
+
+type BlockStats struct {
+	TrxCount              uint16 `json:"trx_count"`
+	MsgCount              uint16 `json:"msg_count"`
+	SentNanograms         uint64 `json:"sent_nanograms"`
+	TrxTotalFeesNanograms uint64 `json:"trx_total_fees_nanograms"`
+	MsgIhrFeeNanograms    uint64 `json:"msg_ihr_fee_nanograms"`
+	MsgImportFeeNanograms uint64 `json:"msg_import_fee_nanograms"`
+	MsgFwdFeeNanograms    uint64 `json:"msg_fwd_fee_nanograms"`
+}
+
+type ValueFlow struct {
+	FromPrevBlk   uint64 `json:"from_prev_blk"`
+	ToNextBlk     uint64 `json:"to_next_blk"`
+	Imported      uint64 `json:"imported"`
+	Exported      uint64 `json:"exported"`
+	FeesCollected uint64 `json:"fees_collected"`
+	FeesImported  uint64 `json:"fees_imported"`
+	Recovered     uint64 `json:"recovered"`
+	Created       uint64 `json:"created"`
+	Minted        uint64 `json:"minted"`
 }
 
 type BlockHeader struct {
@@ -68,6 +97,14 @@ type BlockId struct {
 	WorkchainId int32  `json:"workchain_id"`
 	Shard       uint64 `json:"shard"`
 	SeqNo       uint64 `json:"seq_no"`
+}
+
+func (b *BlockId) String() string {
+	return fmt.Sprintf("(%d,%s,%d)",
+		b.WorkchainId,
+		strings.ToUpper(utils.DecToHex(b.Shard)),
+		b.SeqNo,
+	)
 }
 
 func ParseBlockId(b string) (*BlockId, error) {

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"time"
 
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
@@ -99,7 +101,9 @@ const (
 		Messages.SrcAddr as MessagesSrcAddr,
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
-		Messages.BodyValue as MessagesBodyValue
+		Messages.BodyValue as MessagesBodyValue,
+   		arraySum(Messages.ValueNanograms) as TotalNanograms,
+	   	IsTock
 	FROM transactions
 	PREWHERE %s
 	LIMIT 1000
@@ -153,6 +157,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyType := make([]string, 0)
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
+		var isTock uint8
 		actionPhase := &ton.ActionPhase{}
 		computePhase := &ton.ComputePhase{}
 		storagePhase := &ton.StoragePhase{}
@@ -247,6 +252,8 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&messagesSrcAnycast,
 			&messagesBodyType,
 			&messagesBodyValue,
+			&transaction.TotalNanograms,
+			&isTock,
 		)
 		if err != nil {
 			rows.Close()
@@ -277,9 +284,36 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			transaction.CreditPhase = nil
 		}
 
+		transaction.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(transaction.WorkchainId, transaction.AccountAddr)
+		if err != nil {
+			return nil, err
+		}
+
+		transaction.IsTock = isTock == 1
+
 		transaction.Now = uint64(trTime.Unix())
 		for i, _ := range messagesDirection {
 			direction := messagesDirection[i]
+			var srcUf, destUf string
+
+			if messagesDestIsEmpty[i] != 1 {
+				messagesDestAddr[i] = utils.NullAddrToString(messagesDestAddr[i])
+				destUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesDestWorkchainId[i], messagesDestAddr[i])
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
+			if messagesSrcIsEmpty[i] != 1 {
+				messagesSrcAddr[i] = utils.NullAddrToString(messagesSrcAddr[i])
+				srcUf, err = utils.ComposeRawAndConvertToUserFriendly(messagesSrcWorkchainId[i], messagesSrcAddr[i])
+				if err != nil {
+					// Maybe we shouldn't fail here?
+					return nil, err
+				}
+			}
+
 			msg := &ton.TransactionMessage{
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
@@ -300,12 +334,14 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 					IsEmpty:     messagesDestIsEmpty[i] == 1,
 					WorkchainId: messagesDestWorkchainId[i],
 					Addr:        messagesDestAddr[i],
+					AddrUf:      destUf,
 					Anycast:     messagesDestAnycast[i],
 				},
 				Src: ton.AddrStd{
 					IsEmpty:     messagesSrcIsEmpty[i] == 1,
 					WorkchainId: messagesSrcWorkchainId[i],
 					Addr:        messagesSrcAddr[i],
+					AddrUf:      srcUf,
 					Anycast:     messagesSrcAnycast[i],
 				},
 				BodyType:  messagesBodyType[i],

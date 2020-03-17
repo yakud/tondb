@@ -136,7 +136,7 @@ components:
           type: integer
           format: int64
 
-    AccountTransaction:
+    AccountMessage:
       description: Account transaction
       type: object
       properties:
@@ -198,6 +198,18 @@ components:
         bounced:
           type: integer
           format: int32
+        body:
+          type: string
+
+    AccountMessageResponse:
+      type: object
+      properties:
+        scroll_id:
+          type: string
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountMessage"
 
     BlockId:
       description: Block ID
@@ -1378,14 +1390,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/error"
 
-  /v1/account/transactions:
+  /v1/account/messages:
     get:
-      summary: Get account transactions
+      summary: Get account messages
       tags:
         - core
       description: >
-        Get account transactions <br>
-        This method is available by following paths: /v1/account/transactions, /v1/address/transactions, /v1/a/transactions
+        Get account messages <br>
+        This method is available by following paths: /v1/account/messages, /v1/address/messages, /v1/a/messages
       parameters:
         - name: address
           in: query
@@ -1394,11 +1406,11 @@ paths:
             supported).
           schema:
             type: string
-        - name: before_lt
+        - name: scroll_id
           in: query
           description: Get transactions before lt
           schema:
-            type: integer
+            type: string
         - name: limit
           in: query
           description: Limit transactions
@@ -1411,9 +1423,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AccountTransaction"
+                $ref: "#/components/schemas/AccountMessageResponse"
         default:
           description: generic error response
           content:

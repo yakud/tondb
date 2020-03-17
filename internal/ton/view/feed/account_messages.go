@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	createFeedAccountTransactions = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_AccountTransactions
+	createFeedAccountMessages = `
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_AccountMessages
 	ENGINE = MergeTree() 
 	PARTITION BY toYYYYMM(Time)
 	ORDER BY (WorkchainId, AccountAddr, Lt, Time)
@@ -38,18 +38,23 @@ const (
 		Messages.IhrFeeNanograms as IhrFeeNanograms,
 		Messages.ImportFeeNanograms as ImportFeeNanograms,
 		Messages.Bounce as Bounce,
-		Messages.Bounced as Bounced
+		Messages.Bounced as Bounced,
+		if(
+	        (substr(Messages.BodyValue, 1, 10) = 'x{00000000' AND Messages.BodyValue != 'x{00000000}'),
+	        unhex(substring(replaceRegexpAll(Messages.BodyValue,'x{|}|\t|\n|\ ', ''), 9, length(Messages.BodyValue))),
+	        ''
+	    ) AS BodyValue
 	FROM transactions
 	ARRAY JOIN Messages
 `
-	dropFeedAccountTransactions = `DROP TABLE _view_feed_AccountTransactions`
+	dropFeedAccountMessages = `DROP TABLE _view_feed_AccountMessages`
 
-	querySelectAccountTransactions = `
+	querySelectAccountMessages = `
 	WITH (
 		SELECT (min(Lt), max(Lt))
 		FROM (
 			SELECT Lt
-			FROM ".inner._view_feed_AccountTransactions"
+			FROM ".inner._view_feed_AccountMessages"
 			PREWHERE 
 				(WorkchainId = ?) AND 
 				(AccountAddr = ?) AND
@@ -78,8 +83,9 @@ const (
 		IhrFeeNanograms,
 		ImportFeeNanograms,
 		Bounce,
-		Bounced
-	FROM ".inner._view_feed_AccountTransactions"
+		Bounced,
+		BodyValue
+	FROM ".inner._view_feed_AccountMessages"
 	PREWHERE 
 		(WorkchainId = ?) AND 
 		(AccountAddr = ?) AND
@@ -89,7 +95,7 @@ const (
 `
 )
 
-type AccountTransaction struct {
+type AccountMessage struct {
 	WorkchainId        int32  `json:"workchain_id"`
 	Shard              string `json:"shard"`
 	SeqNo              uint64 `json:"seq_no"`
@@ -113,32 +119,37 @@ type AccountTransaction struct {
 	ImportFeeNanograms string `json:"import_fee_nanograms"`
 	Bounce             uint8  `json:"bounce"`
 	Bounced            uint8  `json:"bounced"`
+	Body               string `json:"body"`
 }
 
-type AccountTransactions struct {
+type AccountMessages struct {
 	view.View
 	conn *sql.DB
 }
 
-func (t *AccountTransactions) CreateTable() error {
-	_, err := t.conn.Exec(createFeedAccountTransactions)
+type AccountMessagesScrollId struct {
+	Lt uint64 `json:"lt"`
+}
+
+func (t *AccountMessages) CreateTable() error {
+	_, err := t.conn.Exec(createFeedAccountMessages)
 	return err
 }
 
-func (t *AccountTransactions) DropTable() error {
-	_, err := t.conn.Exec(dropFeedAccountTransactions)
+func (t *AccountMessages) DropTable() error {
+	_, err := t.conn.Exec(dropFeedAccountMessages)
 	return err
 }
 
-func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt uint64, count int16, f filter.Filter) ([]*AccountTransaction, error) {
-	query, argsFilter, err := filter.RenderQuery(querySelectAccountTransactions, f)
+func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *AccountMessagesScrollId, count int16, f filter.Filter) ([]*AccountMessage, *AccountMessagesScrollId, error) {
+	query, argsFilter, err := filter.RenderQuery(querySelectAccountMessages, f)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	args := []interface{}{
 		addr.WorkchainId, addr.Addr,
-		afterLt, afterLt, count,
+		scrollId.Lt, scrollId.Lt, count,
 		addr.WorkchainId, addr.Addr,
 	}
 	args = append(args, argsFilter...)
@@ -148,12 +159,12 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 		if rows != nil {
 			rows.Close()
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
-	res := make([]*AccountTransaction, 0, count)
+	res := make([]*AccountMessage, 0, count)
 	for rows.Next() {
-		accTrans := &AccountTransaction{}
+		accTrans := &AccountMessage{}
 		err := rows.Scan(
 			&accTrans.WorkchainId,
 			&accTrans.Shard,
@@ -175,6 +186,7 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 			&accTrans.ImportFeeNanograms,
 			&accTrans.Bounce,
 			&accTrans.Bounced,
+			&accTrans.Body,
 		)
 
 		accTrans.AccountAddr = utils.NullAddrToString(accTrans.AccountAddr)
@@ -184,26 +196,26 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.WorkchainId, accTrans.AccountAddr)
 		if err != nil {
 			// Maybe we shouldn't fail here?
-			return nil, err
+			return nil, nil, err
 		}
 
 		if accTrans.MessageType != "ext_in_msg_info" {
 			accTrans.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.SrcWorkchainId, accTrans.Src)
 			if err != nil {
 				// Maybe we shouldn't fail here?
-				return nil, err
+				return nil, nil, err
 			}
 		}
 
 		accTrans.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.DestWorkchainId, accTrans.Dest)
 		if err != nil {
 			// Maybe we shouldn't fail here?
-			return nil, err
+			return nil, nil, err
 		}
 
 		if err != nil {
 			rows.Close()
-			return nil, err
+			return nil, nil, err
 		}
 
 		res = append(res, accTrans)
@@ -211,11 +223,19 @@ func (t *AccountTransactions) GetAccountTransactions(addr ton.AddrStd, afterLt u
 
 	rows.Close()
 
-	return res, nil
+	if len(res) == 0 {
+		return res, nil, nil
+	}
+
+	newScrollId := &AccountMessagesScrollId{
+		Lt: res[len(res)-1].Lt,
+	}
+
+	return res, newScrollId, nil
 }
 
-func NewAccountTransactions(conn *sql.DB) *AccountTransactions {
-	return &AccountTransactions{
+func NewAccountMessages(conn *sql.DB) *AccountMessages {
+	return &AccountMessages{
 		conn: conn,
 	}
 }

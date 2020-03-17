@@ -86,7 +86,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	accountTransactions := feed.NewAccountTransactions(chConnect)
+	accountTransactions := feed.NewAccountMessages(chConnect)
 	if err := accountTransactions.CreateTable(); err != nil {
 		log.Fatal(err)
 	}
@@ -140,11 +140,12 @@ func main() {
 
 	// Address (account) routes
 	getAccountHandler := api.NewGetAccount(accountState)
-	getAccountTransactions := api.NewGetAccountTransactions(accountTransactions)
+	getAccountMessages := api.NewGetAccountMessages(accountTransactions)
 	getAccountQR := api.NewGetAccountQR()
 	for _, addrRoot := range addressRootAliases {
 		routerGetVersioning(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
-		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
+		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountMessages.Handler)) // TODO: Remove this in favor of /messages. This is deprecated.
+		routerGetVersioning(addrRoot+"/messages", rateLimitMiddleware(getAccountMessages.Handler))
 		routerGetVersioning(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
 	}
 

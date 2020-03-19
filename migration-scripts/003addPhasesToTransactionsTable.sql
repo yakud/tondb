@@ -1,105 +1,45 @@
-CREATE TABLE IF NOT EXISTS transactionsNew (
-    WorkchainId           Int32,
-    Shard                 UInt64,
-    SeqNo                 UInt64,
-
-    Hash                  FixedString(64),
-    Type                  LowCardinality(String),
-    Lt                    UInt64,
-    Time                  DateTime, -- field Now
-    TotalFeesNanograms    UInt64,
-    TotalFeesNanogramsLen UInt8,
-    AccountAddr           FixedString(64),
-    OrigStatus            LowCardinality(String),
-    EndStatus             LowCardinality(String),
-    PrevTransLt   		  UInt64,
-    PrevTransHash 		  FixedString(64),
-    StateUpdateNewHash    FixedString(64),
-    StateUpdateOldHash    FixedString(64),
-    IsTock                UInt8,
-
-    ActionPhaseExists             UInt8,
-    ActionPhaseSuccess            UInt8,
-    ActionPhaseValid              UInt8,
-    ActionPhaseNoFunds            UInt8,
-    ActionPhaseCodeChanged        UInt8,
-    ActionPhaseActionListInvalid  UInt8,
-    ActionPhaseAccDeleteReq       UInt8,
-    ActionPhaseAccStatusChange    LowCardinality(String),
-    ActionPhaseTotalFwdFees       UInt64,
-    ActionPhaseTotalActionFees    UInt64,
-    ActionPhaseResultCode         Int32,
-    ActionPhaseResultArg          Int32,
-    ActionPhaseTotActions         UInt32,
-    ActionPhaseSpecActions        UInt32,
-    ActionPhaseSkippedActions     UInt32,
-    ActionPhaseMsgsCreated        UInt32,
-    ActionPhaseRemainingBalance   UInt64,
-    ActionPhaseReservedBalance    UInt64,
-    ActionPhaseEndLt              UInt64,
-    ActionPhaseTotMsgBits         UInt64,
-    ActionPhaseTotMsgCells        UInt64,
-
-    ComputePhaseExists           UInt8,
-    ComputePhaseSkipped          UInt8,
-    ComputePhaseSkippedReason    LowCardinality(String),
-    ComputePhaseAccountActivated UInt8,
-    ComputePhaseSuccess          UInt8,
-    ComputePhaseMsgStateUsed     UInt8,
-    ComputePhaseOutOfGas         UInt8,
-    ComputePhaseAccepted         UInt8,
-    ComputePhaseExitArg          Int32,
-    ComputePhaseExitCode         Int32,
-    ComputePhaseMode             Int8,
-    ComputePhaseVmSteps          UInt32,
-    ComputePhaseGasUsed          UInt64,
-    ComputePhaseGasMax           UInt64,
-    ComputePhaseGasCredit        UInt64,
-    ComputePhaseGasLimit         UInt64,
-    ComputePhaseGasFees          UInt64,
-
-    StoragePhaseExists        UInt8,
-    StoragePhaseStatus        LowCardinality(String),
-    StoragePhaseFeesCollected UInt64,
-    StoragePhaseFeesDue       UInt64,
-
-    CreditPhaseExists           UInt8,
-    CreditPhaseDueFeesCollected UInt64,
-    CreditPhaseCreditNanograms  UInt64,
-
-    Messages Nested
-    (
-        Direction             LowCardinality(String),
-        Type                  LowCardinality(String),
-        Init                  LowCardinality(String),
-        Bounce                UInt8,
-        Bounced               UInt8,
-        CreatedAt             UInt64,
-        CreatedLt             UInt64,
-        ValueNanograms        UInt64,
-        ValueNanogramsLen     UInt8,
-        FwdFeeNanograms       UInt64,
-        FwdFeeNanogramsLen    UInt8,
-        IhrDisabled           UInt8,
-        IhrFeeNanograms       UInt64,
-        IhrFeeNanogramsLen    UInt8,
-        ImportFeeNanograms    UInt64,
-        ImportFeeNanogramsLen UInt8,
-        DestIsEmpty           UInt8,
-        DestWorkchainId       Int32,
-        DestAddr              FixedString(64),
-        DestAnycast           LowCardinality(String),
-        SrcIsEmpty            UInt8,
-        SrcWorkchainId        Int32,
-        SrcAddr               FixedString(64),
-        SrcAnycast            LowCardinality(String),
-        BodyType              LowCardinality(String),
-        BodyValue             String
-    )
-) ENGINE MergeTree
-PARTITION BY toYYYYMM(Time)
-ORDER BY (WorkchainId, Shard, SeqNo, Lt);
-
-RENAME TABLE transactions TO transactionsOld, transactionsNew TO transactions;
-
-DROP TABLE transactionsOld;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseExists             UInt8 AFTER IsTock;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseSuccess            UInt8 AFTER ActionPhaseExists;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseValid              UInt8 AFTER ActionPhaseSuccess;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseNoFunds            UInt8 AFTER ActionPhaseValid;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseCodeChanged        UInt8 AFTER ActionPhaseNoFunds;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseActionListInvalid  UInt8 AFTER ActionPhaseCodeChanged;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseAccDeleteReq       UInt8 AFTER ActionPhaseActionListInvalid;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseAccStatusChange    LowCardinality(String) AFTER ActionPhaseAccDeleteReq;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseTotalFwdFees       UInt64 AFTER ActionPhaseAccStatusChange;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseTotalActionFees    UInt64 AFTER ActionPhaseTotalFwdFees;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseResultCode         Int32 AFTER ActionPhaseTotalActionFees;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseResultArg          Int32 AFTER ActionPhaseResultCode;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseTotActions         UInt32 AFTER ActionPhaseResultArg;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseSpecActions        UInt32 AFTER ActionPhaseTotActions;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseSkippedActions     UInt32 AFTER ActionPhaseSpecActions;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseMsgsCreated        UInt32 AFTER ActionPhaseSkippedActions;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseRemainingBalance   UInt64 AFTER ActionPhaseMsgsCreated;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseReservedBalance    UInt64 AFTER ActionPhaseRemainingBalance;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseEndLt              UInt64 AFTER ActionPhaseReservedBalance;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseTotMsgBits         UInt64 AFTER ActionPhaseEndLt;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ActionPhaseTotMsgCells        UInt64 AFTER ActionPhaseTotMsgBits;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseExists           UInt8 AFTER ActionPhaseTotMsgCells;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseSkipped          UInt8 AFTER ComputePhaseExists;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseSkippedReason    LowCardinality(String) AFTER ComputePhaseSkipped;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseAccountActivated UInt8 AFTER ComputePhaseSkippedReason;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseSuccess          UInt8 AFTER ComputePhaseAccountActivated;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseMsgStateUsed     UInt8 AFTER ComputePhaseSuccess;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseOutOfGas         UInt8 AFTER ComputePhaseMsgStateUsed;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseAccepted         UInt8 AFTER ComputePhaseOutOfGas;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseExitArg          Int32 AFTER ComputePhaseAccepted;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseExitCode         Int32 AFTER ComputePhaseExitArg;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseMode             Int8 AFTER ComputePhaseExitCode;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseVmSteps          UInt32 AFTER ComputePhaseMode;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseGasUsed          UInt64 AFTER ComputePhaseVmSteps;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseGasMax           UInt64 AFTER ComputePhaseGasUsed;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseGasCredit        UInt64 AFTER ComputePhaseGasMax;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseGasLimit         UInt64 AFTER ComputePhaseGasCredit;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS ComputePhaseGasFees          UInt64 AFTER ComputePhaseGasLimit;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS StoragePhaseExists        UInt8 AFTER ComputePhaseGasFees;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS StoragePhaseStatus        LowCardinality(String) AFTER StoragePhaseExists;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS StoragePhaseFeesCollected UInt64 AFTER StoragePhaseStatus;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS StoragePhaseFeesDue       UInt64 AFTER StoragePhaseFeesCollected;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS CreditPhaseExists           UInt8 AFTER StoragePhaseFeesDue;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS CreditPhaseDueFeesCollected UInt64 AFTER CreditPhaseExists;
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS CreditPhaseCreditNanograms  UInt64 AFTER CreditPhaseDueFeesCollected;

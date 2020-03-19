@@ -195,6 +195,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	accountMessagesCount := stats.NewAccountMessagesCount(chConnect)
+	if err := accountMessagesCount.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	ctxBgCache, _ := context.WithCancel(context.Background())
 	metricsCache := cache.NewBackground()
 	blocksCache := cache.NewBackground()

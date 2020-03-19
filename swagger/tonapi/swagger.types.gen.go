@@ -12,6 +12,7 @@ type Account struct {
 	LastTransHash          *string `json:"last_trans_hash,omitempty"`
 	LastTransLt            *int64  `json:"last_trans_lt,omitempty"`
 	LastTransLtStorage     *int64  `json:"last_trans_lt_storage,omitempty"`
+	MessagesCount          *int64  `json:"messages_count,omitempty"`
 	SeqNo                  *int64  `json:"seq_no,omitempty"`
 	Shard                  *int64  `json:"shard,omitempty"`
 	Status                 *string `json:"status,omitempty"`

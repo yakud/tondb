@@ -70,6 +70,9 @@ components:
         last_paid:
           type: integer
           format: int64
+        messages_count:
+          type: integer
+          format: int64
 
     BlocksFeedResponse:
       type: object

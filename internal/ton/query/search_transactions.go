@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	// todo: very ugly query, beautify it later
 	querySelectTransactionsByFilter = `
 	SELECT
 		WorkchainId,
@@ -320,8 +319,8 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 				}
 			}
 
-			if messagesCreatedLt[i] == 0 {
-				messagesCreatedLt[i] = transaction.Now
+			if messagesCreatedAt[i] == 0 {
+				messagesCreatedAt[i] = transaction.Now
 			}
 
 			msg := &ton.TransactionMessage{

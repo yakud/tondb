@@ -68,8 +68,8 @@ const (
 		LastTransLtStorage,
 		LastPaid,
 		(
-			SELECT 
-				sum(MessagesCount) 
+			SELECT
+				sum(MessagesCount)
 			FROM ".inner._view_AccountMessagesCount" FINAL
 			PREWHERE WorkchainId = ? AND AccountAddr = ?
 		) as MessagesCount

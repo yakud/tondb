@@ -320,6 +320,10 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 				}
 			}
 
+			if messagesCreatedLt[i] == 0 {
+				messagesCreatedLt[i] = transaction.Now
+			}
+
 			msg := &ton.TransactionMessage{
 				TrxHash:               transaction.Hash,
 				Type:                  messagesType[i],

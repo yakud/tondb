@@ -101,7 +101,13 @@ const (
 		Messages.SrcAddr as MessagesSrcAddr,
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
-		Messages.BodyValue as MessagesBodyValue,
+		arrayMap(body -> (
+			if(
+				(substr(body, 1, 10) = 'x{00000000' AND body != 'x{00000000}'),
+				unhex(substring(replaceRegexpAll(body,'x{|}|\t|\n|\ ', ''), 9, length(body))),
+	       		''
+	   		 )
+		)), Messages.BodyValue) as MessagesBodyValue
    		arraySum(Messages.ValueNanograms) as TotalNanograms,
 	   	IsTock
 	FROM transactions

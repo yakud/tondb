@@ -101,13 +101,13 @@ func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *ton.T
 	src.Addr = utils.NullAddrToString(src.Addr)
 	dest.Addr = utils.NullAddrToString(dest.Addr)
 
-	if src.Addr != "" {
+	if src.Addr != utils.EmptyAddrString {
 		if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
 			return nil, err
 		}
 	}
 
-	if dest.Addr != "" {
+	if dest.Addr != utils.EmptyAddrString {
 		if dest.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(dest.WorkchainId, dest.Addr); err != nil {
 			return nil, err
 		}

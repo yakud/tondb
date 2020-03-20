@@ -98,12 +98,16 @@ func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *ton.T
 		return nil, err
 	}
 
-	if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
-		return nil, err
+	if src.Addr != "" {
+		if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
+			return nil, err
+		}
 	}
 
-	if dest.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(dest.WorkchainId, dest.Addr); err != nil {
-		return nil, err
+	if dest.Addr != "" {
+		if dest.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(dest.WorkchainId, dest.Addr); err != nil {
+			return nil, err
+		}
 	}
 
 	msg.Src = src

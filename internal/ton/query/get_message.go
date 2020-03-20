@@ -16,7 +16,7 @@ const (
 		Messages.Bounce as MessagesBounce,
 		Messages.Bounced as MessagesBounced,
 		Messages.CreatedAt as MessagesCreatedAt,
-		Messages.CreatedLt as MessagesCreatedLt,
+		if(Messages.CreatedAt != 0, Messages.CreatedAt, Now) as MessagesCreatedLt,
 		Messages.ValueNanograms as MessagesValueNanograms,
 		Messages.ValueNanogramsLen as MessagesValueNanogramsLen,
 		Messages.FwdFeeNanograms as MessagesFwdFeeNanograms,

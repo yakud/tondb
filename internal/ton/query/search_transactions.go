@@ -107,7 +107,7 @@ const (
 				unhex(substring(replaceRegexpAll(body,'x{|}|\t|\n|\ ', ''), 9, length(body))),
 	       		''
 	   		 )
-		)), Messages.BodyValue) as MessagesBodyValue
+		), Messages.BodyValue) as MessagesBodyValue,
    		arraySum(Messages.ValueNanograms) as TotalNanograms,
 	   	IsTock
 	FROM transactions

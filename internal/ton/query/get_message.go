@@ -98,6 +98,9 @@ func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *ton.T
 		return nil, err
 	}
 
+	src.Addr = utils.NullAddrToString(src.Addr)
+	dest.Addr = utils.NullAddrToString(dest.Addr)
+
 	if src.Addr != "" {
 		if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
 			return nil, err

@@ -15,7 +15,7 @@ const (
 		Messages.Init as MessagesInit,
 		Messages.Bounce as MessagesBounce,
 		Messages.Bounced as MessagesBounced,
-		MessagesCreatedAt,
+		if(Messages.CreatedAt != 0, Messages.CreatedAt, TrxTime) as MessagesCreatedAt,
 		Messages.CreatedLt as MessagesCreatedLt,
 		Messages.ValueNanograms as MessagesValueNanograms,
 		Messages.ValueNanogramsLen as MessagesValueNanogramsLen,
@@ -43,11 +43,12 @@ const (
 	FROM(
  		SELECT 
 			Hash as TrxHash,
+			Time as TrxTime,
 			Messages.Type,
 			Messages.Init,
 			Messages.Bounce,
 			Messages.Bounced,
-			arrayMap(created -> if(created != 0,created,Time), Messages.CreatedAt) as MessagesCreatedAt,
+			Messages.CreatedAt,
 			Messages.CreatedLt,
 			Messages.ValueNanograms,
 			Messages.ValueNanogramsLen,

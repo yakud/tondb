@@ -315,6 +315,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			}
 
 			msg := &ton.TransactionMessage{
+				TrxHash:               transaction.Hash,
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
 				Bounce:                messagesBounce[i] == 1,

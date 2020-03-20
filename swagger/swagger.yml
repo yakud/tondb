@@ -532,6 +532,9 @@ components:
       description: Transaction message
       type: object
       properties:
+        trx_hash:
+          type: string
+          description: Message type
         type:
           type: string
           description: Message type
@@ -1592,7 +1595,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/error"
 
-  /v1/message/get:
+  /v1/message:
     get:
       summary: Get message
       tags:

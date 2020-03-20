@@ -1,6 +1,7 @@
 package ton
 
 type TransactionMessage struct {
+	TrxHash string `json:"trx_hash"`
 	Type    string `json:"type"`
 	Init    string `json:"init,omitempty"`
 	Bounce  bool   `json:"bounce"`

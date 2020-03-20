@@ -337,6 +337,7 @@ type TransactionMessage struct {
 	ImportFeeNanogramsLen *int32   `json:"import_fee_nanograms_len,omitempty"`
 	Init                  *string  `json:"init,omitempty"`
 	Src                   *AddrStd `json:"src,omitempty"`
+	TrxHash               *string  `json:"trx_hash,omitempty"`
 	Type                  *string  `json:"type,omitempty"`
 	ValueNanograms        *int64   `json:"value_nanograms,omitempty"`
 	ValueNanogramsLen     *int32   `json:"value_nanograms_len,omitempty"`
@@ -532,8 +533,8 @@ type GetV1MasterBlockShardsRangeParams struct {
 	BlockMaster string `json:"block_master"`
 }
 
-// GetV1MessageGetParams defines parameters for GetV1MessageGet.
-type GetV1MessageGetParams struct {
+// GetV1MessageParams defines parameters for GetV1Message.
+type GetV1MessageParams struct {
 
 	// Transaction hash
 	TrxHash string `json:"trx_hash"`

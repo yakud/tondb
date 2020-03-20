@@ -36,8 +36,8 @@ type ServerInterface interface {
 	GetV1MasterBlockShardsActual(ctx echo.Context, params GetV1MasterBlockShardsActualParams) error
 	// Get master block shards range// (GET /v1/master/block/shards/range)
 	GetV1MasterBlockShardsRange(ctx echo.Context, params GetV1MasterBlockShardsRangeParams) error
-	// Get message// (GET /v1/message/get)
-	GetV1MessageGet(ctx echo.Context, params GetV1MessageGetParams) error
+	// Get message// (GET /v1/message)
+	GetV1Message(ctx echo.Context, params GetV1MessageParams) error
 	// Messages feed// (GET /v1/messages/feed)
 	GetV1MessagesFeed(ctx echo.Context, params GetV1MessagesFeedParams) error
 	// Search// (GET /v1/search)
@@ -473,12 +473,12 @@ func (w *ServerInterfaceWrapper) GetV1MasterBlockShardsRange(ctx echo.Context) e
 	return err
 }
 
-// GetV1MessageGet converts echo context to params.
-func (w *ServerInterfaceWrapper) GetV1MessageGet(ctx echo.Context) error {
+// GetV1Message converts echo context to params.
+func (w *ServerInterfaceWrapper) GetV1Message(ctx echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetV1MessageGetParams
+	var params GetV1MessageParams
 	// ------------- Required query parameter "trx_hash" -------------
 	if paramValue := ctx.QueryParam("trx_hash"); paramValue != "" {
 
@@ -504,7 +504,7 @@ func (w *ServerInterfaceWrapper) GetV1MessageGet(ctx echo.Context) error {
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetV1MessageGet(ctx, params)
+	err = w.Handler.GetV1Message(ctx, params)
 	return err
 }
 
@@ -865,7 +865,7 @@ func RegisterHandlers(router interface {
 	router.GET("/v1/height/synced", wrapper.GetV1HeightSynced)
 	router.GET("/v1/master/block/shards/actual", wrapper.GetV1MasterBlockShardsActual)
 	router.GET("/v1/master/block/shards/range", wrapper.GetV1MasterBlockShardsRange)
-	router.GET("/v1/message/get", wrapper.GetV1MessageGet)
+	router.GET("/v1/message", wrapper.GetV1Message)
 	router.GET("/v1/messages/feed", wrapper.GetV1MessagesFeed)
 	router.GET("/v1/search", wrapper.GetV1Search)
 	router.GET("/v1/stats/addresses", wrapper.GetV1StatsAddresses)

@@ -15,7 +15,7 @@ const (
 		Messages.Init as MessagesInit,
 		Messages.Bounce as MessagesBounce,
 		Messages.Bounced as MessagesBounced,
-		if(Messages.CreatedAt != 0, Messages.CreatedAt, TrxTime) as MessagesCreatedAt,
+		if(Messages.CreatedAt != 0, Messages.CreatedAt, toUInt64(TrxTime)) as MessagesCreatedAt,
 		Messages.CreatedLt as MessagesCreatedLt,
 		Messages.ValueNanograms as MessagesValueNanograms,
 		Messages.ValueNanogramsLen as MessagesValueNanogramsLen,

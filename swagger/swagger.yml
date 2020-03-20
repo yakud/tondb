@@ -164,6 +164,8 @@ components:
           format: int64
         type:
           type: string
+        trx_hash:
+          type: string
         message_type:
           type: string
         message_lt:

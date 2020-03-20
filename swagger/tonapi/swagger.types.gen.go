@@ -47,6 +47,7 @@ type AccountMessage struct {
 	SrcUf              *string `json:"src_uf,omitempty"`
 	SrcWorkchainId     *int32  `json:"src_workchain_id,omitempty"`
 	Time               *int64  `json:"time,omitempty"`
+	TrxHash            *string `json:"trx_hash,omitempty"`
 	Type               *string `json:"type,omitempty"`
 	ValueNanograms     *string `json:"value_nanograms,omitempty"`
 	WorkchainId        *int32  `json:"workchain_id,omitempty"`

@@ -26,6 +26,7 @@ const (
 		Lt,
 		Time,
 		Type,
+		Hash as TrxHash,
 		Messages.Type as MessageType, 
 		Messages.CreatedLt as MessageLt, 
 	    Messages.Direction as Direction, 
@@ -71,6 +72,7 @@ const (
 		Lt,
 		toUInt64(Time),
 		Type,
+		TrxHash,
 		MessageType,
 		MessageLt,
 		Direction,
@@ -104,6 +106,7 @@ type AccountMessage struct {
 	Lt                 uint64 `json:"lt"`
 	Time               uint64 `json:"time"`
 	Type               string `json:"type"`
+	TrxHash            string `json:"trx_hash"`
 	MessageType        string `json:"message_type"`
 	MessageLt          uint64 `json:"message_lt"`
 	Direction          string `json:"direction"`
@@ -173,6 +176,7 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 			&accTrans.Lt,
 			&accTrans.Time,
 			&accTrans.Type,
+			&accTrans.TrxHash,
 			&accTrans.MessageType,
 			&accTrans.MessageLt,
 			&accTrans.Direction,

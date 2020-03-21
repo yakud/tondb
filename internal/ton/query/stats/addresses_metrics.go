@@ -79,7 +79,7 @@ type AddressesMetrics struct {
 func (t *AddressesMetrics) UpdateQuery() error {
 	res := AddressesMetricsResult{}
 
-	filterAll := filter.NewKV("1", "1")
+	filterAll := filter.NewKV("1", 1)
 	queryGetTotalAddrAndNanogram, args, err := filter.RenderQuery(getTotalAddrAndNanogram, filterAll, filterAll)
 	if err != nil {
 		return err

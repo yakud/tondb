@@ -107,7 +107,7 @@ func (q *GetTopWhales) queryTopWhales(workchainId int32) (*TopWhales, error) {
 
 	var f filter.Filter
 	if workchainId == -2 {
-		f = filter.NewKV("1", "1")
+		f = filter.NewKV("1", 1)
 
 		if addrMetrics, err = q.addressesMetric.GetAddressesMetrics(""); err != nil {
 			return nil, err

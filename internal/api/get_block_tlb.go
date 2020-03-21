@@ -32,7 +32,7 @@ func (m *GetBlockTlb) Handler(w http.ResponseWriter, r *http.Request, p httprout
 	}
 
 	block := blockFilter.Blocks()[0]
-	blockTlb, err := m.blocksFetcher.FetchBlockTlb(*block)
+	blockTlb, err := m.blocksFetcher.FetchBlockTlb(*block, blocks_fetcher.FormatBoc)
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"tlb block fetch error"}`, http.StatusInternalServerError)
 		return

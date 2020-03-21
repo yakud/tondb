@@ -233,7 +233,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, globalMetrics)
+	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, addressesMetrics)
 	if err := topWhales.UpdateQuery(); err != nil {
 		log.Fatal(err)
 	}

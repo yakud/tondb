@@ -3,7 +3,6 @@ package stats
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -85,7 +84,6 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(queryGetTotalAddrAndNanogram)
 	row := t.conn.QueryRow(queryGetTotalAddrAndNanogram, args...)
 	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram); err != nil {
 		return err
@@ -114,7 +112,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	resWorkchain := AddressesMetricsResult{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
-	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
 	if err != nil {
 		return err
 	}
@@ -146,7 +144,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	resMasterchain := AddressesMetricsResult{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
-	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
 	if err != nil {
 		return err
 	}

@@ -210,37 +210,37 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := messagesMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("messagesMetrics error:", err)
 	}
 
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, metricsCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("globalMetrics error:", err)
 	}
 
 	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, metricsCache)
 	if err := blocksMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("blocksMetrics error:", err)
 	}
 
 	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, metricsCache)
 	if err := addressesMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("addressesMetrics error:", err)
 	}
 
 	trxMetrics := statsQ.NewTrxMetrics(chConnect, metricsCache)
 	if err := trxMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("trxMetrics error:", err)
 	}
 
 	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, addressesMetrics)
 	if err := topWhales.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("topWhales error:", err)
 	}
 
 	sentAndFees := timeseriesQ.NewSentAndFees(chConnect, whalesCache)
 	if err := sentAndFees.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("sentAndFees error:", err)
 	}
 
 	metricsCache.AddQuery(globalMetrics)

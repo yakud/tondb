@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -13,7 +14,7 @@ const (
 	SELECT 
 		sum(TotalAddr),
 		sum(TotalNanogram)
-	FROM(
+	FROM (
 		SELECT 
 			count() AS TotalAddr, 
 			0 AS TotalNanogram
@@ -84,6 +85,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
+	fmt.Println(queryGetTotalAddrAndNanogram)
 	row := t.conn.QueryRow(queryGetTotalAddrAndNanogram, args...)
 	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram); err != nil {
 		return err

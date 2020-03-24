@@ -730,7 +730,9 @@ func (c *AstTonConverter) extractTransactionStoragePhase(node *AstNode, transact
 		}
 
 		if storagePhase.FeesDue, err = storagePhNode.GetValueOrNothingUint64("storage_fees_due", "amount"); err != nil {
-			return err
+			if storagePhase.FeesDue, err = storagePhNode.GetValueOrNothingUint64("storage_fees_due", "value", "amount"); err != nil {
+				return err
+			}
 		}
 
 		transaction.StoragePhase = storagePhase

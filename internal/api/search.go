@@ -2,48 +2,33 @@ package api
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4"
+	"gitlab.flora.loc/mills/tondb/internal/ton/search"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"net/http"
-
-	httputils "gitlab.flora.loc/mills/tondb/internal/utils/http"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/search"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 type Search struct {
 	searcher *search.Searcher
 }
 
-func (m *Search) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	searchQuery, err := httputils.GetQueryValueString(r.URL, "q")
-	if err != nil || searchQuery == "" {
-		http.Error(w, `{"error":true,"message":"empty search query"}`, http.StatusBadRequest)
-		return
+func (m *Search) GetV1Search(ctx echo.Context, params tonapi.GetV1SearchParams) error {
+	if params.Q == "" {
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"empty search query"}`))
 	}
 
-	searchResult, err := m.searcher.Search(searchQuery)
+	searchResult, err := m.searcher.Search(params.Q)
 	if err != nil {
 		log.Println(fmt.Errorf("searcher error: %w", err))
-		http.Error(w, `{"error":true,"message":"search error"}`, http.StatusInternalServerError)
-		return
+		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"search error"}`))
 	}
 
 	if len(searchResult) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		w.Write([]byte(`{"result":[]}`))
-		return
+		return ctx.JSONBlob(http.StatusNoContent, []byte(`{"result":[]}`))
 	}
 
-	resp, err := json.Marshal(searchResult)
-	if err != nil {
-		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(200)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, searchResult)
 }
 
 func NewSearch(searcher *search.Searcher) *Search {

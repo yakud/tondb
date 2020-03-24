@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"net/http"
 
@@ -11,7 +12,7 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 const maxBlocksPerRequest = 1000
@@ -21,91 +22,74 @@ type GetBlockInfo struct {
 	shardsDescrStorage *storage.ShardsDescr
 }
 
-func (m *GetBlockInfo) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m *GetBlockInfo) GetV1BlockInfo(ctx echo.Context, params tonapi.GetV1BlockInfoParams) error {
 	blocksFilter := filter.NewOr()
 
 	// block
-	blockFilter, err := apiFilter.BlockFilterFromRequest(r, "block", maxBlocksPerRequest)
+	blockFilter, err := apiFilter.BlockFilterFromParam(params.Block, maxBlocksPerRequest)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return err
 	} else if blockFilter != nil {
 		blocksFilter.Or(blockFilter)
 	}
 
 	// block_from + block_to
-	blockRangeFilter, err := apiFilter.BlockRangeFilterFromRequest(r, "block_from", "block_to", maxBlocksPerRequest)
+	blockRangeFilter, err := apiFilter.BlockRangeFilterFromParams(params.BlockFrom, params.BlockTo, maxBlocksPerRequest)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return err
 	} else if blockRangeFilter != nil {
 		blocksFilter.Or(blockRangeFilter)
 	}
 
 	// block_master
-	blockMasterFilter, err := apiFilter.BlockFilterFromRequest(r, "block_master", maxBlocksPerRequest)
+	blockMasterFilter, err := apiFilter.BlockFilterFromParam(params.BlockMaster, maxBlocksPerRequest)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return err
 	} else if blockMasterFilter != nil {
 		for _, masterBlockId := range blockMasterFilter.Blocks() {
 			shardsBlocks, err := m.shardsDescrStorage.GetShardsSeqRangeInMasterBlock(masterBlockId.SeqNo)
 			if err != nil {
 				log.Println("GetShardsSeqRangeInMasterBlock error:", err)
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
-				return
+				return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
 			}
 
 			for _, shardsBlock := range shardsBlocks {
 				blocksRange, err := filter.NewBlocksRange(
 					&ton.BlockId{
 						WorkchainId: shardsBlock.WorkchainId,
-						Shard:       shardsBlock.Shard,
-						SeqNo:       shardsBlock.FromSeq,
+						Shard:       uint64(shardsBlock.Shard),
+						SeqNo:       uint64(shardsBlock.FromSeq),
 					},
 					&ton.BlockId{
 						WorkchainId: shardsBlock.WorkchainId,
-						Shard:       shardsBlock.Shard,
-						SeqNo:       shardsBlock.ToSeq,
+						Shard:       uint64(shardsBlock.Shard),
+						SeqNo:       uint64(shardsBlock.ToSeq),
 					},
 				)
 				if err != nil {
 					log.Println("NewBlocksRange error:", err)
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"error":true,"message":"NewBlocksRange error"}`))
-					return
+					return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"NewBlocksRange error"}`))
 				}
 				blocksFilter.Or(blocksRange)
 			}
 		}
 	}
 	if blockFilter == nil && blockRangeFilter == nil && blockMasterFilter == nil {
-		http.Error(w, `{"error":true,"message":"you should set block or block_from+block_to or block_master filter"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"you should set block or block_from+block_to or block_master filter"}`))
 	}
 
 	// Make query
 	blockInfo, err := m.q.GetBlockInfo(blocksFilter)
 	if err != nil {
 		log.Println(fmt.Errorf("query GetBlockInfo error: %w", err))
-		http.Error(w, `{"error":true,"message":"GetBlockInfo query error"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"GetBlockInfo query error"}`))
 	}
 
 	if len(blockInfo) == 0 {
-		http.Error(w, `Block not found`, http.StatusNotFound)
-		return
+		return ctx.String(http.StatusNotFound, `Block not found`)
 	}
 
-	resp, err := json.Marshal(blockInfo)
-	if err != nil {
-		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(200)
-	w.Write(resp)
+	return ctx.JSON(200, blockInfo)
 }
 
 func NewGetBlockInfo(q *query.GetBlockInfo, shardsDescrStorage *storage.ShardsDescr) *GetBlockInfo {

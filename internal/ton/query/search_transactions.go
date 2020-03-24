@@ -2,13 +2,12 @@ package query
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
 
 const (
@@ -119,7 +118,7 @@ type SearchTransactions struct {
 	conn *sql.DB
 }
 
-func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction, error) {
+func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*tonapi.Transaction, error) {
 	query, args, err := filter.RenderQuery(querySelectTransactionsByFilter, f)
 	if err != nil {
 		return nil, err
@@ -130,10 +129,11 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		return nil, err
 	}
 
-	transactions := make([]*ton.Transaction, 0)
+	transactions := make([]*tonapi.Transaction, 0)
 	for rows.Next() {
-		transaction := &ton.Transaction{
-			OutMsgs: make([]*ton.TransactionMessage, 0),
+		outMsgs := make([]tonapi.TransactionMessage, 0)
+		transaction := &tonapi.Transaction{
+			OutMsgs: &outMsgs,
 		}
 		messagesDirection := make([]string, 0)
 		messagesType := make([]string, 0)
@@ -163,10 +163,10 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
 		var isTock uint8
-		actionPhase := &ton.ActionPhase{}
-		computePhase := &ton.ComputePhase{}
-		storagePhase := &ton.StoragePhase{}
-		creditPhase := &ton.CreditPhase{}
+		actionPhase := &tonapi.ActionPhase{}
+		computePhase := &tonapi.ComputePhase{}
+		storagePhase := &tonapi.StoragePhase{}
+		creditPhase := &tonapi.CreditPhase{}
 		var actionPhaseExists, computePhaseExists, storagePhaseExists, creditPhaseExists bool
 
 		err = rows.Scan(
@@ -296,7 +296,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 
 		transaction.IsTock = isTock == 1
 
-		transaction.Now = uint64(trTime.Unix())
+		transaction.Now = tonapi.Uint64(uint64(trTime.Unix()))
 		for i, _ := range messagesDirection {
 			direction := messagesDirection[i]
 			var srcUf, destUf string
@@ -320,48 +320,48 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			}
 
 			if messagesCreatedAt[i] == 0 {
-				messagesCreatedAt[i] = transaction.Now
+				messagesCreatedAt[i] = uint64(transaction.Now)
 			}
 
-			msg := &ton.TransactionMessage{
+			msg := &tonapi.TransactionMessage{
 				TrxHash:               transaction.Hash,
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
 				Bounce:                messagesBounce[i] == 1,
 				Bounced:               messagesBounced[i] == 1,
-				CreatedAt:             messagesCreatedAt[i],
-				CreatedLt:             messagesCreatedLt[i],
-				ValueNanograms:        messagesValueNanograms[i],
-				ValueNanogramsLen:     messagesValueNanogramsLen[i],
-				FwdFeeNanograms:       messagesFwdFeeNanograms[i],
-				FwdFeeNanogramsLen:    messagesFwdFeeNanogramsLen[i],
+				CreatedAt:             tonapi.Uint64(messagesCreatedAt[i]),
+				CreatedLt:             tonapi.Uint64(messagesCreatedLt[i]),
+				ValueNanograms:        tonapi.Uint64(messagesValueNanograms[i]),
+				ValueNanogramsLen:     int32(messagesValueNanogramsLen[i]),
+				FwdFeeNanograms:       tonapi.Uint64(messagesFwdFeeNanograms[i]),
+				FwdFeeNanogramsLen:    int32(messagesFwdFeeNanogramsLen[i]),
 				IhrDisabled:           messagesIhrDisabled[i] == 1,
-				IhrFeeNanograms:       messagesIhrFeeNanograms[i],
-				IhrFeeNanogramsLen:    messagesIhrFeeNanogramsLen[i],
-				ImportFeeNanograms:    messagesImportFeeNanograms[i],
-				ImportFeeNanogramsLen: messagesImportFeeNanogramsLen[i],
-				Dest: ton.AddrStd{
+				IhrFeeNanograms:       tonapi.Uint64(messagesIhrFeeNanograms[i]),
+				IhrFeeNanogramsLen:    int32(messagesIhrFeeNanogramsLen[i]),
+				ImportFeeNanograms:    tonapi.Uint64(messagesImportFeeNanograms[i]),
+				ImportFeeNanogramsLen: int32(messagesImportFeeNanogramsLen[i]),
+				Dest: &tonapi.AddrStd{
 					IsEmpty:     messagesDestIsEmpty[i] == 1,
 					WorkchainId: messagesDestWorkchainId[i],
 					Addr:        messagesDestAddr[i],
 					AddrUf:      destUf,
 					Anycast:     messagesDestAnycast[i],
 				},
-				Src: ton.AddrStd{
+				Src: &tonapi.AddrStd{
 					IsEmpty:     messagesSrcIsEmpty[i] == 1,
 					WorkchainId: messagesSrcWorkchainId[i],
 					Addr:        messagesSrcAddr[i],
 					AddrUf:      srcUf,
 					Anycast:     messagesSrcAnycast[i],
 				},
-				BodyType:  messagesBodyType[i],
-				BodyValue: messagesBodyValue[i],
+				BodyType:  &messagesBodyType[i],
+				BodyValue: &messagesBodyValue[i],
 			}
 			if direction == "in" {
 				transaction.InMsg = msg
 			}
 			if direction == "out" {
-				transaction.OutMsgs = append(transaction.OutMsgs, msg)
+				*transaction.OutMsgs = append(*transaction.OutMsgs, *msg)
 			}
 			if msg.Src.IsEmpty {
 				msg.Src.Addr = ""

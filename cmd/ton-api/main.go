@@ -2,41 +2,38 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
+	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
+	"gitlab.flora.loc/mills/tondb/internal/api/site"
+	"gitlab.flora.loc/mills/tondb/internal/api/swagger"
+	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/internal/ton/search"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	"time"
 
-	"gitlab.flora.loc/mills/tondb/internal/api/swagger"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton/search"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 
 	"gitlab.flora.loc/mills/tondb/internal/api"
 	apifeed "gitlab.flora.loc/mills/tondb/internal/api/feed"
-	"gitlab.flora.loc/mills/tondb/internal/api/middleware"
 	"gitlab.flora.loc/mills/tondb/internal/api/ratelimit"
-	"gitlab.flora.loc/mills/tondb/internal/api/site"
 	statsApi "gitlab.flora.loc/mills/tondb/internal/api/stats"
 	"gitlab.flora.loc/mills/tondb/internal/api/timeseries"
-	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
 	"gitlab.flora.loc/mills/tondb/internal/ch"
-	"gitlab.flora.loc/mills/tondb/internal/ton/query"
-	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	statsQ "gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
 	timeseriesQ "gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
 	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/state"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 	timeseriesV "gitlab.flora.loc/mills/tondb/internal/ton/view/timeseries"
 
 	"github.com/go-redis/redis"
-	"github.com/julienschmidt/httprouter"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/rs/cors"
+	"github.com/labstack/echo/v4"
 )
 
 const ApiV1 = "/v1"
@@ -44,7 +41,7 @@ const ApiV1 = "/v1"
 var (
 	blocksRootAliases  = [...]string{"/blocks", "/block", "/b"}
 	addressRootAliases = [...]string{"/address", "/account", "/a"}
-	router             = httprouter.New()
+	router             = echo.New()
 )
 
 func main() {
@@ -116,38 +113,12 @@ func main() {
 	rateLimiter := ratelimit.NewRateLimiter(redisClient)
 	rateLimitMiddleware := middleware.RateLimit(rateLimiter)
 
-	router.GET("/docs", swagger.NewGetSwaggerDocs().Handler)
-	router.GET("/swagger.json", swagger.NewGetSwaggerJson().Handler)
-
-	routerGetVersioning("/height/synced", rateLimitMiddleware(api.NewGetSyncedHeight(syncedHeightQuery).Handler))
-	routerGetVersioning("/height/blockchain", rateLimitMiddleware(api.NewGetBlockchainHeight(blockchainHeightQuery).Handler))
-	routerGetVersioning("/master/block/shards/range", rateLimitMiddleware(api.NewMasterBlockShardsRange(shardsDescrStorage).Handler))
-	routerGetVersioning("/master/block/shards/actual", rateLimitMiddleware(api.NewMasterchainBlockShardsActual(shardsDescrStorage).Handler))
-	routerGetVersioning("/workchain/block/master", rateLimitMiddleware(api.NewGetWorkchainBlockMaster(shardsDescrStorage).Handler))
-	routerGetVersioning("/transaction", rateLimitMiddleware(api.NewGetTransactions(searchTransactionsQuery).Handler))
-	routerGetVersioning("/block/tlb", rateLimitMiddleware(api.NewGetBlockTlb(blocksFetcher).Handler))
-	routerGetVersioning("/search", rateLimitMiddleware(api.NewSearch(searcher).Handler))
-
-	// Block routes
 	getBlockInfo := api.NewGetBlockInfo(getBlockInfoQuery, shardsDescrStorage)
 	getBlockTransactions := api.NewGetBlockTransactions(searchTransactionsQuery, shardsDescrStorage)
 	getBlocksFeed := apifeed.NewGetBlocksFeed(blocksFeed)
-	for _, blockRoot := range blocksRootAliases {
-		routerGetVersioning(blockRoot+"/info", rateLimitMiddleware(getBlockInfo.Handler))
-		routerGetVersioning(blockRoot+"/transactions", rateLimitMiddleware(getBlockTransactions.Handler))
-		routerGetVersioning(blockRoot+"/feed", rateLimitMiddleware(getBlocksFeed.Handler))
-	}
 
-	// Address (account) routes
 	getAccountHandler := api.NewGetAccount(accountState)
 	getAccountMessages := api.NewGetAccountMessages(accountTransactions)
-	getAccountQR := api.NewGetAccountQR()
-	for _, addrRoot := range addressRootAliases {
-		routerGetVersioning(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
-		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountMessages.Handler)) // TODO: Remove this in favor of /messages. This is deprecated.
-		routerGetVersioning(addrRoot+"/messages", rateLimitMiddleware(getAccountMessages.Handler))
-		routerGetVersioning(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
-	}
 
 	// Messages feed
 	messagesFeedGlobal := feed.NewMessagesFeed(chConnectSqlx)
@@ -157,16 +128,11 @@ func main() {
 
 	getMessageQuery := query.NewGetMessage(chConnect)
 
-	routerGetVersioning("/messages/feed", rateLimitMiddleware(apifeed.NewGetMessagesFeed(messagesFeedGlobal).Handler))
-	routerGetVersioning("/message/get", rateLimitMiddleware(api.NewGetMessage(getMessageQuery).Handler))
-
 	// Transactions feed
 	transactionsFeed := feed.NewTransactionsFeed(chConnectSqlx)
 	if err := transactionsFeed.CreateTable(); err != nil {
 		log.Fatal(err)
 	}
-
-	routerGetVersioning("/transactions/feed", rateLimitMiddleware(apifeed.NewGetTransactionsFeed(transactionsFeed).Handler))
 
 	// Main API
 	vBlocksByWorkchain := timeseriesV.NewBlocksByWorkchain(chConnect)
@@ -263,31 +229,76 @@ func main() {
 		blocksCache.RunTicker(ctxBgCache, 1*time.Second)
 	}()
 
-	routerGetVersioning("/timeseries/blocks-by-workchain", rateLimitMiddleware(timeseries.NewBlocksByWorkchain(qBlocksByWorkchain).Handler))
-	routerGetVersioning("/timeseries/messages-by-type", rateLimitMiddleware(timeseries.NewMessagesByType(tsMessagesByType).Handler))
-	routerGetVersioning("/timeseries/volume-by-grams", rateLimitMiddleware(timeseries.NewVolumeByGrams(tsVolumeByGrams).Handler))
-	routerGetVersioning("/timeseries/messages-ord-count", rateLimitMiddleware(timeseries.NewMessagesOrdCount(tsMessagesOrdCount).Handler))
-	routerGetVersioning("/timeseries/sent-and-fees", rateLimitMiddleware(timeseries.NewSentAndFees(sentAndFees).Handler))
-	routerGetVersioning("/addr/top-by-message-count", rateLimitMiddleware(site.NewGetAddrTopByMessageCount(addrMessagesCount).Handler))
-	routerGetVersioning("/top/whales", rateLimitMiddleware(site.NewGetTopWhales(topWhales).Handler))
-	routerGetVersioning("/stats/global", rateLimitMiddleware(statsApi.NewGlobalMetrics(globalMetrics).Handler))
-	routerGetVersioning("/stats/blocks", rateLimitMiddleware(statsApi.NewBlocksMetrics(blocksMetrics).Handler))
-	routerGetVersioning("/stats/addresses", rateLimitMiddleware(statsApi.NewAddressesMetrics(addressesMetrics).Handler))
-	routerGetVersioning("/stats/messages", rateLimitMiddleware(statsApi.NewMessagesMetrics(messagesMetrics).Handler))
-	routerGetVersioning("/stats/transactions", rateLimitMiddleware(statsApi.NewTrxMetrics(trxMetrics).Handler))
+	tonApiServer := api.NewTonApiServer(getAccountHandler, getAccountMessages, site.NewGetAddrTopByMessageCount(addrMessagesCount),
+		getBlockInfo, api.NewGetBlockTlb(blocksFetcher), getBlockTransactions, getBlocksFeed,
+		api.NewGetBlockchainHeight(blockchainHeightQuery), api.NewGetSyncedHeight(syncedHeightQuery),
+		api.NewMasterchainBlockShardsActual(shardsDescrStorage), api.NewMasterBlockShardsRange(shardsDescrStorage),
+		api.NewGetMessage(getMessageQuery), apifeed.NewGetMessagesFeed(messagesFeedGlobal), api.NewSearch(searcher),
+		statsApi.NewAddressesMetrics(addressesMetrics), statsApi.NewBlocksMetrics(blocksMetrics),
+		statsApi.NewGlobalMetrics(globalMetrics), statsApi.NewMessagesMetrics(messagesMetrics),
+		statsApi.NewTrxMetrics(trxMetrics), timeseries.NewBlocksByWorkchain(qBlocksByWorkchain),
+		timeseries.NewMessagesByType(tsMessagesByType), timeseries.NewMessagesOrdCount(tsMessagesOrdCount),
+		timeseries.NewSentAndFees(sentAndFees), timeseries.NewVolumeByGrams(tsVolumeByGrams), site.NewGetTopWhales(topWhales),
+		api.NewGetTransactions(searchTransactionsQuery), apifeed.NewGetTransactionsFeed(transactionsFeed),
+		api.NewGetWorkchainBlockMaster(shardsDescrStorage))
 
-	handler := cors.AllowAll().Handler(router)
-	srv := &http.Server{
-		Addr:    config.Addr,
-		Handler: handler,
-	}
-	log.Println("Start listening:", config.Addr)
-	if err := srv.ListenAndServe(); err != nil {
+	router.Pre(rateLimitMiddleware)
+	registerHandlers(tonApiServer)
+
+	router.GET("/docs", swagger.NewGetSwaggerDocs().Handler)
+	router.GET("/swagger.json", swagger.NewGetSwaggerJson().Handler)
+
+	if err := router.Start(":8512"); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func routerGetVersioning(path string, handle httprouter.Handle) {
+func routerGetVersioning(path string, handle echo.HandlerFunc) {
 	router.GET(path, handle)
 	router.GET(ApiV1+path, handle)
+}
+
+func registerHandlers(server *api.TonApiServer) {
+
+	wrapper := tonapi.ServerInterfaceWrapper{
+		Handler: server,
+	}
+
+	for _, addrRoot := range addressRootAliases {
+		routerGetVersioning(addrRoot, wrapper.GetV1Account)
+		routerGetVersioning(addrRoot+"/messages", wrapper.GetV1AccountMessages)
+		routerGetVersioning(addrRoot+"/transactions", wrapper.GetV1AccountMessages)
+		routerGetVersioning(addrRoot+"/qr", wrapper.GetV1AccountQr)
+	}
+
+	for _, blockRoot := range blocksRootAliases {
+		routerGetVersioning(blockRoot+"/info", wrapper.GetV1BlockInfo)
+		routerGetVersioning(blockRoot+"/tlb", wrapper.GetV1BlockTlb)
+		routerGetVersioning(blockRoot+"/transactions", wrapper.GetV1BlockTransactions) // TODO: Remove this in favor of /messages. This is deprecated.
+		routerGetVersioning(blockRoot+"/feed", wrapper.GetV1BlocksFeed)
+	}
+
+	routerGetVersioning("/addr/top-by-message-count", wrapper.GetV1AddrTopByMessageCount)
+	routerGetVersioning("/height/blockchain", wrapper.GetV1HeightBlockchain)
+	routerGetVersioning("/height/synced", wrapper.GetV1HeightSynced)
+	routerGetVersioning("/master/block/shards/actual", wrapper.GetV1MasterBlockShardsActual)
+	routerGetVersioning("/master/block/shards/range", wrapper.GetV1MasterBlockShardsRange)
+	routerGetVersioning("/message/get", wrapper.GetV1MessageGet)
+	routerGetVersioning("/messages/feed", wrapper.GetV1MessagesFeed)
+	routerGetVersioning("/search", wrapper.GetV1Search)
+	routerGetVersioning("/stats/addresses", wrapper.GetV1StatsAddresses)
+	routerGetVersioning("/stats/blocks", wrapper.GetV1StatsBlocks)
+	routerGetVersioning("/stats/global", wrapper.GetV1StatsGlobal)
+	routerGetVersioning("/stats/messages", wrapper.GetV1StatsMessages)
+	routerGetVersioning("/stats/transactions", wrapper.GetV1StatsTransactions)
+	routerGetVersioning("/timeseries/blocks-by-workchain", wrapper.GetV1TimeseriesBlocksByWorkchain)
+	routerGetVersioning("/timeseries/messages-by-type", wrapper.GetV1TimeseriesMessagesByType)
+	routerGetVersioning("/timeseries/messages-ord-count", wrapper.GetV1TimeseriesMessagesOrdCount)
+	routerGetVersioning("/timeseries/sent-and-fees", wrapper.GetV1TimeseriesSentAndFees)
+	routerGetVersioning("/timeseries/volume-by-grams", wrapper.GetV1TimeseriesVolumeByGrams)
+	routerGetVersioning("/top/whales", wrapper.GetV1TopWhales)
+	routerGetVersioning("/transaction", wrapper.GetV1Transaction)
+	routerGetVersioning("/transactions/feed", wrapper.GetV1TransactionsFeed)
+	routerGetVersioning("/workchain/block/master", wrapper.GetV1WorkchainBlockMaster)
+
 }

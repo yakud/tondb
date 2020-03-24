@@ -21,3 +21,18 @@ func TypeFromRequest(r *http.Request) (filter.Filter, error) {
 
 	return orFilter, nil
 }
+
+func TypeFromParams(typeParam *[]string) (filter.Filter, error) {
+	if typeParam == nil || len(*typeParam) == 0 {
+		return nil, nil
+	}
+
+	orFilter := filter.NewOr()
+	for _, v := range *typeParam {
+		orFilter.Or(
+			filter.NewKV("Type", v),
+		)
+	}
+
+	return orFilter, nil
+}

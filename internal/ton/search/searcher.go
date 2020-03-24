@@ -1,6 +1,7 @@
 package search
 
 import (
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"net/url"
 	"strings"
 
@@ -18,7 +19,7 @@ type Searcher struct {
 	indexHash        *index.IndexHash
 }
 
-func (s *Searcher) Search(q string) ([]Result, error) {
+func (s *Searcher) Search(q string) ([]tonapi.SearchResult, error) {
 	q = strings.TrimSpace(q)
 	unescapedQuery, err := url.QueryUnescape(q)
 	if err == nil {

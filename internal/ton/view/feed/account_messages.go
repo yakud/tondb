@@ -2,6 +2,7 @@ package feed
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -97,34 +98,6 @@ const (
 `
 )
 
-type AccountMessage struct {
-	WorkchainId        int32  `json:"workchain_id"`
-	Shard              string `json:"shard"`
-	SeqNo              uint64 `json:"seq_no"`
-	AccountAddr        string `json:"account_addr"`
-	AccountAddrUf      string `json:"account_addr_uf"`
-	Lt                 uint64 `json:"lt"`
-	Time               uint64 `json:"time"`
-	Type               string `json:"type"`
-	TrxHash            string `json:"trx_hash"`
-	MessageType        string `json:"message_type"`
-	MessageLt          uint64 `json:"message_lt"`
-	Direction          string `json:"direction"`
-	SrcWorkchainId     int32  `json:"src_workchain_id"`
-	Src                string `json:"src"`
-	SrcUf              string `json:"src_uf"`
-	DestWorkchainId    int32  `json:"dest_workchain_id"`
-	Dest               string `json:"dest"`
-	DestUf             string `json:"dest_uf"`
-	ValueNanograms     string `json:"value_nanograms"`
-	FwdFeeNanograms    string `json:"fwd_fee_nanograms"`
-	IhrFeeNanograms    string `json:"ihr_fee_nanograms"`
-	ImportFeeNanograms string `json:"import_fee_nanograms"`
-	Bounce             uint8  `json:"bounce"`
-	Bounced            uint8  `json:"bounced"`
-	Body               string `json:"body"`
-}
-
 type AccountMessages struct {
 	view.View
 	conn *sql.DB
@@ -144,7 +117,7 @@ func (t *AccountMessages) DropTable() error {
 	return err
 }
 
-func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *AccountMessagesScrollId, count int16, f filter.Filter) ([]*AccountMessage, *AccountMessagesScrollId, error) {
+func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *AccountMessagesScrollId, count int16, f filter.Filter) ([]tonapi.AccountMessage, *AccountMessagesScrollId, error) {
 	query, argsFilter, err := filter.RenderQuery(querySelectAccountMessages, f)
 	if err != nil {
 		return nil, nil, err
@@ -165,9 +138,9 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 		return nil, nil, err
 	}
 
-	res := make([]*AccountMessage, 0, count)
+	res := make([]tonapi.AccountMessage, 0, count)
 	for rows.Next() {
-		accTrans := &AccountMessage{}
+		accTrans := &tonapi.AccountMessage{}
 		err := rows.Scan(
 			&accTrans.WorkchainId,
 			&accTrans.Shard,
@@ -197,21 +170,21 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 		accTrans.Src = utils.NullAddrToString(accTrans.Src)
 		accTrans.Dest = utils.NullAddrToString(accTrans.Dest)
 
-		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.WorkchainId, accTrans.AccountAddr)
+		accTrans.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(*accTrans.WorkchainId, accTrans.AccountAddr)
 		if err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, nil, err
 		}
 
-		if accTrans.MessageType != "ext_in_msg_info" {
-			accTrans.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.SrcWorkchainId, accTrans.Src)
+		if *accTrans.MessageType != "ext_in_msg_info" {
+			accTrans.SrcUf, err = utils.ComposeRawAndConvertToUserFriendly(*accTrans.SrcWorkchainId, accTrans.Src)
 			if err != nil {
 				// Maybe we shouldn't fail here?
 				return nil, nil, err
 			}
 		}
 
-		accTrans.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(accTrans.DestWorkchainId, accTrans.Dest)
+		accTrans.DestUf, err = utils.ComposeRawAndConvertToUserFriendly(*accTrans.DestWorkchainId, accTrans.Dest)
 		if err != nil {
 			// Maybe we shouldn't fail here?
 			return nil, nil, err
@@ -222,7 +195,7 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 			return nil, nil, err
 		}
 
-		res = append(res, accTrans)
+		res = append(res, *accTrans)
 	}
 
 	rows.Close()
@@ -232,7 +205,7 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 	}
 
 	newScrollId := &AccountMessagesScrollId{
-		Lt: res[len(res)-1].Lt,
+		Lt: uint64(res[len(res)-1].Lt),
 	}
 
 	return res, newScrollId, nil

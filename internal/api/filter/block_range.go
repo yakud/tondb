@@ -44,3 +44,37 @@ func BlockRangeFilterFromRequest(r *http.Request, fieldFrom, fieldTo string, max
 
 	return filterBlockRange, nil
 }
+
+func BlockRangeFilterFromParams(blockFromParam, blockToParam *string, maxRange int) (*filter.BlocksRange, error) {
+	if blockFromParam == nil || len(*blockFromParam) == 0 {
+		return nil, nil
+	}
+
+	if blockToParam == nil || len(*blockToParam) == 0 {
+		return nil, nil
+	}
+
+	blockFrom, err := ton.ParseBlockId(*blockFromParam)
+	if err != nil {
+		return nil, err
+	}
+	blockTo, err := ton.ParseBlockId(*blockToParam)
+	if err != nil {
+		return nil, err
+	}
+
+	if blockTo.SeqNo < blockFrom.SeqNo {
+		return nil, errors.New("block_from should be less or equals then block_to")
+	}
+
+	if blockTo.SeqNo-blockFrom.SeqNo > uint64(maxRange) {
+		return nil, fmt.Errorf("maximum %d blocks per request", uint64(maxRange))
+	}
+
+	filterBlockRange, err := filter.NewBlocksRange(blockFrom, blockTo)
+	if err != nil {
+		return nil, err
+	}
+
+	return filterBlockRange, nil
+}

@@ -1,25 +1,21 @@
 package swagger
 
 import (
-	"net/http"
-
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 type GetSwaggerDocs struct {
 }
 
-func (m *GetSwaggerDocs) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(200)
-	w.Write(redocHtml)
+func (m *GetSwaggerDocs) Handler(ctx echo.Context) error {
+	return ctx.HTML(200, redocHtml)
 }
 
 func NewGetSwaggerDocs() *GetSwaggerDocs {
 	return &GetSwaggerDocs{}
 }
 
-var redocHtml = []byte(`<!DOCTYPE html>
+const redocHtml = `<!DOCTYPE html>
 <html>
 
 <head>
@@ -43,4 +39,4 @@ var redocHtml = []byte(`<!DOCTYPE html>
 <script src="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js"></script>
 </body>
 
-</html>`)
+</html>`

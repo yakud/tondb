@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 
@@ -179,7 +180,7 @@ func (q *GetBlockInfo) BlockExists(f filter.Filter) ([]*ton.BlockId, error) {
 	return res, nil
 }
 
-func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
+func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*tonapi.BlockInfo, error) {
 	query, args, err := filter.RenderQuery(queryGetBlockInfo, f, f)
 	if err != nil {
 		return nil, err
@@ -193,14 +194,14 @@ func (q *GetBlockInfo) GetBlockInfo(f filter.Filter) ([]*ton.BlockInfo, error) {
 		return nil, err
 	}
 
-	res := make([]*ton.BlockInfo, 0)
+	res := make([]*tonapi.BlockInfo, 0)
 	for rows.Next() {
-		blockInfo := &ton.BlockInfo{
-			Prev1Ref:   &ton.BlockRef{},
-			Prev2Ref:   &ton.BlockRef{},
-			MasterRef:  &ton.BlockRef{},
-			ValueFlow:  &ton.ValueFlow{},
-			BlockStats: &ton.BlockStats{},
+		blockInfo := &tonapi.BlockInfo{
+			Prev1Ref:   &tonapi.BlockRef{},
+			Prev2Ref:   &tonapi.BlockRef{},
+			MasterRef:  &tonapi.BlockRef{},
+			ValueFlow:  &tonapi.ValueFlow{},
+			BlockStats: &tonapi.BlockStats{},
 		}
 
 		err = rows.Scan(

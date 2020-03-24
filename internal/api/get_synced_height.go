@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query"
 )
 
@@ -11,23 +11,13 @@ type GetSyncedHeight struct {
 	q *query.GetSyncedHeight
 }
 
-func (api *GetSyncedHeight) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GetSyncedHeight) GetV1HeightSynced(ctx echo.Context) error {
 	lastSyncedBlock, err := api.q.GetSyncedHeight()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieve synced height from DB"}`))
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error retrieve synced height from DB"}`))
 	}
 
-	resp, err := json.Marshal(lastSyncedBlock)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, lastSyncedBlock)
 }
 
 func NewGetSyncedHeight(q *query.GetSyncedHeight) *GetSyncedHeight {

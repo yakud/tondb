@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query"
 )
 
@@ -12,24 +12,14 @@ type GetBlockchainHeight struct {
 	q *query.GetBlockchainHeight
 }
 
-func (api *GetBlockchainHeight) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GetBlockchainHeight) GetV1HeightBlockchain(ctx echo.Context) error {
 	lastSyncedBlock, err := api.q.GetBlockchainHeight()
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieve blockchain height from DB"}`))
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error retrieving blockchain height from DB"}`))
 	}
 
-	resp, err := json.Marshal(lastSyncedBlock)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(200, lastSyncedBlock)
 }
 
 func NewGetBlockchainHeight(q *query.GetBlockchainHeight) *GetBlockchainHeight {

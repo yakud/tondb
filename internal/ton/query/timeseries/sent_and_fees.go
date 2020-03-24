@@ -3,10 +3,9 @@ package timeseries
 import (
 	"database/sql"
 	"errors"
-	"math"
-	"time"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
+	"math"
 )
 
 const (
@@ -24,19 +23,13 @@ const (
 	cacheKeySentAndFees = "sent_and_fees"
 )
 
-type SentAndFeesResult struct {
-	Time    time.Time `json:"time"`
-	AvgSent float64   `json:"avg_sent"`
-	AvgFees float64   `json:"avg_fees"`
-}
-
 type SentAndFees struct {
 	conn        *sql.DB
 	resultCache cache.Cache
 }
 
 func (t *SentAndFees) UpdateQuery() error {
-	res := make([]*SentAndFeesResult, 0, 30)
+	res := make([]*tonapi.SentAndFees, 0, 30)
 
 	rows, err := t.conn.Query(getAverageSentAndFees)
 	if err != nil {
@@ -44,7 +37,7 @@ func (t *SentAndFees) UpdateQuery() error {
 	}
 
 	for rows.Next() {
-		sentAndFees := &SentAndFeesResult{}
+		sentAndFees := &tonapi.SentAndFees{}
 		if err := rows.Scan(&sentAndFees.Time, &sentAndFees.AvgSent, &sentAndFees.AvgFees); err != nil {
 			return err
 		}
@@ -65,11 +58,11 @@ func (t *SentAndFees) UpdateQuery() error {
 	return nil
 }
 
-func (t *SentAndFees) GetSentAndFees() ([]*SentAndFeesResult, error) {
+func (t *SentAndFees) GetSentAndFees() ([]*tonapi.SentAndFees, error) {
 	if res, err := t.resultCache.Get(cacheKeySentAndFees); err == nil {
 		switch res.(type) {
-		case *[]*SentAndFeesResult:
-			return *res.(*[]*SentAndFeesResult), nil
+		case *[]*tonapi.SentAndFees:
+			return *res.(*[]*tonapi.SentAndFees), nil
 		default:
 			return nil, errors.New("couldn't get average sent and fees from cache, cache contains object of wrong type")
 		}

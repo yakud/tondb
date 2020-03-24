@@ -1,6 +1,7 @@
 package api
 
 import (
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"net/http"
 
@@ -8,46 +9,34 @@ import (
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 type MasterchainBlockShardsActual struct {
 	shardsDescrStorage *storage.ShardsDescr
 }
 
-func (m *MasterchainBlockShardsActual) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m *MasterchainBlockShardsActual) GetV1MasterBlockShardsActual(ctx echo.Context, params tonapi.GetV1MasterBlockShardsActualParams) error {
 	// block_master
-	blockMasterFilter, err := apiFilter.BlockFilterFromRequest(r, "block_master", maxBlocksPerRequest)
+	blockMasterFilter, err := apiFilter.BlockFilterFromParam(&params.BlockMaster, maxBlocksPerRequest)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"`+err.Error()+`"}`))
 	} else if blockMasterFilter == nil {
-		http.Error(w, `{"error":true,"message":"empty block_master"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"empty block_master"}`))
 	}
 
-	respShardsBlocks := make([]storage.ShardBlock, 0)
+	respShardsBlocks := make([]tonapi.ShardBlock, 0)
 	for _, masterBlockId := range blockMasterFilter.Blocks() {
 		shardsBlocks, err := m.shardsDescrStorage.GetShardsSeqInMasterBlock(masterBlockId.SeqNo)
 		if err != nil {
 			log.Println("GetShardsSeqRangeInMasterBlock error:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
-			return
+			return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"shardsDescrStorage.GetShardsSeqRangeInMasterBlock error"}`))
 		}
 
 		respShardsBlocks = append(respShardsBlocks, shardsBlocks...)
 	}
 
-	resp, err := json.Marshal(respShardsBlocks)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":true,"message":"response json marshaling error"}`))
-		return
-	}
-
-	w.WriteHeader(200)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, respShardsBlocks)
 }
 
 func NewMasterchainBlockShardsActual(shardsDescrStorage *storage.ShardsDescr) *MasterchainBlockShardsActual {

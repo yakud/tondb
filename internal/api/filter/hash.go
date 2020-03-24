@@ -22,3 +22,18 @@ func HashFromRequest(r *http.Request) (filter.Filter, error) {
 
 	return orFilter, nil
 }
+
+func HashFromParams(hash *[]string) (filter.Filter, error) {
+	if hash == nil || len(*hash) == 0 {
+		return nil, nil
+	}
+
+	orFilter := filter.NewOr()
+	for _, v := range *hash {
+		orFilter.Or(
+			filter.NewKV("Hash", strings.TrimSpace(v)),
+		)
+	}
+
+	return orFilter, nil
+}

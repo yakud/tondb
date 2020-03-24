@@ -1,8 +1,7 @@
 package timeseries
 
 import (
-	"encoding/json"
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/timeseries"
 	"log"
 	"net/http"
@@ -12,24 +11,14 @@ type SentAndFees struct {
 	q *timeseries.SentAndFees
 }
 
-func (api *SentAndFees) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *SentAndFees) GetV1TimeseriesSentAndFees(ctx echo.Context) error {
 	res, err := api.q.GetSentAndFees()
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieving average sent and fees"}`))
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error retrieving average sent and fees"}`))
 	}
 
-	resp, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serializing average sent and fees"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, res)
 }
 
 func NewSentAndFees(q *timeseries.SentAndFees) *SentAndFees {

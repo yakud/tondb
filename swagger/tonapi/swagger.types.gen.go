@@ -5,52 +5,64 @@ package tonapi
 
 // Account defines model for Account.
 type Account struct {
-	Addr                   *string `json:"addr,omitempty"`
-	AddrUf                 *string `json:"addr_uf,omitempty"`
-	BalanceNanogram        *int64  `json:"balance_nanogram,omitempty"`
-	LastPaid               *int64  `json:"last_paid,omitempty"`
+	Addr string `json:"addr"`
+
+	// User-friendly account address.
+	AddrUf                 string  `json:"addr_uf"`
+	Anycast                *string `json:"anycast,omitempty"`
+	BalanceNanogram        Uint64  `json:"balance_nanogram"`
+	FileHash               *string `json:"file_hash,omitempty"`
+	LastPaid               Uint64  `json:"last_paid"`
 	LastTransHash          *string `json:"last_trans_hash,omitempty"`
-	LastTransLt            *int64  `json:"last_trans_lt,omitempty"`
-	LastTransLtStorage     *int64  `json:"last_trans_lt_storage,omitempty"`
+	LastTransLt            Uint64  `json:"last_trans_lt"`
+	LastTransLtStorage     Uint64  `json:"last_trans_lt_storage"`
 	MessagesCount          *int64  `json:"messages_count,omitempty"`
-	SeqNo                  *int64  `json:"seq_no,omitempty"`
-	Shard                  *int64  `json:"shard,omitempty"`
+	RootHash               *string `json:"root_hash,omitempty"`
+	SeqNo                  Uint64  `json:"seq_no"`
+	Shard                  Uint64  `json:"shard"`
 	Status                 *string `json:"status,omitempty"`
-	StorageUsedBits        *int64  `json:"storage_used_bits,omitempty"`
-	StorageUsedCells       *int64  `json:"storage_used_cells,omitempty"`
-	StorageUsedPublicCells *int64  `json:"storage_used_public_cells,omitempty"`
-	Tick                   *int64  `json:"tick,omitempty"`
-	Tock                   *int64  `json:"tock,omitempty"`
+	StorageUsedBits        Uint64  `json:"storage_used_bits"`
+	StorageUsedCells       Uint64  `json:"storage_used_cells"`
+	StorageUsedPublicCells Uint64  `json:"storage_used_public_cells"`
+	Tick                   Uint64  `json:"tick"`
+	Time                   Uint64  `json:"time"`
+	Tock                   Uint64  `json:"tock"`
 	WorkchainId            *int32  `json:"workchain_id,omitempty"`
 }
 
 // AccountMessage defines model for AccountMessage.
 type AccountMessage struct {
-	AccountAddr        *string `json:"account_addr,omitempty"`
-	AccountAddrUf      *string `json:"account_addr_uf,omitempty"`
-	Body               *string `json:"body,omitempty"`
-	Bounce             *int32  `json:"bounce,omitempty"`
-	Bounced            *int32  `json:"bounced,omitempty"`
-	Dest               *string `json:"dest,omitempty"`
-	DestUf             *string `json:"dest_uf,omitempty"`
+	AccountAddr string `json:"account_addr"`
+
+	// User-friendly account address.
+	AccountAddrUf string `json:"account_addr_uf"`
+	Body          string `json:"body"`
+	Bounce        *int32 `json:"bounce,omitempty"`
+	Bounced       *int32 `json:"bounced,omitempty"`
+	Dest          string `json:"dest"`
+
+	// User-friendly destination address.
+	DestUf             string  `json:"dest_uf"`
 	DestWorkchainId    *int32  `json:"dest_workchain_id,omitempty"`
 	Direction          *string `json:"direction,omitempty"`
 	FwdFeeNanograms    *string `json:"fwd_fee_nanograms,omitempty"`
 	IhrFeeNanograms    *string `json:"ihr_fee_nanograms,omitempty"`
 	ImportFeeNanograms *string `json:"import_fee_nanograms,omitempty"`
-	Lt                 *int64  `json:"lt,omitempty"`
-	MessageLt          *int64  `json:"message_lt,omitempty"`
+	Lt                 Uint64  `json:"lt"`
+	MessageLt          Uint64  `json:"message_lt"`
 	MessageType        *string `json:"message_type,omitempty"`
-	SeqNo              *int64  `json:"seq_no,omitempty"`
+	SeqNo              Uint64  `json:"seq_no"`
 	Shard              *string `json:"shard,omitempty"`
-	Src                *string `json:"src,omitempty"`
-	SrcUf              *string `json:"src_uf,omitempty"`
-	SrcWorkchainId     *int32  `json:"src_workchain_id,omitempty"`
-	Time               *int64  `json:"time,omitempty"`
-	TrxHash            *string `json:"trx_hash,omitempty"`
-	Type               *string `json:"type,omitempty"`
-	ValueNanograms     *string `json:"value_nanograms,omitempty"`
-	WorkchainId        *int32  `json:"workchain_id,omitempty"`
+	Src                string  `json:"src"`
+
+	// User-friendly source address.
+	SrcUf          string  `json:"src_uf"`
+	SrcWorkchainId *int32  `json:"src_workchain_id,omitempty"`
+	Time           Uint64  `json:"time"`
+	TrxHash        *string `json:"trx_hash,omitempty"`
+	Type           *string `json:"type,omitempty"`
+	ValueNanograms *string `json:"value_nanograms,omitempty"`
+	WorkchainId    *int32  `json:"workchain_id,omitempty"`
 }
 
 // AccountMessageResponse defines model for AccountMessageResponse.
@@ -61,27 +73,69 @@ type AccountMessageResponse struct {
 
 // AccountWhale defines model for AccountWhale.
 type AccountWhale struct {
-	AddrRaw                  *string  `json:"addr_raw,omitempty"`
-	AddrUf                   *string  `json:"addr_uf,omitempty"`
-	BalanceNanogram          *int     `json:"balance_nanogram,omitempty"`
-	BalancePercentageOfTotal *float64 `json:"balance_percentage_of_total,omitempty"`
+
+	// Raw whale account address.
+	AddrRaw string `json:"addr_raw"`
+
+	// User-friendly whale account address.
+	AddrUf          string `json:"addr_uf"`
+	BalanceNanogram Uint64 `json:"balance_nanogram"`
+
+	// Ratio of this accounts balance to total nanograms.
+	BalancePercentageOfTotal float64 `json:"balance_percentage_of_total"`
+}
+
+// ActionPhase defines model for ActionPhase.
+type ActionPhase struct {
+	AccDeleteReq      *bool   `json:"acc_delete_req,omitempty"`
+	AccStatusChange   *string `json:"acc_status_change,omitempty"`
+	ActionListInvalid *bool   `json:"action_list_invalid,omitempty"`
+	CodeChanged       *bool   `json:"code_changed,omitempty"`
+	EndLt             *Uint64 `json:"end_lt,omitempty"`
+	MsgsCreated       *int64  `json:"msgs_created,omitempty"`
+	NoFunds           *bool   `json:"no_funds,omitempty"`
+	RemainingBalance  *Uint64 `json:"remaining_balance,omitempty"`
+	ReservedBalance   *Uint64 `json:"reserved_balance,omitempty"`
+	ResultArg         *int32  `json:"result_arg,omitempty"`
+	ResultCode        *int32  `json:"result_code,omitempty"`
+	SkippedActions    *int64  `json:"skipped_actions,omitempty"`
+	SpecActions       *int64  `json:"spec_actions,omitempty"`
+	Success           *bool   `json:"success,omitempty"`
+	TotActions        *int64  `json:"tot_actions,omitempty"`
+	TotMsgBits        *Uint64 `json:"tot_msg_bits,omitempty"`
+	TotMsgCells       *Uint64 `json:"tot_msg_cells,omitempty"`
+	TotalActionFees   *Uint64 `json:"total_action_fees,omitempty"`
+	TotalFwdFees      *Uint64 `json:"total_fwd_fees,omitempty"`
+	Valid             *bool   `json:"valid,omitempty"`
 }
 
 // AddrCount defines model for AddrCount.
 type AddrCount struct {
-	Addr        *string `json:"addr,omitempty"`
-	AddrUf      *string `json:"addr_uf,omitempty"`
-	Count       *int64  `json:"count,omitempty"`
-	WorkchainId *int32  `json:"workchain_id,omitempty"`
+	Addr string `json:"addr"`
+
+	// User-friendly account address.
+	AddrUf      string `json:"addr_uf"`
+	Count       *int64 `json:"count,omitempty"`
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 }
 
 // AddrStd defines model for AddrStd.
 type AddrStd struct {
-	Addr        *string `json:"addr,omitempty"`
-	AddrUf      *string `json:"addr_uf,omitempty"`
-	Anycast     *string `json:"anycast,omitempty"`
-	IsEmpty     *bool   `json:"is_empty,omitempty"`
-	WorkchainId *int32  `json:"workchain_id,omitempty"`
+
+	// Addr HEX
+	Addr string `json:"addr"`
+
+	// User-friendly account address.
+	AddrUf string `json:"addr_uf"`
+
+	// anycast
+	Anycast string `json:"anycast"`
+
+	// Is empty
+	IsEmpty bool `json:"is_empty"`
+
+	// Workchain ID
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // AddrTopByMessageCountResponse defines model for AddrTopByMessageCountResponse.
@@ -92,17 +146,25 @@ type AddrTopByMessageCountResponse struct {
 
 // AddressesMetrics defines model for AddressesMetrics.
 type AddressesMetrics struct {
-	DailyActive   *int64 `json:"daily_active,omitempty"`
-	MonthlyActive *int64 `json:"monthly_active,omitempty"`
-	TotalAddr     *int64 `json:"total_addr,omitempty"`
-	TotalNanogram *int64 `json:"total_nanogram,omitempty"`
+
+	// Daily active accounts
+	DailyActive int64 `json:"daily_active"`
+
+	// Monthly active accounts
+	MonthlyActive int64 `json:"monthly_active"`
+
+	// Total number of addresses
+	TotalAddr     int64  `json:"total_addr"`
+	TotalNanogram Uint64 `json:"total_nanogram"`
 }
 
 // BlockId defines model for BlockId.
 type BlockId struct {
-	SeqNo       *int64 `json:"seq_no,omitempty"`
-	Shard       *int64 `json:"shard,omitempty"`
-	WorkchainId *int32 `json:"workchain_id,omitempty"`
+	SeqNo Uint64 `json:"seq_no"`
+	Shard Uint64 `json:"shard"`
+
+	// Workchain ID
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // BlockIdString defines model for BlockIdString.
@@ -110,68 +172,104 @@ type BlockIdString string
 
 // BlockInFeed defines model for BlockInFeed.
 type BlockInFeed struct {
-	FwdFeeNanograms    *int64  `json:"fwd_fee_nanograms,omitempty"`
-	IhrFeeNanograms    *int64  `json:"ihr_fee_nanograms,omitempty"`
-	ImportFeeNanograms *int64  `json:"import_fee_nanograms,omitempty"`
-	RootHash           *string `json:"root_hash,omitempty"`
-	SeqNo              *int64  `json:"seq_no,omitempty"`
-	Shard              *int64  `json:"shard,omitempty"`
-	StartLt            *int64  `json:"start_lt,omitempty"`
-	Time               *int64  `json:"time,omitempty"`
-	TotalFeesNanograms *int64  `json:"total_fees_nanograms,omitempty"`
-	TrxCount           *int64  `json:"trx_count,omitempty"`
-	ValueNanograms     *int64  `json:"value_nanograms,omitempty"`
-	WorkchainId        *int32  `json:"workchain_id,omitempty"`
+	FileHash           string `json:"file_hash"`
+	RootHash           string `json:"root_hash"`
+	SeqNo              Uint64 `json:"seq_no"`
+	Shard              Uint64 `json:"shard"`
+	StartLt            Uint64 `json:"start_lt"`
+	Time               Uint64 `json:"time"`
+	TotalFeesNanograms Uint64 `json:"total_fees_nanograms"`
+	TrxCount           int64  `json:"trx_count"`
+	ValueNanograms     Uint64 `json:"value_nanograms"`
+	WorkchainId        int32  `json:"workchain_id"`
 }
 
 // BlockInfo defines model for BlockInfo.
 type BlockInfo struct {
-	AfterMerge        *bool       `json:"after_merge,omitempty"`
-	AfterSplit        *bool       `json:"after_split,omitempty"`
-	BeforeSplit       *bool       `json:"before_split,omitempty"`
-	BlockStats        *BlockStats `json:"block_stats,omitempty"`
-	EndLt             *int64      `json:"end_lt,omitempty"`
-	FileHash          *string     `json:"file_hash,omitempty"`
-	Flags             *int        `json:"flags,omitempty"`
-	GenCatchainSeqno  *int64      `json:"gen_catchain_seqno,omitempty"`
-	GenUtime          *int64      `json:"gen_utime,omitempty"`
-	KeyBlock          *bool       `json:"key_block,omitempty"`
-	MasterRef         *BlockRef   `json:"master_ref,omitempty"`
-	MinRefMcSeqno     *int64      `json:"min_ref_mc_seqno,omitempty"`
-	NextSeqNo         *int64      `json:"next_seq_no,omitempty"`
-	NotMaster         *bool       `json:"not_master,omitempty"`
-	Prev1Ref          *BlockRef   `json:"prev1_ref,omitempty"`
-	Prev2Ref          *BlockRef   `json:"prev2_ref,omitempty"`
-	PrevKeyBlockSeqno *int64      `json:"prev_key_block_seqno,omitempty"`
-	PrevSeqNo         *int64      `json:"prev_seq_no,omitempty"`
-	RootHash          *string     `json:"root_hash,omitempty"`
-	SeqNo             *int64      `json:"seq_no,omitempty"`
-	Shard             *int64      `json:"shard,omitempty"`
-	StartLt           *int64      `json:"start_lt,omitempty"`
-	ValueFlow         *ValueFlow  `json:"value_flow,omitempty"`
-	Version           *int32      `json:"version,omitempty"`
-	WantMerge         *bool       `json:"want_merge,omitempty"`
-	WantSplit         *bool       `json:"want_split,omitempty"`
-	WorkchainId       *int32      `json:"workchain_id,omitempty"`
+
+	// after_merge
+	AfterMerge *bool `json:"after_merge,omitempty"`
+
+	// after_split
+	AfterSplit *bool `json:"after_split,omitempty"`
+
+	// before_split
+	BeforeSplit *bool `json:"before_split,omitempty"`
+
+	// Block stats
+	BlockStats *BlockStats `json:"block_stats,omitempty"`
+	EndLt      Uint64      `json:"end_lt"`
+
+	// file_hash
+	FileHash *string `json:"file_hash,omitempty"`
+
+	// flags
+	Flags            *int   `json:"flags,omitempty"`
+	GenCatchainSeqno Uint64 `json:"gen_catchain_seqno"`
+	GenUtime         Uint64 `json:"gen_utime"`
+
+	// key_block
+	KeyBlock *bool `json:"key_block,omitempty"`
+
+	// Block ref
+	MasterRef     *BlockRef `json:"master_ref,omitempty"`
+	MinRefMcSeqno Uint64    `json:"min_ref_mc_seqno"`
+	NextSeqNo     Uint64    `json:"next_seq_no"`
+
+	// not_master
+	NotMaster *bool `json:"not_master,omitempty"`
+
+	// Block ref
+	Prev1Ref *BlockRef `json:"prev1_ref,omitempty"`
+
+	// Block ref
+	Prev2Ref          *BlockRef `json:"prev2_ref,omitempty"`
+	PrevKeyBlockSeqno Uint64    `json:"prev_key_block_seqno"`
+	PrevSeqNo         Uint64    `json:"prev_seq_no"`
+
+	// root_hash
+	RootHash *string `json:"root_hash,omitempty"`
+	SeqNo    Uint64  `json:"seq_no"`
+	Shard    Uint64  `json:"shard"`
+	StartLt  Uint64  `json:"start_lt"`
+
+	// Value flow
+	ValueFlow *ValueFlow `json:"value_flow,omitempty"`
+
+	// version
+	Version *int32 `json:"version,omitempty"`
+
+	// want_merge
+	WantMerge *bool `json:"want_merge,omitempty"`
+
+	// want_split
+	WantSplit *bool `json:"want_split,omitempty"`
+
+	// Workchain ID
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 }
 
 // BlockRef defines model for BlockRef.
 type BlockRef struct {
-	EndLt    *int64  `json:"end_lt,omitempty"`
+	EndLt Uint64 `json:"end_lt"`
+
+	// file_hash
 	FileHash *string `json:"file_hash,omitempty"`
+
+	// root_hash
 	RootHash *string `json:"root_hash,omitempty"`
-	SeqNo    *int64  `json:"seq_no,omitempty"`
+	SeqNo    Uint64  `json:"seq_no"`
 }
 
 // BlockStats defines model for BlockStats.
 type BlockStats struct {
 	MsgCount              *int32 `json:"msg_count,omitempty"`
-	MsgFwdFeeNanograms    *int64 `json:"msg_fwd_fee_nanograms,omitempty"`
-	MsgIhrFeeNanograms    *int64 `json:"msg_ihr_fee_nanograms,omitempty"`
-	MsgImportFeeNanograms *int64 `json:"msg_import_fee_nanograms,omitempty"`
-	SentNanograms         *int64 `json:"sent_nanograms,omitempty"`
+	MsgFwdFeeNanograms    Uint64 `json:"msg_fwd_fee_nanograms"`
+	MsgIhrFeeNanograms    Uint64 `json:"msg_ihr_fee_nanograms"`
+	MsgImportFeeNanograms Uint64 `json:"msg_import_fee_nanograms"`
+	SentNanograms         Uint64 `json:"sent_nanograms"`
 	TrxCount              *int32 `json:"trx_count,omitempty"`
-	TrxTotalFeesNanograms *int64 `json:"trx_total_fees_nanograms,omitempty"`
+	TrxTotalFeesNanograms Uint64 `json:"trx_total_fees_nanograms"`
 }
 
 // BlocksFeedResponse defines model for BlocksFeedResponse.
@@ -182,234 +280,401 @@ type BlocksFeedResponse struct {
 
 // BlocksMetrics defines model for BlocksMetrics.
 type BlocksMetrics struct {
-	AvgBlockTime *float64 `json:"avg_block_time,omitempty"`
-	BlocksHeight *int64   `json:"blocks_height,omitempty"`
-	TotalBlocks  *int64   `json:"total_blocks,omitempty"`
+
+	// Average time between blocks
+	AvgBlockTime float64 `json:"avg_block_time"`
+	BlocksHeight Uint64  `json:"blocks_height"`
+	TotalBlocks  Uint64  `json:"total_blocks"`
+}
+
+// ComputePhase defines model for ComputePhase.
+type ComputePhase struct {
+	Accepted         *bool   `json:"accepted,omitempty"`
+	AccountActivated *bool   `json:"account_activated,omitempty"`
+	ExitArg          *int32  `json:"exit_arg,omitempty"`
+	ExitCode         *int32  `json:"exit_code,omitempty"`
+	GasCredit        *Uint64 `json:"gas_credit,omitempty"`
+	GasFees          *Uint64 `json:"gas_fees,omitempty"`
+	GasLimit         *Uint64 `json:"gas_limit,omitempty"`
+	GasMax           *Uint64 `json:"gas_max,omitempty"`
+	GasUsed          *Uint64 `json:"gas_used,omitempty"`
+	Mode             *int32  `json:"mode,omitempty"`
+	MsgStateUsed     *bool   `json:"msg_state_used,omitempty"`
+	OutOfGas         *bool   `json:"out_of_gas,omitempty"`
+	Skipped          *bool   `json:"skipped,omitempty"`
+	SkippedReason    *string `json:"skipped_reason,omitempty"`
+	Success          *bool   `json:"success,omitempty"`
+	VmSteps          *int64  `json:"vm_steps,omitempty"`
+}
+
+// CreditPhase defines model for CreditPhase.
+type CreditPhase struct {
+	CreditNanograms  *Uint64 `json:"credit_nanograms,omitempty"`
+	DueFeesCollected *Uint64 `json:"due_fees_collected,omitempty"`
 }
 
 // GlobalMetrics defines model for GlobalMetrics.
 type GlobalMetrics struct {
-	TotalAddr         *int64 `json:"total_addr,omitempty"`
-	TotalBlocks       *int64 `json:"total_blocks,omitempty"`
-	TotalMessages     *int64 `json:"total_messages,omitempty"`
-	TotalNanogram     *int64 `json:"total_nanogram,omitempty"`
-	TotalTransactions *int64 `json:"total_transactions,omitempty"`
+
+	// Total number of addresses
+	TotalAddr         int64  `json:"total_addr"`
+	TotalBlocks       Uint64 `json:"total_blocks"`
+	TotalMessages     Uint64 `json:"total_messages"`
+	TotalNanogram     Uint64 `json:"total_nanogram"`
+	TotalTransactions Uint64 `json:"total_transactions"`
 }
 
 // MessageFeed defines model for MessageFeed.
 type MessageFeed struct {
-	Body             *string `json:"body,omitempty"`
-	Bounce           *bool   `json:"bounce,omitempty"`
-	Dest             *string `json:"dest,omitempty"`
-	DestUf           *string `json:"dest_uf,omitempty"`
-	DestWorkchainId  *string `json:"dest_workchain_id,omitempty"`
-	Direction        *string `json:"direction,omitempty"`
-	Lt               *int64  `json:"lt,omitempty"`
-	MessageLt        *int64  `json:"message_lt,omitempty"`
-	SeqNo            *int64  `json:"seq_no,omitempty"`
-	Shard            *int64  `json:"shard,omitempty"`
-	Src              *string `json:"src,omitempty"`
-	SrcUf            *string `json:"src_uf,omitempty"`
-	SrcWorkchainId   *string `json:"src_workchain_id,omitempty"`
-	Time             *int64  `json:"time,omitempty"`
-	TotalFeeNanogram *int    `json:"total_fee_nanogram,omitempty"`
-	TrxHash          *string `json:"trx_hash,omitempty"`
-	ValueNanogram    *int    `json:"value_nanogram,omitempty"`
-	WorkchainId      *int32  `json:"workchain_id,omitempty"`
+	Body   string `json:"body"`
+	Bounce bool   `json:"bounce"`
+	Dest   string `json:"dest"`
+
+	// User-friendly destination account address.
+	DestUf          string `json:"dest_uf"`
+	DestWorkchainId int32  `json:"dest_workchain_id"`
+	Direction       string `json:"direction"`
+	Lt              Uint64 `json:"lt"`
+	MessageLt       Uint64 `json:"message_lt"`
+	SeqNo           Uint64 `json:"seq_no"`
+	Shard           Uint64 `json:"shard"`
+	Src             string `json:"src"`
+
+	// User-friendly source account address.
+	SrcUf            string `json:"src_uf"`
+	SrcWorkchainId   int32  `json:"src_workchain_id"`
+	Time             Uint64 `json:"time"`
+	TotalFeeNanogram Uint64 `json:"total_fee_nanogram"`
+	TrxHash          string `json:"trx_hash"`
+	ValueNanogram    Uint64 `json:"value_nanogram"`
+	WorkchainId      int32  `json:"workchain_id"`
 }
 
 // MessageFeedResponse defines model for MessageFeedResponse.
 type MessageFeedResponse struct {
-	Messages *[]MessageFeed `json:"messages,omitempty"`
-	ScrollId *string        `json:"scroll_id,omitempty"`
+	Messages []MessageFeed `json:"messages"`
+	ScrollId string        `json:"scroll_id"`
 }
 
 // MessagesByTypeResult defines model for MessagesByTypeResult.
 type MessagesByTypeResult struct {
-	Rows *[]MessagesByTypeTimeseries `json:"rows,omitempty"`
+	Rows []MessagesByTypeTimeseries `json:"rows"`
 }
 
 // MessagesByTypeTimeseries defines model for MessagesByTypeTimeseries.
 type MessagesByTypeTimeseries struct {
-	MessagesCount *Int64Array `json:"messages_count,omitempty"`
-	Time          *Int64Array `json:"time,omitempty"`
-	Type          *string     `json:"type,omitempty"`
-	WorkchainId   *string     `json:"workchain_id,omitempty"`
+
+	// Uint64 array type
+	MessagesCount Uint64Array `json:"messages_count"`
+
+	// Msg type
+	MsgType *string `json:"msg_type,omitempty"`
+
+	// Uint64 array type
+	Time Uint64Array `json:"time"`
+
+	// type
+	Type string `json:"type"`
+
+	// workchain_id
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // MessagesMetrics defines model for MessagesMetrics.
 type MessagesMetrics struct {
-	Mps               *float64 `json:"mps,omitempty"`
-	TotalMessages     *int64   `json:"total_messages,omitempty"`
-	TotalTransactions *int64   `json:"total_transactions,omitempty"`
-	Tps               *float64 `json:"tps,omitempty"`
+
+	// Messages per second
+	Mps               float64 `json:"mps"`
+	TotalMessages     Uint64  `json:"total_messages"`
+	TotalTransactions Uint64  `json:"total_transactions"`
+
+	// Transactions per second
+	Tps float64 `json:"tps"`
 }
 
 // MessagesOrdCountResult defines model for MessagesOrdCountResult.
 type MessagesOrdCountResult struct {
-	Rows *[]MessagesOrdCountTimeseries `json:"rows,omitempty"`
+	Rows []MessagesOrdCountTimeseries `json:"rows"`
 }
 
 // MessagesOrdCountTimeseries defines model for MessagesOrdCountTimeseries.
 type MessagesOrdCountTimeseries struct {
-	Count       *Int64Array `json:"count,omitempty"`
-	Time        *Int64Array `json:"time,omitempty"`
-	WorkchainId *string     `json:"workchain_id,omitempty"`
+
+	// Uint64 array type
+	Count Uint64Array `json:"count"`
+
+	// Uint64 array type
+	Time Uint64Array `json:"time"`
+
+	// workchain_id
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // SearchResult defines model for SearchResult.
 type SearchResult struct {
-	Hint *string `json:"hint,omitempty"`
-	Link *string `json:"link,omitempty"`
-	Type *string `json:"type,omitempty"`
+
+	// Search hint
+	Hint string `json:"hint"`
+
+	// API link
+	Link string `json:"link"`
+
+	// Search result type
+	Type string `json:"type"`
 }
 
 // SentAndFees defines model for SentAndFees.
 type SentAndFees struct {
-	AvgFees *float64 `json:"avg_fees,omitempty"`
-	AvgSent *float64 `json:"avg_sent,omitempty"`
-	Time    *string  `json:"time,omitempty"`
+
+	// average fees in nanograms for every block of that day
+	AvgFees float64 `json:"avg_fees"`
+
+	// average sent nanograms for every block of that day
+	AvgSent float64 `json:"avg_sent"`
+
+	// time of beginning of the day for which these metrics were calculated
+	Time string `json:"time"`
 }
 
 // ShardBlock defines model for ShardBlock.
 type ShardBlock struct {
-	SeqNo       *int64 `json:"seq_no,omitempty"`
-	Shard       *int64 `json:"shard,omitempty"`
-	WorkchainId *int32 `json:"workchain_id,omitempty"`
+	SeqNo Uint64 `json:"seq_no"`
+	Shard Uint64 `json:"shard"`
+
+	// Workchain ID
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // ShardBlocksRange defines model for ShardBlocksRange.
 type ShardBlocksRange struct {
-	FromSeq     *int64 `json:"from_seq,omitempty"`
-	MasterSeq   *int64 `json:"master_seq,omitempty"`
-	Shard       *int64 `json:"shard,omitempty"`
-	ToSeq       *int64 `json:"to_seq,omitempty"`
-	WorkchainId *int32 `json:"workchain_id,omitempty"`
+	FromSeq   Uint64 `json:"from_seq"`
+	MasterSeq Uint64 `json:"master_seq"`
+	Shard     Uint64 `json:"shard"`
+	ToSeq     Uint64 `json:"to_seq"`
+
+	// Workchain ID
+	WorkchainId int32 `json:"workchain_id"`
+}
+
+// StoragePhase defines model for StoragePhase.
+type StoragePhase struct {
+	FeesCollected *Uint64 `json:"fees_collected,omitempty"`
+	FeesDue       *Uint64 `json:"fees_due,omitempty"`
+	Status        *string `json:"status,omitempty"`
 }
 
 // TimeseriesBlocksByWorkchain defines model for TimeseriesBlocksByWorkchain.
 type TimeseriesBlocksByWorkchain struct {
-	Masterchain *Int64Array `json:"masterchain,omitempty"`
-	Time        *Int64Array `json:"time,omitempty"`
-	Workchain0  *Int64Array `json:"workchain0,omitempty"`
+
+	// Uint64 array type
+	Masterchain Uint64Array `json:"masterchain"`
+
+	// Uint64 array type
+	Time Uint64Array `json:"time"`
+
+	// Uint64 array type
+	Workchain0 Uint64Array `json:"workchain0"`
 }
 
 // Transaction defines model for Transaction.
 type Transaction struct {
-	AccountAddr           *string               `json:"account_addr,omitempty"`
-	AccountAddrUf         *string               `json:"account_addr_uf,omitempty"`
-	EndStatus             *string               `json:"end_status,omitempty"`
-	Hash                  *string               `json:"hash,omitempty"`
-	InMsg                 *TransactionMessage   `json:"in_msg,omitempty"`
-	IsTock                *int64                `json:"is_tock,omitempty"`
-	Lt                    *int64                `json:"lt,omitempty"`
-	Now                   *int64                `json:"now,omitempty"`
-	OrigStatus            *string               `json:"orig_status,omitempty"`
-	OutMsgs               *[]TransactionMessage `json:"out_msgs,omitempty"`
-	PrevTransHash         *string               `json:"prev_trans_hash,omitempty"`
-	PrevTransLt           *int64                `json:"prev_trans_lt,omitempty"`
-	SeqNo                 *int64                `json:"seq_no,omitempty"`
-	Shard                 *int64                `json:"shard,omitempty"`
-	StateUpdateNewHash    *string               `json:"state_update_new_hash,omitempty"`
-	StateUpdateOldHash    *string               `json:"state_update_old_hash,omitempty"`
-	TotalFeesNanograms    *int64                `json:"total_fees_nanograms,omitempty"`
-	TotalFeesNanogramsLen *int32                `json:"total_fees_nanograms_len,omitempty"`
-	TotalNanograms        *int64                `json:"total_nanograms,omitempty"`
-	Type                  *string               `json:"type,omitempty"`
-	WorkchainId           *int32                `json:"workchain_id,omitempty"`
+	Aborted *bool `json:"aborted,omitempty"`
+
+	// account_addr
+	AccountAddr string `json:"account_addr"`
+
+	// User-friendly account address.
+	AccountAddrUf string `json:"account_addr_uf"`
+
+	// Action phase
+	ActionPhase *ActionPhase `json:"action_phase,omitempty"`
+
+	// Compute phase
+	ComputePhase *ComputePhase `json:"compute_phase,omitempty"`
+	CreditFirst  *bool         `json:"credit_first,omitempty"`
+
+	// Credit phase
+	CreditPhase *CreditPhase `json:"credit_phase,omitempty"`
+	Destroyed   *bool        `json:"destroyed,omitempty"`
+
+	// end_status
+	EndStatus *string `json:"end_status,omitempty"`
+
+	// Transaction hash
+	Hash *string `json:"hash,omitempty"`
+
+	// Transaction message
+	InMsg  *TransactionMessage `json:"in_msg,omitempty"`
+	IsTock bool                `json:"is_tock"`
+	Lt     *Uint64             `json:"lt,omitempty"`
+	Now    Uint64              `json:"now"`
+
+	// orig_status
+	OrigStatus *string `json:"orig_status,omitempty"`
+
+	// Out messages
+	OutMsgs *[]TransactionMessage `json:"out_msgs,omitempty"`
+
+	// prev_trans_hash
+	PrevTransHash *string `json:"prev_trans_hash,omitempty"`
+	PrevTransLt   *Uint64 `json:"prev_trans_lt,omitempty"`
+	SeqNo         *Uint64 `json:"seq_no,omitempty"`
+	Shard         *Uint64 `json:"shard,omitempty"`
+
+	// state_update_new_hash
+	StateUpdateNewHash *string `json:"state_update_new_hash,omitempty"`
+
+	// state_update_old_hash
+	StateUpdateOldHash *string `json:"state_update_old_hash,omitempty"`
+
+	// Storage phase
+	StoragePhase       *StoragePhase `json:"storage_phase,omitempty"`
+	TotalFeesNanograms *Uint64       `json:"total_fees_nanograms,omitempty"`
+
+	// total_fees_nanograms_len
+	TotalFeesNanogramsLen *int32  `json:"total_fees_nanograms_len,omitempty"`
+	TotalNanograms        *Uint64 `json:"total_nanograms,omitempty"`
+
+	// Transaction type
+	Type *string `json:"type,omitempty"`
+
+	// Workchain ID
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // TransactionMessage defines model for TransactionMessage.
 type TransactionMessage struct {
-	BodyType              *string  `json:"body_type,omitempty"`
-	BodyValue             *string  `json:"body_value,omitempty"`
-	Bounce                *bool    `json:"bounce,omitempty"`
-	Bounced               *bool    `json:"bounced,omitempty"`
-	CreatedAt             *int64   `json:"created_at,omitempty"`
-	CreatedLt             *int64   `json:"created_lt,omitempty"`
-	Dest                  *AddrStd `json:"dest,omitempty"`
-	FwdFeeNanograms       *int64   `json:"fwd_fee_nanograms,omitempty"`
-	FwdFeeNanogramsLen    *int32   `json:"fwd_fee_nanograms_len,omitempty"`
-	IhrDisabled           *bool    `json:"ihr_disabled,omitempty"`
-	IhrFeeNanograms       *int64   `json:"ihr_fee_nanograms,omitempty"`
-	IhrFeeNanogramsLen    *int32   `json:"ihr_fee_nanograms_len,omitempty"`
-	ImportFeeNanograms    *int64   `json:"import_fee_nanograms,omitempty"`
-	ImportFeeNanogramsLen *int32   `json:"import_fee_nanograms_len,omitempty"`
-	Init                  *string  `json:"init,omitempty"`
-	Src                   *AddrStd `json:"src,omitempty"`
-	TrxHash               *string  `json:"trx_hash,omitempty"`
-	Type                  *string  `json:"type,omitempty"`
-	ValueNanograms        *int64   `json:"value_nanograms,omitempty"`
-	ValueNanogramsLen     *int32   `json:"value_nanograms_len,omitempty"`
+
+	// Body type
+	BodyType *string `json:"body_type,omitempty"`
+
+	// Body value
+	BodyValue *string `json:"body_value,omitempty"`
+
+	// bounce
+	Bounce bool `json:"bounce"`
+
+	// bounced
+	Bounced   bool   `json:"bounced"`
+	CreatedAt Uint64 `json:"created_at"`
+	CreatedLt Uint64 `json:"created_lt"`
+
+	// Addr
+	Dest            *AddrStd `json:"dest,omitempty"`
+	FwdFeeNanograms Uint64   `json:"fwd_fee_nanograms"`
+
+	// fwd_fee_nanograms_len
+	FwdFeeNanogramsLen int32 `json:"fwd_fee_nanograms_len"`
+
+	// ihr_disabled
+	IhrDisabled     bool   `json:"ihr_disabled"`
+	IhrFeeNanograms Uint64 `json:"ihr_fee_nanograms"`
+
+	// ihr_fee_nanograms_len
+	IhrFeeNanogramsLen int32  `json:"ihr_fee_nanograms_len"`
+	ImportFeeNanograms Uint64 `json:"import_fee_nanograms"`
+
+	// import_fee_nanograms_len
+	ImportFeeNanogramsLen int32 `json:"import_fee_nanograms_len"`
+
+	// init
+	Init string `json:"init"`
+
+	// Addr
+	Src *AddrStd `json:"src,omitempty"`
+
+	// Message type
+	TrxHash *string `json:"trx_hash,omitempty"`
+
+	// Message type
+	Type           string `json:"type"`
+	ValueNanograms Uint64 `json:"value_nanograms"`
+
+	// value_nanograms_len
+	ValueNanogramsLen int32 `json:"value_nanograms_len"`
 }
 
 // TransactionsFeed defines model for TransactionsFeed.
 type TransactionsFeed struct {
-	AccountAddr             *string `json:"account_addr,omitempty"`
-	AccountAddrUf           *string `json:"account_addr_uf,omitempty"`
-	Dest                    *string `json:"dest,omitempty"`
-	DestUf                  *string `json:"dest_uf,omitempty"`
-	DestWorkchainId         *int    `json:"dest_workchain_id,omitempty"`
-	IsTock                  *int    `json:"is_tock,omitempty"`
-	Lt                      *int64  `json:"lt,omitempty"`
-	MsgInCreatedLt          *int64  `json:"msg_in_created_lt,omitempty"`
-	MsgInType               *string `json:"msg_in_type,omitempty"`
-	SeqNo                   *int64  `json:"seq_no,omitempty"`
-	Shard                   *int64  `json:"shard,omitempty"`
-	Src                     *string `json:"src,omitempty"`
-	SrcUf                   *string `json:"src_uf,omitempty"`
-	SrcWorkchainId          *int    `json:"src_workchain_id,omitempty"`
-	Time                    *int64  `json:"time,omitempty"`
-	TotalFeesNanograms      *int64  `json:"total_fees_nanograms,omitempty"`
-	TotalFwdFeeNanograms    *int64  `json:"total_fwd_fee_nanograms,omitempty"`
-	TotalIhrFeeNanograms    *int64  `json:"total_ihr_fee_nanograms,omitempty"`
-	TotalImportFeeNanograms *int64  `json:"total_import_fee_nanograms,omitempty"`
-	TotalNanograms          *int64  `json:"total_nanograms,omitempty"`
-	TrxHash                 *string `json:"trx_hash,omitempty"`
-	Type                    *string `json:"type,omitempty"`
-	WorkchainId             *int32  `json:"workchain_id,omitempty"`
+	AccountAddr             string `json:"account_addr"`
+	AccountAddrUf           string `json:"account_addr_uf"`
+	Dest                    string `json:"dest"`
+	DestUf                  string `json:"dest_uf"`
+	DestWorkchainId         int32  `json:"dest_workchain_id"`
+	IsTock                  int    `json:"is_tock"`
+	Lt                      Uint64 `json:"lt"`
+	MsgInCreatedLt          Uint64 `json:"msg_in_created_lt"`
+	MsgInType               string `json:"msg_in_type"`
+	SeqNo                   Uint64 `json:"seq_no"`
+	Shard                   Uint64 `json:"shard"`
+	Src                     string `json:"src"`
+	SrcUf                   string `json:"src_uf"`
+	SrcWorkchainId          int32  `json:"src_workchain_id"`
+	Time                    Uint64 `json:"time"`
+	TotalFeesNanograms      Uint64 `json:"total_fees_nanograms"`
+	TotalFwdFeeNanograms    Uint64 `json:"total_fwd_fee_nanograms"`
+	TotalIhrFeeNanograms    Uint64 `json:"total_ihr_fee_nanograms"`
+	TotalImportFeeNanograms Uint64 `json:"total_import_fee_nanograms"`
+	TotalNanograms          Uint64 `json:"total_nanograms"`
+	TrxHash                 string `json:"trx_hash"`
+	Type                    string `json:"type"`
+	WorkchainId             int32  `json:"workchain_id"`
 }
 
 // TransactionsFeedResponse defines model for TransactionsFeedResponse.
 type TransactionsFeedResponse struct {
-	ScrollId     *string             `json:"scroll_id,omitempty"`
-	Transactions *[]TransactionsFeed `json:"transactions,omitempty"`
+	ScrollId     string             `json:"scroll_id"`
+	Transactions []TransactionsFeed `json:"transactions"`
 }
 
 // TrxMetrics defines model for TrxMetrics.
 type TrxMetrics struct {
-	TrxLastDay   *int64 `json:"trx_last_day,omitempty"`
-	TrxLastMonth *int64 `json:"trx_last_month,omitempty"`
+
+	// Total number of transactions for last 24 hours
+	TrxLastDay int64 `json:"trx_last_day"`
+
+	// Total number of transactions for last month
+	TrxLastMonth int64 `json:"trx_last_month"`
 }
 
 // ValueFlow defines model for ValueFlow.
 type ValueFlow struct {
-	Created       *int64 `json:"created,omitempty"`
-	Exported      *int64 `json:"exported,omitempty"`
-	FeesCollected *int64 `json:"fees_collected,omitempty"`
-	FeesImported  *int64 `json:"fees_imported,omitempty"`
-	FromPrevBlk   *int64 `json:"from_prev_blk,omitempty"`
-	Imported      *int64 `json:"imported,omitempty"`
-	Minted        *int64 `json:"minted,omitempty"`
-	Recovered     *int64 `json:"recovered,omitempty"`
-	ToNextBlk     *int64 `json:"to_next_blk,omitempty"`
+	Created       Uint64  `json:"created"`
+	Exported      Uint64  `json:"exported"`
+	FeesCollected Uint64  `json:"fees_collected"`
+	FeesImported  Uint64  `json:"fees_imported"`
+	FromPrevBlk   Uint64  `json:"from_prev_blk"`
+	Imported      Uint64  `json:"imported"`
+	Minted        Uint64  `json:"minted"`
+	Recovered     Uint64  `json:"recovered"`
+	ToNextBlk     *Uint64 `json:"to_next_blk,omitempty"`
 }
 
 // VolumeByGramsResult defines model for VolumeByGramsResult.
 type VolumeByGramsResult struct {
-	Rows *[]VolumeByGramsTimeseries `json:"rows,omitempty"`
+	Rows []VolumeByGramsTimeseries `json:"rows"`
 }
 
 // VolumeByGramsTimeseries defines model for VolumeByGramsTimeseries.
 type VolumeByGramsTimeseries struct {
-	Time        *Int64Array  `json:"time,omitempty"`
-	VolumeGrams *StringArray `json:"volume_grams,omitempty"`
-	WorkchainId *string      `json:"workchain_id,omitempty"`
+
+	// Uint64 array type
+	Time Uint64Array `json:"time"`
+
+	// String array type
+	VolumeGrams StringArray `json:"volume_grams"`
+
+	// workchain_id
+	WorkchainId int32 `json:"workchain_id"`
 }
 
 // Error defines model for error.
 type Error struct {
-	Error   *bool  `json:"error,omitempty"`
+
+	// Error
+	Error *bool `json:"error,omitempty"`
+
+	// Error message
 	Message string `json:"message"`
 }
 
@@ -418,6 +683,12 @@ type Int64Array []int64
 
 // StringArray defines model for stringArray.
 type StringArray []string
+
+// Uint64 defines model for uint64.
+type Uint64 uint64
+
+// Uint64Array defines model for uint64Array.
+type Uint64Array []Uint64
 
 // GetV1AccountParams defines parameters for GetV1Account.
 type GetV1AccountParams struct {
@@ -452,11 +723,11 @@ type GetV1AccountQrParams struct {
 // GetV1BlockInfoParams defines parameters for GetV1BlockInfo.
 type GetV1BlockInfoParams struct {
 
-	// Block ID string in format: (WorkchainId,ShardHEX,SeqNo)
-	Block *string `json:"block,omitempty"`
+	// Block ID strings in format: (WorkchainId,ShardHEX,SeqNo)
+	Block *[]string `json:"block,omitempty"`
 
-	// Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). Search only in shards block.
-	BlockMaster *string `json:"block_master,omitempty"`
+	// Master Block ID strings in format: (WorkchainId,ShardHEX,SeqNo). Search only in shards block.
+	BlockMaster *[]string `json:"block_master,omitempty"`
 
 	// Block range from. Block ID string in format: (WorkchainId,ShardHEX,SeqNo)
 	BlockFrom *string `json:"block_from,omitempty"`
@@ -469,17 +740,17 @@ type GetV1BlockInfoParams struct {
 type GetV1BlockTlbParams struct {
 
 	// Block ID string in format: (WorkchainId,ShardHEX,SeqNo)
-	Block *string `json:"block,omitempty"`
+	Block *[]string `json:"block,omitempty"`
 }
 
 // GetV1BlockTransactionsParams defines parameters for GetV1BlockTransactions.
 type GetV1BlockTransactionsParams struct {
 
 	// Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>
-	Block *string `json:"block,omitempty"`
+	Block *[]string `json:"block,omitempty"`
 
 	// Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block.
-	BlockMaster *string `json:"block_master,omitempty"`
+	BlockMaster *[]string `json:"block_master,omitempty"`
 
 	// Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>
 	BlockFrom *string `json:"block_from,omitempty"`
@@ -491,19 +762,19 @@ type GetV1BlockTransactionsParams struct {
 	Dir *string `json:"dir,omitempty"`
 
 	// Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiple <b>addr</b>'s. Accepts <b>addr</b>'s in both raw and user-friendly format.
-	Addr *string `json:"addr,omitempty"`
+	Addr *[]string `json:"addr,omitempty"`
 
 	// Message type
-	MessageType *string `json:"message_type,omitempty"`
+	MessageType *[]string `json:"message_type,omitempty"`
 
 	// Transaction type
-	Type *string `json:"type,omitempty"`
+	Type *[]string `json:"type,omitempty"`
 
 	// Transaction hash
-	Hash *string `json:"hash,omitempty"`
+	Hash *[]string `json:"hash,omitempty"`
 
 	// Logical Time
-	Lt *int64 `json:"lt,omitempty"`
+	Lt *[]string `json:"lt,omitempty"`
 }
 
 // GetV1BlocksFeedParams defines parameters for GetV1BlocksFeed.
@@ -516,31 +787,31 @@ type GetV1BlocksFeedParams struct {
 	Limit *int `json:"limit,omitempty"`
 
 	// Workchain Id filter
-	WorkchainId *int `json:"workchain_id,omitempty"`
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 }
 
 // GetV1MasterBlockShardsActualParams defines parameters for GetV1MasterBlockShardsActual.
 type GetV1MasterBlockShardsActualParams struct {
 
 	// Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's.
-	BlockMaster string `json:"block_master"`
+	BlockMaster []string `json:"block_master"`
 }
 
 // GetV1MasterBlockShardsRangeParams defines parameters for GetV1MasterBlockShardsRange.
 type GetV1MasterBlockShardsRangeParams struct {
 
 	// Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's.
-	BlockMaster string `json:"block_master"`
+	BlockMaster []string `json:"block_master"`
 }
 
-// GetV1MessageParams defines parameters for GetV1Message.
-type GetV1MessageParams struct {
+// GetV1MessageGetParams defines parameters for GetV1MessageGet.
+type GetV1MessageGetParams struct {
 
 	// Transaction hash
 	TrxHash string `json:"trx_hash"`
 
 	// Message logical time
-	MessageLt int `json:"message_lt"`
+	MessageLt int64 `json:"message_lt"`
 }
 
 // GetV1MessagesFeedParams defines parameters for GetV1MessagesFeed.
@@ -553,7 +824,7 @@ type GetV1MessagesFeedParams struct {
 	Limit *int `json:"limit,omitempty"`
 
 	// Workchain Id filter
-	WorkchainId *int `json:"workchain_id,omitempty"`
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 }
 
 // GetV1SearchParams defines parameters for GetV1Search.
@@ -595,20 +866,20 @@ type GetV1StatsTransactionsParams struct {
 type GetV1TopWhalesParams struct {
 
 	// Get top whales for specific WorckchainId. Do not specify to get workchain agnostic stats.
-	WorkchainId *string `json:"workchain_id,omitempty"`
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 
 	// Get top whales with limit. Do not specify to get first 50 whales.
-	Limit *int `json:"limit,omitempty"`
+	Limit *int64 `json:"limit,omitempty"`
 
 	// Get top whales with offset. Do not specify to get first whales (with no offset applied).
-	Offset *int `json:"offset,omitempty"`
+	Offset *int64 `json:"offset,omitempty"`
 }
 
 // GetV1TransactionParams defines parameters for GetV1Transaction.
 type GetV1TransactionParams struct {
 
 	// Transaction hash
-	Hash *string `json:"hash,omitempty"`
+	Hash string `json:"hash"`
 }
 
 // GetV1TransactionsFeedParams defines parameters for GetV1TransactionsFeed.
@@ -618,10 +889,10 @@ type GetV1TransactionsFeedParams struct {
 	ScrollId *string `json:"scroll_id,omitempty"`
 
 	// Limit messages
-	Limit *int `json:"limit,omitempty"`
+	Limit *int32 `json:"limit,omitempty"`
 
 	// Workchain Id filter
-	WorkchainId *int `json:"workchain_id,omitempty"`
+	WorkchainId *int32 `json:"workchain_id,omitempty"`
 }
 
 // GetV1WorkchainBlockMasterParams defines parameters for GetV1WorkchainBlockMaster.
@@ -630,3 +901,4 @@ type GetV1WorkchainBlockMasterParams struct {
 	// Block ID string in format: (WorkchainId,ShardHEX,SeqNo)
 	Block string `json:"block"`
 }
+

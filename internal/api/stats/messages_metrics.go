@@ -1,9 +1,9 @@
 package stats
 
 import (
-	"encoding/json"
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"math"
 	"net/http"
@@ -13,24 +13,16 @@ type MessagesMetrics struct {
 	q *stats.MessagesMetrics
 }
 
-func (api *MessagesMetrics) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	// I should really move all those repeating parts to some kind of utils
+func (api *MessagesMetrics) GetV1StatsMessages(ctx echo.Context, params tonapi.GetV1StatsMessagesParams) error {
 	var wcId string
-	wcIds, ok := r.URL.Query()["workchain_id"]
-	if ok {
-		if len(wcIds) > 1 {
-			http.Error(w, `{"error":true,"message":"only one workchain_id parameter can be set"}`, http.StatusBadRequest)
-			return
-		}
-		wcId = wcIds[0]
+	if params.WorkchainId != nil {
+		wcId = * params.WorkchainId
 	}
 
 	res, err := api.q.GetMessagesMetrics(wcId)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieving messages metrics"}`))
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error retrieving messages metrics"}`))
 	}
 
 	if math.IsNaN(res.Tps) {
@@ -41,15 +33,7 @@ func (api *MessagesMetrics) Handler(w http.ResponseWriter, r *http.Request, p ht
 		res.Mps = 0
 	}
 
-	resp, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serializing messages metrics"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, res)
 }
 
 func NewMessagesMetrics(q *stats.MessagesMetrics) *MessagesMetrics {

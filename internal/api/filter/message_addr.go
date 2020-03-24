@@ -28,3 +28,23 @@ func MessageAddrFromRequest(r *http.Request) (filter.Filter, error) {
 
 	return orFilter, nil
 }
+
+func MessageAddrFromParam(addr *[]string) (filter.Filter, error) {
+	if addr == nil || len(*addr) == 0 {
+		return nil, nil
+	}
+
+	orFilter := filter.NewOr()
+	for _, v := range *addr {
+		addr, err := ton.ParseAccountAddress(strings.TrimSpace(v))
+		if err != nil {
+			return nil, err
+		}
+		orFilter.Or(
+			filter.NewArrayHas("Messages.SrcAddr", addr),
+			filter.NewArrayHas("Messages.DestAddr", addr),
+		)
+	}
+
+	return orFilter, nil
+}

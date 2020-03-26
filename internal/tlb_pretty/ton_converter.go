@@ -3,11 +3,12 @@ package tlb_pretty
 import (
 	"errors"
 	"fmt"
-	errors2 "github.com/pkg/errors"
 	"log"
 	"sort"
 	"strconv"
 	"strings"
+
+	errors2 "github.com/pkg/errors"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -663,12 +664,19 @@ func (c *AstTonConverter) extractTransactionComputePhase(node *AstNode, transact
 				return err
 			}
 
-			if computePhase.ExitArg, err = computePhValue.GetInt32("exit_arg"); err != nil {
-				if exitArgStr, err := computePhValue.GetString("exit_arg"); err == nil && exitArgStr == NOTHING {
-					// maybe we should set it to some special value if it is nothing? Also, it's zero by default.
-					computePhase.ExitArg = 0
-				} else {
+			if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit"); err != nil {
+				if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit", "value"); err != nil {
 					return err
+				}
+			}
+			if computePhase.ExitArg, err = computePhValue.GetInt32("exit_arg"); err != nil {
+				if computePhase.ExitArg, err = computePhValue.GetValueOrNothingInt32("exit_arg"); err != nil {
+					if exitArgStr, err := computePhValue.GetString("exit_arg"); err == nil && exitArgStr == NOTHING {
+						// maybe we should set it to some special value if it is nothing? Also, it's zero by default.
+						computePhase.ExitArg = 0
+					} else {
+						return err
+					}
 				}
 			}
 
@@ -676,8 +684,8 @@ func (c *AstTonConverter) extractTransactionComputePhase(node *AstNode, transact
 				return err
 			}
 
-			if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit", "value"); err != nil {
-				if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit"); err != nil {
+			if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit"); err != nil {
+				if computePhase.GasCredit, err = computePhValue.GetValueOrNothingUint64("gas_credit", "value"); err != nil {
 					return err
 				}
 			}
@@ -722,7 +730,9 @@ func (c *AstTonConverter) extractTransactionStoragePhase(node *AstNode, transact
 		}
 
 		if storagePhase.FeesDue, err = storagePhNode.GetValueOrNothingUint64("storage_fees_due", "amount"); err != nil {
-			return err
+			if storagePhase.FeesDue, err = storagePhNode.GetValueOrNothingUint64("storage_fees_due", "value", "amount"); err != nil {
+				return err
+			}
 		}
 
 		transaction.StoragePhase = storagePhase

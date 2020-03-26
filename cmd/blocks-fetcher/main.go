@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 
 	"gitlab.flora.loc/mills/tondb/internal/blocks_fetcher"
@@ -23,12 +24,13 @@ func main() {
 
 	fmt.Printf("%+v\n", *blockId)
 
-	tlbPrettyCustom, err := blocksFetcher.FetchBlockTlb(*blockId)
+	tlbPrettyCustom, err := blocksFetcher.FetchBlockTlb(*blockId, blocks_fetcher.FormatPretty)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//fmt.Println(string(tlbPrettyCustom))
+	fmt.Println(string(tlbPrettyCustom))
+	ioutil.WriteFile("/Users/user/go/src/github.com/yakud/tondb/bloc.tlb", tlbPrettyCustom, 0644)
 
 	node := tlb_pretty.NewParser().Parse(tlbPrettyCustom)
 	newNode, err := tlb_pretty.NewTreeSimplifier().Simplify(node)

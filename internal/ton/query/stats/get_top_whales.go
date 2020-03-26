@@ -3,11 +3,13 @@ package stats
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"strconv"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
-	"strconv"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
@@ -18,13 +20,10 @@ const (
 	  	concat(toString(WorkchainId),':',Addr) as Addr,
 		BalanceNanogram
 	FROM ".inner._view_state_AccountState" FINAL
-	%s
+	WHERE %s
 	ORDER BY BalanceNanogram DESC
-	LIMIT %d %s
+	LIMIT ?
 `
-	whereWorkchainId = "WHERE WorkchainId = %d"
-
-	queryOffset = "OFFSET %d"
 
 	cacheKeyTopWhales = "top_whales"
 
@@ -34,33 +33,33 @@ const (
 )
 
 type GetTopWhales struct {
-	conn          *sql.DB
-	resultCache   cache.Cache
-	globalMetrics *GlobalMetrics
+	conn            *sql.DB
+	resultCache     cache.Cache
+	addressesMetric *AddressesMetrics
 }
 
 func (q *GetTopWhales) UpdateQuery() error {
 	// Not using filter here because it is not giving such flexibility as just fmt.Sprintf() in this case
-	res, err := q.queryTopWhales(fmt.Sprintf(selectTopWhales, "", WhalesDefaultCacheLimit, ""))
+	res, err := q.queryTopWhales(-2)
 	if err != nil {
 		return err
 	}
 
 	q.resultCache.Set(cacheKeyTopWhales, res)
 
-	resWorkchain, err := q.queryTopWhales(fmt.Sprintf(selectTopWhales, fmt.Sprintf(whereWorkchainId, 0), WhalesDefaultCacheLimit, ""))
+	resWorkchain, err := q.queryTopWhales(0)
 	if err != nil {
 		return err
 	}
 
-	q.resultCache.Set(cacheKeyTopWhales + "0", resWorkchain)
+	q.resultCache.Set(cacheKeyTopWhales+"0", resWorkchain)
 
-	resMasterchain, err := q.queryTopWhales(fmt.Sprintf(selectTopWhales, fmt.Sprintf(whereWorkchainId, -1), WhalesDefaultCacheLimit, ""))
+	resMasterchain, err := q.queryTopWhales(-1)
 	if err != nil {
 		return err
 	}
 
-	q.resultCache.Set(cacheKeyTopWhales + "-1", resMasterchain)
+	q.resultCache.Set(cacheKeyTopWhales+"-1", resMasterchain)
 
 	return nil
 }
@@ -70,13 +69,10 @@ func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint
 		limit = WhalesDefaultPageLimit
 	}
 
-	if limit + offset > WhalesDefaultCacheLimit {
-		workchainFilter := ""
-		if workchainId != feed.EmptyWorkchainId {
-			workchainFilter = fmt.Sprintf(whereWorkchainId, workchainId)
-		}
-
-		return q.queryTopWhales(fmt.Sprintf(selectTopWhales, workchainFilter, limit, fmt.Sprintf(queryOffset, offset)))
+	if limit+offset > WhalesDefaultCacheLimit {
+		// empty result after over limit
+		empty := make([]tonapi.AccountWhale, 0)
+		return &empty, nil
 	}
 
 	workchainIdStr := ""
@@ -97,14 +93,33 @@ func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint
 	return nil, errors.New("couldn't get top whales from cache, wrong workchainId specified or cache is empty")
 }
 
-func (q *GetTopWhales) queryTopWhales(query string) (*[]tonapi.AccountWhale, error) {
-	globalMetrics, err := q.globalMetrics.GetGlobalMetrics()
+func (q *GetTopWhales) queryTopWhales(workchainId int32) (*[]tonapi.AccountWhale, error) {
+	var err error
+	var addrMetrics *tonapi.AddressesMetrics
+
+	var f filter.Filter
+	if workchainId == -2 {
+		f = filter.NewKV("1", 1)
+
+		if addrMetrics, err = q.addressesMetric.GetAddressesMetrics(""); err != nil {
+			return nil, err
+		}
+	} else {
+		f = filter.NewKV("WorkchainId", workchainId)
+
+		if addrMetrics, err = q.addressesMetric.GetAddressesMetrics(strconv.Itoa(int(workchainId))); err != nil {
+			return nil, err
+		}
+	}
+
+	query, args, err := filter.RenderQuery(selectTopWhales, f)
 	if err != nil {
 		return nil, err
 	}
-	totalNanogram := float64(globalMetrics.TotalNanogram)
 
-	rows, err := q.conn.Query(query)
+	args = append(args, WhalesDefaultCacheLimit)
+
+	rows, err := q.conn.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +136,7 @@ func (q *GetTopWhales) queryTopWhales(query string) (*[]tonapi.AccountWhale, err
 			return nil, err
 		}
 
-		whale.BalancePercentageOfTotal = float64(whale.BalanceNanogram) / totalNanogram
+		whale.BalancePercentageOfTotal = float64(whale.BalanceNanogram) / float64(addrMetrics.TotalNanogram)
 
 		resp = append(resp, whale)
 	}
@@ -129,10 +144,10 @@ func (q *GetTopWhales) queryTopWhales(query string) (*[]tonapi.AccountWhale, err
 	return &resp, nil
 }
 
-func NewGetTopWhales(conn *sql.DB, cache cache.Cache, metrics *GlobalMetrics) *GetTopWhales {
+func NewGetTopWhales(conn *sql.DB, cache cache.Cache, addressesMetric *AddressesMetrics) *GetTopWhales {
 	return &GetTopWhales{
-		conn:          conn,
-		resultCache:   cache,
-		globalMetrics: metrics,
+		conn:            conn,
+		resultCache:     cache,
+		addressesMetric: addressesMetric,
 	}
 }

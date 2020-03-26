@@ -13,6 +13,8 @@ func (s *Searcher) searchSomethingByHash(q string) ([]tonapi.SearchResult, error
 		return nil, fmt.Errorf("is not hash")
 	}
 
+	q = strings.ToUpper(q)
+
 	something, err := s.indexHash.SelectSomethingByHash(q)
 	if err != nil {
 		return nil, fmt.Errorf("error select something by hash: %w", err)

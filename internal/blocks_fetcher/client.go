@@ -17,7 +17,12 @@ const (
 	HeaderLen     = 4
 	blockIdError  = "block_id_error"
 	blockNotFound = "block_not_found"
+
+	FormatBoc    BlockFormat = 1
+	FormatPretty BlockFormat = 2
 )
+
+type BlockFormat uint32
 
 type Client struct {
 	addr string
@@ -25,12 +30,13 @@ type Client struct {
 	m    *sync.Mutex
 }
 
-func (c *Client) FetchBlockTlb(blockId ton.BlockId) ([]byte, error) {
+func (c *Client) FetchBlockTlb(blockId ton.BlockId, format BlockFormat) ([]byte, error) {
 	blockIdStr := fmt.Sprintf(
-		"(%d,%s,%d)",
+		"(%d,%s,%d):%d",
 		blockId.WorkchainId,
 		utils.DecToHex(blockId.Shard),
 		blockId.SeqNo,
+		format,
 	)
 
 	c.m.Lock()
@@ -41,7 +47,7 @@ func (c *Client) FetchBlockTlb(blockId ton.BlockId) ([]byte, error) {
 			return nil, fmt.Errorf("connection error: %w", err)
 		}
 		c.conn = conn
-		return c.FetchBlockTlb(blockId)
+		return c.FetchBlockTlb(blockId, format)
 	}
 
 	blockTlb, err := c.readFromConn(c.conn)

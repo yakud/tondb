@@ -31,7 +31,7 @@ func (m *GetBlockTlb) GetV1BlockTlb(ctx echo.Context, params tonapi.GetV1BlockTl
 	}
 
 	block := blockFilter.Blocks()[0]
-	blockTlb, err := m.blocksFetcher.FetchBlockTlb(*block)
+	blockTlb, err := m.blocksFetcher.FetchBlockTlb(*block, blocks_fetcher.FormatBoc)
 	if err != nil {
 		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"tlb block fetch error"}`))
 	}

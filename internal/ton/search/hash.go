@@ -2,12 +2,13 @@ package search
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/index"
 )
 
-func (s *Searcher) searchSomethingByHash(q string) ([]Result, error) {
+func (s *Searcher) searchSomethingByHash(q string) ([]tonapi.SearchResult, error) {
 	if len(q) != 64 {
 		return nil, fmt.Errorf("is not hash")
 	}
@@ -19,7 +20,7 @@ func (s *Searcher) searchSomethingByHash(q string) ([]Result, error) {
 		return nil, fmt.Errorf("error select something by hash: %w", err)
 	}
 
-	var result []Result
+	var result []tonapi.SearchResult
 	for _, s := range something {
 		var searchResultType ResultType
 		var link string
@@ -42,8 +43,8 @@ func (s *Searcher) searchSomethingByHash(q string) ([]Result, error) {
 			continue
 		}
 
-		result = append(result, Result{
-			Type: searchResultType,
+		result = append(result, tonapi.SearchResult{
+			Type: string(searchResultType),
 			Hint: hint,
 			Link: link,
 		})

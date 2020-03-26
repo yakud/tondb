@@ -2,8 +2,7 @@ package query
 
 import (
 	"database/sql"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 )
 
 const (
@@ -19,7 +18,7 @@ type GetBlockchainHeight struct {
 	conn *sql.DB
 }
 
-func (q *GetBlockchainHeight) GetBlockchainHeight() (*ton.BlockId, error) {
+func (q *GetBlockchainHeight) GetBlockchainHeight() (*tonapi.BlockId, error) {
 	row := q.conn.QueryRow(queryGetBlockchainHeight)
 
 	var lastMasterHeight uint64
@@ -27,10 +26,10 @@ func (q *GetBlockchainHeight) GetBlockchainHeight() (*ton.BlockId, error) {
 		return nil, err
 	}
 
-	return &ton.BlockId{
+	return &tonapi.BlockId{
 		WorkchainId: -1,
 		Shard:       0,
-		SeqNo:       lastMasterHeight,
+		SeqNo:       tonapi.Uint64(lastMasterHeight),
 	}, nil
 }
 

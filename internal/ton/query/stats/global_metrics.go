@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
@@ -75,21 +76,13 @@ const (
 	cacheKeyGlobalMetrics = "global_metrics"
 )
 
-type GlobalMetricsResult struct {
-	TotalAddr         uint64 `json:"total_addr"`
-	TotalNanogram     uint64 `json:"total_nanogram"`
-	TotalBlocks       uint64 `json:"total_blocks"`
-	TotalMessages     uint64 `json:"total_messages"`
-	TotalTransactions uint64 `json:"total_transactions"`
-}
-
 type GlobalMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
 }
 
 func (t *GlobalMetrics) UpdateQuery() error {
-	res := GlobalMetricsResult{}
+	res := tonapi.GlobalMetrics{}
 
 	row := t.conn.QueryRow(getGlobalMetrics)
 
@@ -110,11 +103,11 @@ func (t *GlobalMetrics) UpdateQuery() error {
 	return nil
 }
 
-func (t *GlobalMetrics) GetGlobalMetrics() (*GlobalMetricsResult, error) {
+func (t *GlobalMetrics) GetGlobalMetrics() (*tonapi.GlobalMetrics, error) {
 	if res, err := t.resultCache.Get(cacheKeyGlobalMetrics); err == nil {
 		switch res.(type) {
-		case *GlobalMetricsResult:
-			return res.(*GlobalMetricsResult), nil
+		case *tonapi.GlobalMetrics:
+			return res.(*tonapi.GlobalMetrics), nil
 		default:
 			return nil, errors.New("couldn't get global metrics from cache, cache contains object of wrong type")
 		}

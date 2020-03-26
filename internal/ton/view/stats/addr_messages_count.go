@@ -2,6 +2,7 @@ package stats
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
@@ -64,7 +65,7 @@ func (t *AddrMessagesCount) DropTable() error {
 }
 
 // Select in and out top addr by messages count
-func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []AddrCount, error) {
+func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]tonapi.AddrCount, []tonapi.AddrCount, error) {
 	rows, err := t.conn.Query(selectAddrMessagesCountTop, topN)
 	if err != nil {
 		if rows != nil {
@@ -75,10 +76,10 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 	}
 
 	var direction string
-	topIn := make([]AddrCount, 0, topN)
-	topOut := make([]AddrCount, 0, topN)
+	topIn := make([]tonapi.AddrCount, 0, topN)
+	topOut := make([]tonapi.AddrCount, 0, topN)
 	for rows.Next() {
-		row := AddrCount{}
+		row := tonapi.AddrCount{}
 		err := rows.Scan(
 			&direction,
 			&row.WorkchainId,
@@ -92,7 +93,7 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 
 		row.Addr = utils.NullAddrToString(row.Addr)
 
-		if row.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(row.WorkchainId, row.Addr); err != nil {
+		if row.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(*row.WorkchainId, row.Addr); err != nil {
 			// Maybe we shouldn't fail here
 			return nil, nil, err
 		}

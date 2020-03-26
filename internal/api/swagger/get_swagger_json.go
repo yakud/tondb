@@ -1,33 +1,23 @@
 package swagger
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 type GetSwaggerJson struct {
 }
 
-func (m *GetSwaggerJson) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m *GetSwaggerJson) Handler(ctx echo.Context) error {
 	swagger, err := tonapi.GetSwagger()
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"get swagger.json error"}`, http.StatusInternalServerError)
-		return
+		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"get swagger.json error"}`))
 	}
 
-	swaggerJson, err := json.Marshal(swagger)
-	if err != nil {
-		http.Error(w, `{"error":true,"message":"marshal swagger.json error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	w.Write(swaggerJson)
+	return ctx.JSON(200, swagger)
 }
 
 func NewGetSwaggerJson() *GetSwaggerJson {

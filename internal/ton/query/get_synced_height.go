@@ -2,8 +2,7 @@ package query
 
 import (
 	"database/sql"
-
-	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 )
 
 const (
@@ -31,7 +30,7 @@ type GetSyncedHeight struct {
 	conn *sql.DB
 }
 
-func (q *GetSyncedHeight) GetSyncedHeight() (*ton.BlockId, error) {
+func (q *GetSyncedHeight) GetSyncedHeight() (*tonapi.BlockId, error) {
 	row := q.conn.QueryRow(queryGetSyncedMasterHeightByLastShard)
 
 	var syncedMasterHeight uint64
@@ -39,10 +38,10 @@ func (q *GetSyncedHeight) GetSyncedHeight() (*ton.BlockId, error) {
 		return nil, err
 	}
 
-	return &ton.BlockId{
+	return &tonapi.BlockId{
 		WorkchainId: -1,
 		Shard:       0,
-		SeqNo:       syncedMasterHeight,
+		SeqNo:       tonapi.Uint64(syncedMasterHeight),
 	}, nil
 }
 

@@ -2,12 +2,13 @@ package search
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
-func (s *Searcher) searchAccount(q string) ([]Result, error) {
+func (s *Searcher) searchAccount(q string) ([]tonapi.SearchResult, error) {
 	workchainId, addr, err := utils.ParseAccountAddress(q)
 	if err != nil {
 		return nil, fmt.Errorf("error parse acc query '%s': %w", q, err)
@@ -22,9 +23,9 @@ func (s *Searcher) searchAccount(q string) ([]Result, error) {
 		return nil, fmt.Errorf("account not found %s", q)
 	}
 
-	return []Result{
+	return []tonapi.SearchResult{
 		{
-			Type: ResultTypeAccount,
+			Type: string(ResultTypeAccount),
 			Hint: q,
 			Link: "/account?address=" + q,
 		},

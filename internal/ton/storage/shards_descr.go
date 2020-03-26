@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 )
@@ -63,20 +64,6 @@ const (
 	LIMIT 1
 `
 )
-
-type ShardBlocksRange struct {
-	MasterSeq   uint64 `json:"master_seq"`
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	FromSeq     uint64 `json:"from_seq"`
-	ToSeq       uint64 `json:"to_seq"`
-}
-
-type ShardBlock struct {
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	SeqNo       uint64 `json:"seq_no"`
-}
 
 type ShardsDescr struct {
 	conn *sql.DB
@@ -161,15 +148,15 @@ func (c *ShardsDescr) InsertManyExec(rows []*ton.ShardDescr, bdTx *sql.Tx) (*sql
 	return stmt, nil
 }
 
-func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardBlocksRange, error) {
+func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]tonapi.ShardBlocksRange, error) {
 	rows, err := c.conn.Query(querySelectShardSeqRangesByMCSeq, masterSeq, masterSeq, masterSeq, masterSeq)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]ShardBlocksRange, 0)
+	resp := make([]tonapi.ShardBlocksRange, 0)
 	for rows.Next() {
-		s := ShardBlocksRange{}
+		s := tonapi.ShardBlocksRange{}
 		if err := rows.Scan(&s.MasterSeq, &s.WorkchainId, &s.Shard, &s.FromSeq, &s.ToSeq); err != nil {
 			rows.Close()
 			return nil, err
@@ -186,15 +173,15 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 
 	return resp, nil
 }
-func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]ShardBlock, error) {
+func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]tonapi.ShardBlock, error) {
 	rows, err := c.conn.Query(querySelectShardSeqByMCSeq, masterSeq)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]ShardBlock, 0)
+	resp := make([]tonapi.ShardBlock, 0)
 	for rows.Next() {
-		s := ShardBlock{}
+		s := tonapi.ShardBlock{}
 		if err := rows.Scan(&s.WorkchainId, &s.Shard, &s.SeqNo); err != nil {
 			rows.Close()
 			return nil, err
@@ -209,13 +196,13 @@ func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]ShardBlock,
 }
 
 // todo: make it faster. sooo slow
-func (c *ShardsDescr) GetMasterByShardBlock(shard *ton.BlockId) (*ton.BlockId, error) {
+func (c *ShardsDescr) GetMasterByShardBlock(shard *ton.BlockId) (*tonapi.BlockId, error) {
 	rows, err := c.conn.Query(querySelectMCSeqByShardSeq, shard.Shard, shard.SeqNo, shard.WorkchainId)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := &ton.BlockId{
+	resp := &tonapi.BlockId{
 		WorkchainId: -1,
 		Shard:       0,
 	}

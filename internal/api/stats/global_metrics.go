@@ -1,8 +1,7 @@
 package stats
 
 import (
-	"encoding/json"
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/stats"
 	"log"
 	"net/http"
@@ -12,24 +11,14 @@ type GlobalMetrics struct {
 	q *stats.GlobalMetrics
 }
 
-func (api *GlobalMetrics) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GlobalMetrics) GetV1StatsGlobal(ctx echo.Context) error {
 	res, err := api.q.GetGlobalMetrics()
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieving global metrics"}`))
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error retrieving global metrics"}`))
 	}
 
-	resp, err := json.Marshal(res)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serializing global metrics"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, res)
 }
 
 func NewGlobalMetrics(q *stats.GlobalMetrics) *GlobalMetrics {

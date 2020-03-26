@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -70,14 +71,6 @@ const (
 	cacheKeyMessagesMetrics = "messages_metrics"
 )
 
-type MessagesMetricsResult struct {
-	TotalTransactions uint64 `json:"total_transactions"`
-	TotalMessages     uint64 `json:"total_messages"`
-
-	Tps float64 `json:"tps"`
-	Mps float64 `json:"mps"`
-}
-
 type MessagesMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
@@ -96,7 +89,7 @@ func (t *MessagesMetrics) DropTable() error {
 }
 
 func (t *MessagesMetrics) UpdateQuery() error {
-	res := MessagesMetricsResult{}
+	res := tonapi.MessagesMetrics{}
 
 	row := t.conn.QueryRow(getTotalTransactionsAndMessagesForAllChains)
 	if err := row.Scan(&res.TotalTransactions, &res.TotalMessages); err != nil {
@@ -114,7 +107,7 @@ func (t *MessagesMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyMessagesMetrics, &res)
 
-	resWorkchain := MessagesMetricsResult{}
+	resWorkchain := tonapi.MessagesMetrics{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
 	queryTotalTrxAndMsgs, args, err := filter.RenderQuery(getTotalTransactionsAndMessages, workchainFilter)
@@ -137,7 +130,7 @@ func (t *MessagesMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyMessagesMetrics+"0", &resWorkchain)
 
-	resMasterchain := MessagesMetricsResult{}
+	resMasterchain := tonapi.MessagesMetrics{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
 	queryTotalTrxAndMsgs, args, err = filter.RenderQuery(getTotalTransactionsAndMessages, workchainFilter)
@@ -163,11 +156,11 @@ func (t *MessagesMetrics) UpdateQuery() error {
 	return nil
 }
 
-func (t *MessagesMetrics) GetMessagesMetrics(workchainId string) (*MessagesMetricsResult, error) {
+func (t *MessagesMetrics) GetMessagesMetrics(workchainId string) (*tonapi.MessagesMetrics, error) {
 	if res, err := t.resultCache.Get(cacheKeyMessagesMetrics + workchainId); err == nil {
 		switch res.(type) {
-		case *MessagesMetricsResult:
-			return res.(*MessagesMetricsResult), nil
+		case *tonapi.MessagesMetrics:
+			return res.(*tonapi.MessagesMetrics), nil
 		default:
 			return nil, errors.New("couldn't get messages metrics from cache, cache contains object of wrong type")
 		}

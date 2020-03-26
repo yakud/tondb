@@ -3,39 +3,38 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"net/http"
+	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
+	"strings"
 
-	apifilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"github.com/skip2/go-qrcode"
 )
 
 const qrFormatPNG = "png"
 const qrFormatPNGBase64 = "png_base64"
 
-type GetAccountQR struct {
-}
-
-func (m *GetAccountQR) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	accountFilter, err := apifilter.AccountFilterFromRequest(r, "address")
+func (s *TonApiServer) GetV1AccountQr(ctx echo.Context, params tonapi.GetV1AccountQrParams) error {
+	accAddr, err := ton.ParseAccountAddress(strings.TrimSpace(params.Address))
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"error make account filter: `+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return err
 	}
 
+	accountFilter := filter.NewAccount(accAddr)
+
 	var imageFormat string
-	if format, ok := r.URL.Query()["format"]; !ok || len(format) == 0 {
+	if params.Format == nil || len(*params.Format) == 0 {
 		imageFormat = qrFormatPNG
 	} else {
-		imageFormat = format[0]
+		imageFormat = *params.Format
 	}
 
 	ufAddr, err := utils.ComposeRawAndConvertToUserFriendly(accountFilter.Addr().WorkchainId, accountFilter.Addr().Addr)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"error address convertation"}`, http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	link := "ton://transfer/" + base64.RawURLEncoding.EncodeToString([]byte(ufAddr))
@@ -43,27 +42,25 @@ func (m *GetAccountQR) Handler(w http.ResponseWriter, r *http.Request, p httprou
 	var png []byte
 	png, err = qrcode.Encode(link, qrcode.Medium, 256)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"error QR code generation"}`, http.StatusInternalServerError)
-		return
+		return err
 	}
+
+	responseWriter := ctx.Response().Writer
 
 	switch imageFormat {
 	case qrFormatPNGBase64:
-		w.Header().Add("Content-Type", "text/plain")
+		responseWriter.Header().Add("Content-Type", "text/plain")
 		png = []byte(fmt.Sprintf("data:image/png;base64,%s", base64.StdEncoding.EncodeToString(png)))
 
 	case qrFormatPNG:
-		w.Header().Add("Content-Type", "image/png")
+		responseWriter.Header().Add("Content-Type", "image/png")
 
 	default:
-		http.Error(w, `{"error":true,"message":"error wrong format string"}`, http.StatusBadRequest)
-		return
+		return err
 	}
 
-	w.WriteHeader(200)
-	w.Write(png)
-}
+	responseWriter.WriteHeader(200)
+	_, err = responseWriter.Write(png)
 
-func NewGetAccountQR() *GetAccountQR {
-	return &GetAccountQR{}
+	return err
 }

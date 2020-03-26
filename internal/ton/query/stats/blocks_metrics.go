@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -31,19 +32,13 @@ const (
 	cacheKeyBlocksMetrics = "blocks_metrics"
 )
 
-type BlocksMetricsResult struct {
-	TotalBlocks  uint64  `json:"total_blocks"`
-	BlocksHeight uint64  `json:"blocks_height"`
-	AvgBlockTime float64 `json:"avg_block_time"`
-}
-
 type BlocksMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
 }
 
 func (t *BlocksMetrics) UpdateQuery() error {
-	res := BlocksMetricsResult{}
+	res := tonapi.BlocksMetrics{}
 
 	queryGetHeightAndTotalBlocks, _, err := filter.RenderQuery(getHeightAndTotalBlocks, nil)
 	if err != nil {
@@ -65,7 +60,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyBlocksMetrics, &res)
 
-	resWorkchain := BlocksMetricsResult{}
+	resWorkchain := tonapi.BlocksMetrics{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
 	queryGetHeightAndTotalBlocks, args, err := filter.RenderQuery(getHeightAndTotalBlocks, workchainFilter)
@@ -88,7 +83,7 @@ func (t *BlocksMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyBlocksMetrics+"0", &resWorkchain)
 
-	resMasterchain := BlocksMetricsResult{}
+	resMasterchain := tonapi.BlocksMetrics{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
 	queryGetHeightAndTotalBlocks, args, err = filter.RenderQuery(getHeightAndTotalBlocks, workchainFilter)
@@ -114,11 +109,11 @@ func (t *BlocksMetrics) UpdateQuery() error {
 	return nil
 }
 
-func (t *BlocksMetrics) GetBlocksMetrics(workchainId string) (*BlocksMetricsResult, error) {
+func (t *BlocksMetrics) GetBlocksMetrics(workchainId string) (*tonapi.BlocksMetrics, error) {
 	if res, err := t.resultCache.Get(cacheKeyBlocksMetrics + workchainId); err == nil {
 		switch res.(type) {
-		case *BlocksMetricsResult:
-			return res.(*BlocksMetricsResult), nil
+		case *tonapi.BlocksMetrics:
+			return res.(*tonapi.BlocksMetrics), nil
 		default:
 			return nil, errors.New("couldn't get blocks metrics from cache, cache contains object of wrong type")
 		}

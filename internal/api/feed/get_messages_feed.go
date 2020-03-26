@@ -1,15 +1,13 @@
 package feed
 
 import (
-	"encoding/json"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"net/http"
 
-	httputils "gitlab.flora.loc/mills/tondb/internal/utils/http"
-
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 const defaultLatestMessagesCount = 50
@@ -23,29 +21,30 @@ type GetMessagesFeed struct {
 	q *feed.MessagesFeed
 }
 
-func (api *GetMessagesFeed) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GetMessagesFeed) GetV1MessagesFeed(ctx echo.Context, params tonapi.GetV1MessagesFeedParams) error {
 	var err error
 
 	// limit
-	limit, err := httputils.GetQueryValueUint16(r.URL, "limit")
-	if err != nil {
+	var limit uint16
+	if params.Limit == nil {
 		limit = defaultLatestMessagesCount
+	} else {
+		limit = uint16(*params.Limit)
 	}
 
 	// workchain_id
-	workchainId, err := httputils.GetQueryValueInt32(r.URL, "workchain_id")
-	if err != nil {
+	var workchainId int32
+	if params.WorkchainId == nil {
 		workchainId = feed.EmptyWorkchainId
+	} else {
+		workchainId = *params.WorkchainId
 	}
 
 	// scroll_id
 	var scrollId = &feed.MessagesFeedScrollId{}
-	packedScrollId, err := httputils.GetQueryValueString(r.URL, "scroll_id")
-	if err == nil && len(packedScrollId) > 0 {
-		if err := UnpackScrollId(packedScrollId, scrollId); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`{"error":true,"message":"error unpack scroll_id"}`))
-			return
+	if params.ScrollId != nil && len(*params.ScrollId) > 0 {
+		if err := UnpackScrollId(*params.ScrollId, scrollId); err != nil {
+			return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"error unpacking scroll_id"}`))
 		}
 	} else {
 		scrollId.WorkchainId = workchainId
@@ -54,31 +53,19 @@ func (api *GetMessagesFeed) Handler(w http.ResponseWriter, r *http.Request, p ht
 	messagesFeed, newScrollId, err := api.q.SelectMessages(scrollId, limit)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error":true,"message":"error retrieve messages from DB"}`))
-		return
+		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"error retrieving messages from DB"}`))
 	}
 	newPackedScrollId, err := PackScrollId(newScrollId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error":true,"message":"error pack scroll_id"}`))
-		return
+		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"error packing scroll_id"}`))
 	}
 
-	resp := GetMessagesFeedResponse{
+	resp := tonapi.MessageFeedResponse{
 		Messages: messagesFeed,
 		ScrollId: newPackedScrollId,
 	}
 
-	respJson, err := json.Marshal(&resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJson)
+	return ctx.JSON(http.StatusOK, resp)
 }
 
 func NewGetMessagesFeed(q *feed.MessagesFeed) *GetMessagesFeed {

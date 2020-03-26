@@ -2,9 +2,9 @@ package timeseries
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"time"
 
-	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
@@ -45,16 +45,6 @@ const (
 `
 )
 
-type VolumeByGramsResult struct {
-	Rows []*VolumeByGramsTimeseries `json:"rows"`
-}
-
-type VolumeByGramsTimeseries struct {
-	WorkchainId ton.WorkchainId `json:"workchain_id"`
-	Time        []uint64        `json:"time"`
-	VolumeGrams []string        `json:"volume_grams"`
-}
-
 type VolumeByGrams struct {
 	conn        *sql.DB
 	resultCache *cache.WithTimer
@@ -70,11 +60,11 @@ func (t *VolumeByGrams) DropTable() error {
 	return err
 }
 
-func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {
+func (t *VolumeByGrams) GetVolumeByGrams() (*tonapi.VolumeByGramsResult, error) {
 	if res, ok := t.resultCache.Get(); ok {
 		switch res.(type) {
-		case *VolumeByGramsResult:
-			return res.(*VolumeByGramsResult), nil
+		case *tonapi.VolumeByGramsResult:
+			return res.(*tonapi.VolumeByGramsResult), nil
 		}
 	}
 
@@ -83,22 +73,28 @@ func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {
 		return nil, err
 	}
 
-	var resp = &VolumeByGramsResult{
-		Rows: make([]*VolumeByGramsTimeseries, 0),
+	var resp = &tonapi.VolumeByGramsResult{
+		Rows: make([]tonapi.VolumeByGramsTimeseries, 0),
 	}
 
 	for rows.Next() {
-		row := &VolumeByGramsTimeseries{
-			Time:        make([]uint64, 0),
+		times := make([]uint64, 0)
+
+		row := tonapi.VolumeByGramsTimeseries{
+			Time:        make([]tonapi.Uint64, 0),
 			VolumeGrams: make([]string, 0),
 		}
 		if err := rows.Scan(
 			&row.WorkchainId,
-			&row.Time,
+			&times,
 			&row.VolumeGrams,
 		); err != nil {
 			rows.Close()
 			return nil, err
+		}
+
+		for _, v := range times {
+			row.Time = append(row.Time, tonapi.Uint64(v))
 		}
 		for i, v := range row.VolumeGrams {
 			row.VolumeGrams[i] = utils.TruncateRightZeros(v)

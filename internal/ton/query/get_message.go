@@ -2,8 +2,8 @@ package query
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
-	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
@@ -87,10 +87,10 @@ type GetMessage struct {
 	conn *sql.DB
 }
 
-func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *ton.TransactionMessage, err error) {
-	msg = &ton.TransactionMessage{}
-	src := ton.AddrStd{}
-	dest := ton.AddrStd{}
+func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *tonapi.TransactionMessage, err error) {
+	msg = &tonapi.TransactionMessage{}
+	src := &tonapi.AddrStd{}
+	dest := &tonapi.AddrStd{}
 	row := t.conn.QueryRow(querySelectMessage, trxHash, trxHash, messageLt)
 	if err = row.Scan(&msg.TrxHash, &msg.Type, &msg.Init, &msg.Bounce, &msg.Bounced, &msg.CreatedAt, &msg.CreatedLt, &msg.ValueNanograms,
 		&msg.ValueNanogramsLen, &msg.FwdFeeNanograms, &msg.FwdFeeNanogramsLen, &msg.IhrDisabled, &msg.IhrFeeNanograms,

@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"math"
 
 	"gitlab.flora.loc/mills/tondb/internal/utils"
@@ -147,7 +148,7 @@ func (t *MessagesFeed) DropTable() error {
 	return err
 }
 
-func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint16) ([]*MessageInFeed, *MessagesFeedScrollId, error) {
+func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint16) ([]tonapi.MessageFeed, *MessagesFeedScrollId, error) {
 	if scrollId == nil {
 		scrollId = &MessagesFeedScrollId{
 			WorkchainId: EmptyWorkchainId,
@@ -176,10 +177,15 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 		return nil, nil, err
 	}
 	defer rows.Close()
-	var feed []*MessageInFeed
+	var feed []tonapi.MessageFeed
 	for rows.Next() {
-		msg := &MessageInFeed{}
-		if err := rows.StructScan(msg); err != nil {
+		msg := &tonapi.MessageFeed{}
+
+		err := rows.Scan(&msg.WorkchainId, &msg.Shard, &msg.SeqNo, &msg.Lt, &msg.Time, &msg.TrxHash, &msg.MessageLt,
+			&msg.Direction, &msg.SrcWorkchainId, &msg.Src, &msg.DestWorkchainId, &msg.Dest, &msg.ValueNanogram,
+			&msg.TotalFeeNanogram, &msg.Bounce, &msg.Body)
+
+		if err != nil {
 			return nil, nil, err
 		}
 
@@ -199,7 +205,7 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 			}
 		}
 
-		feed = append(feed, msg)
+		feed = append(feed, *msg)
 	}
 
 	if len(feed) == 0 {
@@ -207,9 +213,9 @@ func (t *MessagesFeed) SelectMessages(scrollId *MessagesFeedScrollId, limit uint
 	}
 	var lastMsg = feed[len(feed)-1]
 	newScrollId := &MessagesFeedScrollId{
-		Time:        lastMsg.Time,
-		Lt:          lastMsg.Lt,
-		MessageLt:   lastMsg.MessageLt,
+		Time:        uint64(lastMsg.Time),
+		Lt:          uint64(lastMsg.Lt),
+		MessageLt:   uint64(lastMsg.MessageLt),
 		WorkchainId: scrollId.WorkchainId,
 	}
 

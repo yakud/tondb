@@ -2,6 +2,7 @@ package state
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view"
@@ -93,13 +94,13 @@ func (t *AccountState) DropTable() error {
 	return err
 }
 
-func (t *AccountState) GetAccount(addr ton.AddrStd) (*ton.AccountState, error) {
-	res := &ton.AccountState{}
+func (t *AccountState) GetAccount(addr ton.AddrStd) (*tonapi.Account, error) {
+	res := &tonapi.Account{}
 	row := t.conn.QueryRow(queryGetAccount, addr.WorkchainId, addr.Addr)
 	err := row.Scan(
-		&res.BlockId.WorkchainId,
-		&res.BlockId.Shard,
-		&res.BlockId.SeqNo,
+		&res.WorkchainId,
+		&res.Shard,
+		&res.SeqNo,
 		&res.RootHash,
 		&res.FileHash,
 		&res.Time,
@@ -123,7 +124,7 @@ func (t *AccountState) GetAccount(addr ton.AddrStd) (*ton.AccountState, error) {
 
 	res.Addr = utils.NullAddrToString(res.Addr)
 
-	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(res.WorkchainId, res.Addr); err != nil {
+	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(*res.WorkchainId, res.Addr); err != nil {
 		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err
 	}
@@ -131,13 +132,13 @@ func (t *AccountState) GetAccount(addr ton.AddrStd) (*ton.AccountState, error) {
 	return res, nil
 }
 
-func (t *AccountState) GetAccountWithStats(addr ton.AddrStd) (*ton.AccountState, error) {
-	res := &ton.AccountState{}
+func (t *AccountState) GetAccountWithStats(addr ton.AddrStd) (*tonapi.Account, error) {
+	res := &tonapi.Account{}
 	row := t.conn.QueryRow(queryGetAccountWithStats, addr.WorkchainId, addr.Addr, addr.WorkchainId, addr.Addr)
 	err := row.Scan(
-		&res.BlockId.WorkchainId,
-		&res.BlockId.Shard,
-		&res.BlockId.SeqNo,
+		&res.WorkchainId,
+		&res.Shard,
+		&res.SeqNo,
 		&res.RootHash,
 		&res.FileHash,
 		&res.Time,
@@ -162,7 +163,7 @@ func (t *AccountState) GetAccountWithStats(addr ton.AddrStd) (*ton.AccountState,
 
 	res.Addr = utils.NullAddrToString(res.Addr)
 
-	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(res.WorkchainId, res.Addr); err != nil {
+	if res.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(*res.WorkchainId, res.Addr); err != nil {
 		// maybe we don't need to fail, just return account without user friendly address?
 		return nil, err
 	}

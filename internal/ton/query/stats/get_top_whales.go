@@ -9,6 +9,7 @@ import (
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 )
@@ -30,16 +31,6 @@ const (
 
 	WhalesDefaultPageLimit = 50
 )
-
-type Whale struct {
-	AddrRaw string `json:"addr"`
-	AddrUf  string `json:"addr_uf"`
-
-	BalanceNanogram          uint64  `json:"balance_nanogram"`
-	BalancePercentageOfTotal float64 `json:"balance_percentage_of_total"`
-}
-
-type TopWhales []Whale
 
 type GetTopWhales struct {
 	conn            *sql.DB
@@ -73,14 +64,15 @@ func (q *GetTopWhales) UpdateQuery() error {
 	return nil
 }
 
-func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint32) (*TopWhales, error) {
+func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint32) (*[]tonapi.AccountWhale, error) {
 	if limit <= 0 {
 		limit = WhalesDefaultPageLimit
 	}
 
 	if limit+offset > WhalesDefaultCacheLimit {
 		// empty result after over limit
-		return &TopWhales{}, nil
+		empty := make([]tonapi.AccountWhale, 0)
+		return &empty, nil
 	}
 
 	workchainIdStr := ""
@@ -89,9 +81,9 @@ func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint
 	}
 	if res, err := q.resultCache.Get(cacheKeyTopWhales + workchainIdStr); err == nil {
 		switch res.(type) {
-		case *TopWhales:
-			resPaginated := make(TopWhales, 0, limit)
-			resPaginated = append(resPaginated, (*res.(*TopWhales))[offset:offset+limit]...)
+		case *[]tonapi.AccountWhale:
+			resPaginated := make([]tonapi.AccountWhale, 0, limit)
+			resPaginated = append(resPaginated, (*res.(*[]tonapi.AccountWhale))[offset:offset+limit]...)
 			return &resPaginated, nil
 		default:
 			return nil, errors.New("couldn't get top whales from cache, cache contains object of wrong type")
@@ -101,9 +93,9 @@ func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint
 	return nil, errors.New("couldn't get top whales from cache, wrong workchainId specified or cache is empty")
 }
 
-func (q *GetTopWhales) queryTopWhales(workchainId int32) (*TopWhales, error) {
+func (q *GetTopWhales) queryTopWhales(workchainId int32) (*[]tonapi.AccountWhale, error) {
 	var err error
-	var addrMetrics *AddressesMetricsResult
+	var addrMetrics *tonapi.AddressesMetrics
 
 	var f filter.Filter
 	if workchainId == -2 {
@@ -132,9 +124,9 @@ func (q *GetTopWhales) queryTopWhales(workchainId int32) (*TopWhales, error) {
 		return nil, err
 	}
 
-	var resp = make(TopWhales, 0, WhalesDefaultCacheLimit)
+	var resp = make([]tonapi.AccountWhale, 0, WhalesDefaultCacheLimit)
 	for rows.Next() {
-		whale := Whale{}
+		whale := tonapi.AccountWhale{}
 
 		if err := rows.Scan(&whale.AddrRaw, &whale.BalanceNanogram); err != nil {
 			return nil, err

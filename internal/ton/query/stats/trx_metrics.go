@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
@@ -19,18 +20,13 @@ const (
 	cacheKeyTrxMetrics = "trx_metrics"
 )
 
-type TrxMetricsResult struct {
-	TrxLastDay   uint64 `json:"trx_last_day"`
-	TrxLastMonth uint64 `json:"trx_last_month"`
-}
-
 type TrxMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
 }
 
 func (t *TrxMetrics) UpdateQuery() error {
-	res := TrxMetricsResult{}
+	res := tonapi.TrxMetrics{}
 
 	queryGetTrxMetrics, _, err := filter.RenderQuery(getTrxMetrics, nil)
 	if err != nil {
@@ -43,7 +39,7 @@ func (t *TrxMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyTrxMetrics, &res)
 
-	resWorkchain := TrxMetricsResult{}
+	resWorkchain := tonapi.TrxMetrics{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
 	queryGetTrxMetrics, args, err := filter.RenderQuery(getTrxMetrics, workchainFilter)
@@ -57,7 +53,7 @@ func (t *TrxMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyTrxMetrics+"0", &resWorkchain)
 
-	resMasterchain := TrxMetricsResult{}
+	resMasterchain := tonapi.TrxMetrics{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
 	queryGetTrxMetrics, args, err = filter.RenderQuery(getTrxMetrics, workchainFilter)
@@ -74,11 +70,11 @@ func (t *TrxMetrics) UpdateQuery() error {
 	return nil
 }
 
-func (t *TrxMetrics) GetTrxMetrics(workchainId string) (*TrxMetricsResult, error) {
+func (t *TrxMetrics) GetTrxMetrics(workchainId string) (*tonapi.TrxMetrics, error) {
 	if res, err := t.resultCache.Get(cacheKeyTrxMetrics + workchainId); err == nil {
 		switch res.(type) {
-		case *TrxMetricsResult:
-			return res.(*TrxMetricsResult), nil
+		case *tonapi.TrxMetrics:
+			return res.(*tonapi.TrxMetrics), nil
 		default:
 			return nil, errors.New("couldn't get trx metrics from cache, cache contains object of wrong type")
 		}

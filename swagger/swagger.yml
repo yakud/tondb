@@ -21,55 +21,73 @@ servers:
 components:
   schemas:
 
+    uint64:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 18446744073709551615
+
     Account:
       description: Account
       type: object
+      required:
+        - shard
+        - seq_no
+        - time
+        - addr
+        - addr_uf
+        - balance_nanogram
+        - tick
+        - tock
+        - storage_used_bits
+        - storage_used_cells
+        - storage_used_public_cells
+        - last_trans_lt
+        - last_trans_lt_storage
+        - last_paid
       properties:
         workchain_id:
           type: integer
           format: int32
         shard:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
+        root_hash:
+          type: string
+        file_hash:
+          type: string
+        time:
+          $ref: "#/components/schemas/uint64"
         addr:
           type: string
         addr_uf:
           type: string
           description: User-friendly account address.
+        anycast:
+          type: string
         status:
           type: string
         balance_nanogram:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         tick:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         tock:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         storage_used_bits:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         storage_used_cells:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         storage_used_public_cells:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         last_trans_hash:
           type: string
         last_trans_lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         last_trans_lt_storage:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         last_paid:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         messages_count:
           type: integer
           format: int64
@@ -86,6 +104,10 @@ components:
 
     SentAndFees:
       type: object
+      required:
+        - time
+        - avg_sent
+        - avg_fees
       properties:
         time:
           description: "time of beginning of the day for which these metrics were calculated"
@@ -102,46 +124,59 @@ components:
     BlockInFeed:
       description: Block in feed
       type: object
+      required:
+        - workchain_id
+        - shard
+        - seq_no
+        - time
+        - start_lt
+        - total_fees_nanograms
+        - root_hash
+        - file_hash
+        - trx_count
+        - value_nanograms
+        - ihr_fee_nanograms
+        - import_fee_nanograms
+        - fwd_fee_nanograms
       properties:
         workchain_id:
           type: integer
           format: int32
         shard:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         time:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         start_lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_fees_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         root_hash:
+          type: string
+        file_hash:
           type: string
         trx_count:
           type: integer
           format: int64
         value_nanograms:
-          type: integer
-          format: int64
-        ihr_fee_nanograms:
-          type: integer
-          format: int64
-        import_fee_nanograms:
-          type: integer
-          format: int64
-        fwd_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
 
     AccountMessage:
       description: Account transaction
       type: object
+      required:
+        - seq_no
+        - account_addr
+        - account_addr_uf
+        - lt
+        - time
+        - message_lt
+        - src
+        - src_uf
+        - dest
+        - dest_uf
+        - body
       properties:
         workchain_id:
           type: integer
@@ -149,19 +184,16 @@ components:
         shard:
           type: string
         seq_no:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         account_addr:
           type: string
         account_addr_uf:
           type: string
           description: User-friendly account address.
         lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         time:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         type:
           type: string
         trx_hash:
@@ -169,8 +201,7 @@ components:
         message_type:
           type: string
         message_lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         direction:
           type: string
         src_workchain_id:
@@ -219,19 +250,21 @@ components:
     BlockId:
       description: Block ID
       type: object
+      required:
+        - workchain_id
+        - shard
+        - seq_no
       properties:
         workchain_id:
           type: integer
           format: int32
           description: Workchain ID
         shard:
-          type: integer
-          format: int64
           description: Shard DEC
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
           description: Sequence number
+          $ref: "#/components/schemas/uint64"
 
     BlockIdString:
       description: "Block ID string in format: (WorkchainId,ShardHEX,SeqNo)"
@@ -240,69 +273,80 @@ components:
     ShardBlock:
       description: Shard block
       type: object
+      required:
+        - workchain_id
+        - shard
+        - seq_no
       properties:
         workchain_id:
           type: integer
           format: int32
           description: Workchain ID
         shard:
-          type: integer
-          format: int64
           description: Shard DEC
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
           description: Sequence number
+          $ref: "#/components/schemas/uint64"
 
     ShardBlocksRange:
       description: Shard blocks range
       type: object
+      required:
+        - master_seq
+        - workchain_id
+        - shard
+        - from_seq
+        - to_seq
       properties:
         master_seq:
-          type: integer
-          format: int64
           description: Master block sequence number
+          $ref: "#/components/schemas/uint64"
         workchain_id:
           type: integer
           format: int32
           description: Workchain ID
         shard:
-          type: integer
-          format: int64
           description: Shard DEC
+          $ref: "#/components/schemas/uint64"
         from_seq:
-          type: integer
-          format: int64
           description: From sequence number
+          $ref: "#/components/schemas/uint64"
         to_seq:
-          type: integer
-          format: int64
           description: From sequence number
+          $ref: "#/components/schemas/uint64"
 
     BlockInfo:
       description: Block info
       type: object
+      required:
+        - shard
+        - seq_no
+        - prev_seq_no
+        - next_seq_no
+        - min_ref_mc_seqno
+        - prev_key_block_seqno
+        - gen_catchain_seqno
+        - gen_utime
+        - start_lt
+        - end_lt
       properties:
         workchain_id:
           type: integer
           format: int32
           description: Workchain ID
         shard:
-          type: integer
-          format: int64
           description: Shard DEC
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
           description: Sequence number
+          $ref: "#/components/schemas/uint64"
         prev_seq_no:
-          type: integer
-          format: int64
           description: Previous sequence number
+          $ref: "#/components/schemas/uint64"
         next_seq_no:
-          type: integer
-          format: int64
           description: Next sequence number
+          $ref: "#/components/schemas/uint64"
         root_hash:
           type: string
           description: root_hash
@@ -310,21 +354,17 @@ components:
           type: string
           description: file_hash
         min_ref_mc_seqno:
-          type: integer
-          format: int64
           description: min_ref_mc_seqno
+          $ref: "#/components/schemas/uint64"
         prev_key_block_seqno:
-          type: integer
-          format: int64
           description: prev_key_block_seqno
+          $ref: "#/components/schemas/uint64"
         gen_catchain_seqno:
-          type: integer
-          format: int64
           description: gen_catchain_seqno
+          $ref: "#/components/schemas/uint64"
         gen_utime:
-          type: integer
-          format: int64
           description: gen_utime
+          $ref: "#/components/schemas/uint64"
         prev1_ref:
           $ref: "#/components/schemas/BlockRef"
         prev2_ref:
@@ -332,13 +372,11 @@ components:
         master_ref:
           $ref: "#/components/schemas/BlockRef"
         start_lt:
-          type: integer
-          format: int64
           description: start_lt
+          $ref: "#/components/schemas/uint64"
         end_lt:
-          type: integer
-          format: int64
           description: end_lt
+          $ref: "#/components/schemas/uint64"
         version:
           type: integer
           format: int32
@@ -373,8 +411,14 @@ components:
           $ref: "#/components/schemas/BlockStats"
 
     BlockStats:
-      description: Value flow
+      description: Block stats
       type: object
+      required:
+        - sent_nanograms
+        - trx_total_fees_nanograms
+        - msg_ihr_fee_nanograms
+        - msg_import_fee_nanograms
+        - msg_fwd_fee_nanograms
       properties:
         trx_count:
           type: integer
@@ -383,65 +427,62 @@ components:
           type: integer
           format: int32
         sent_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         trx_total_fees_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         msg_ihr_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         msg_import_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         msg_fwd_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
 
     ValueFlow:
       description: Value flow
       type: object
+      required:
+        - from_prev_blk
+        - to_next_block
+        - imported
+        - exported
+        - fees_collected
+        - fees_imported
+        - recovered
+        - created
+        - minted
       properties:
         from_prev_blk:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         to_next_blk:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         imported:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         exported:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         fees_collected:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         fees_imported:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         recovered:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         created:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         minted:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
 
     BlockRef:
       description: Block ref
       type: object
+      required:
+        - end_lt
+        - seq_no
       properties:
         end_lt:
-          type: integer
-          format: int64
           description: end_lt
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
           description: seq_no
+          $ref: "#/components/schemas/uint64"
         file_hash:
           type: string
           description: file_hash
@@ -452,19 +493,23 @@ components:
     Transaction:
       description: Transaction
       type: object
+      required:
+        - account_addr
+        - account_addr_uf
+        - workchain_id
+        - now
+        - is_tock
       properties:
         workchain_id:
           type: integer
           format: int32
           description: Workchain ID
         shard:
-          type: integer
-          format: int64
           description: Shard DEC
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
           description: Sequence number
+          $ref: "#/components/schemas/uint64"
         hash:
           type: string
           description: Transaction hash
@@ -472,25 +517,19 @@ components:
           type: string
           description: Transaction type
         lt:
-          type: integer
-          format: int64
           description: lt
+          $ref: "#/components/schemas/uint64"
         now:
-          type: integer
-          format: int64
           description: now
+          $ref: "#/components/schemas/uint64"
         is_tock:
-          type: integer
-          format: int64
-          description: is_tock
+          type: boolean
         total_nanograms:
-          type: integer
-          format: int64
           description: total_nanograms
+          $ref: "#/components/schemas/uint64"
         total_fees_nanograms:
-          type: integer
-          format: int64
           description: total_fees_nanograms
+          $ref: "#/components/schemas/uint64"
         total_fees_nanograms_len:
           type: integer
           format: int32
@@ -508,9 +547,8 @@ components:
           type: string
           description: end_status
         prev_trans_lt:
-          type: integer
-          format: int64
           description: prev_trans_lt
+          $ref: "#/components/schemas/uint64"
         prev_trans_hash:
           type: string
           description: prev_trans_hash
@@ -520,6 +558,20 @@ components:
         state_update_old_hash:
           type: string
           description: state_update_old_hash
+        aborted:
+          type: boolean
+        destroyed:
+          type: boolean
+        credit_first:
+          type: boolean
+        action_phase:
+          $ref: "#/components/schemas/ActionPhase"
+        compute_phase:
+          $ref: "#/components/schemas/ComputePhase"
+        storage_phase:
+          $ref: "#/components/schemas/StoragePhase"
+        credit_phase:
+          $ref: "#/components/schemas/CreditPhase"
         in_msg:
           $ref: "#/components/schemas/TransactionMessage"
         out_msgs:
@@ -531,6 +583,22 @@ components:
     TransactionMessage:
       description: Transaction message
       type: object
+      required:
+        - bounce
+        - bounced
+        - ihr_disabled
+        - type
+        - init
+        - created_at
+        - created_lt
+        - value_nanograms
+        - fwd_fee_nanograms
+        - ihr_fee_nanograms
+        - import_fee_nanograms
+        - value_nanograms_len
+        - fwd_fee_nanograms_len
+        - ihr_fee_nanograms_len
+        - import_fee_nanograms_len
       properties:
         trx_hash:
           type: string
@@ -548,25 +616,21 @@ components:
           type: boolean
           description: bounced
         created_at:
-          type: integer
-          format: int64
           description: created_at
+          $ref: "#/components/schemas/uint64"
         created_lt:
-          type: integer
-          format: int64
           description: created_lt
+          $ref: "#/components/schemas/uint64"
         value_nanograms:
-          type: integer
-          format: int64
           description: value_nanograms
+          $ref: "#/components/schemas/uint64"
         value_nanograms_len:
           type: integer
           format: int32
           description: value_nanograms_len
         fwd_fee_nanograms:
-          type: integer
-          format: int64
           description: fwd_fee_nanograms
+          $ref: "#/components/schemas/uint64"
         fwd_fee_nanograms_len:
           type: integer
           format: int32
@@ -575,17 +639,15 @@ components:
           type: boolean
           description: ihr_disabled
         ihr_fee_nanograms:
-          type: integer
-          format: int64
           description: ihr_fee_nanograms
+          $ref: "#/components/schemas/uint64"
         ihr_fee_nanograms_len:
           type: integer
           format: int32
           description: ihr_fee_nanograms_len
         import_fee_nanograms:
-          type: integer
-          format: int64
           description: import_fee_nanograms
+          $ref: "#/components/schemas/uint64"
         import_fee_nanograms_len:
           type: integer
           format: int32
@@ -604,6 +666,12 @@ components:
     AddrStd:
       description: Addr
       type: object
+      required:
+        - is_empty
+        - workchain_id
+        - addr
+        - addr_uf
+        - anycast
       properties:
         is_empty:
           type: boolean
@@ -622,9 +690,126 @@ components:
           type: string
           description: anycast
 
+    ActionPhase:
+      description: Action phase
+      type: object
+      properties:
+        success:
+          type: boolean
+        valid:
+          type: boolean
+        no_funds:
+          type: boolean
+        code_changed:
+          type: boolean
+        action_list_invalid:
+          type: boolean
+        acc_delete_req:
+          type: boolean
+        acc_status_change:
+          type: string
+        total_fwd_fees:
+          $ref: "#/components/schemas/uint64"
+        total_action_fees:
+          $ref: "#/components/schemas/uint64"
+        result_code:
+          type: integer
+          format: int32
+        result_arg:
+          type: integer
+          format: int32
+        tot_actions:
+          type: integer
+          format: int64
+        spec_actions:
+          type: integer
+          format: int64
+        skipped_actions:
+          type: integer
+          format: int64
+        msgs_created:
+          type: integer
+          format: int64
+        remaining_balance:
+          $ref: "#/components/schemas/uint64"
+        reserved_balance:
+          $ref: "#/components/schemas/uint64"
+        end_lt:
+          $ref: "#/components/schemas/uint64"
+        tot_msg_bits:
+          $ref: "#/components/schemas/uint64"
+        tot_msg_cells:
+          $ref: "#/components/schemas/uint64"
+
+    ComputePhase:
+      description: Compute phase
+      type: object
+      properties:
+        skipped:
+          type: boolean
+        skipped_reason:
+          type: string
+        account_activated:
+          type: boolean
+        success:
+          type: boolean
+        msg_state_used:
+          type: boolean
+        out_of_gas:
+          type: boolean
+        accepted:
+          type: boolean
+        exit_arg:
+          type: integer
+          format: int32
+        exit_code:
+          type: integer
+          format: int32
+        mode:
+          type: integer
+          format: int32
+        vm_steps:
+          type: integer
+          format: int64
+        gas_used:
+          $ref: "#/components/schemas/uint64"
+        gas_max:
+          $ref: "#/components/schemas/uint64"
+        gas_credit:
+          $ref: "#/components/schemas/uint64"
+        gas_limit:
+          $ref: "#/components/schemas/uint64"
+        gas_fees:
+          $ref: "#/components/schemas/uint64"
+
+    StoragePhase:
+      description: Storage phase
+      type: object
+      properties:
+        status:
+          type: string
+        fees_collected:
+          $ref: "#/components/schemas/uint64"
+        fees_due:
+          $ref: "#/components/schemas/uint64"
+
+    CreditPhase:
+      description: Credit phase
+      type: object
+      properties:
+        due_fees_collected:
+          $ref: "#/components/schemas/uint64"
+        credit_nanograms:
+          $ref: "#/components/schemas/uint64"
+
     AccountWhale:
       description: ""
       type: object
+      required:
+        - addr_raw
+        - addr_uf
+        - balance_nanogram
+        - balance_percentage_of_total
       properties:
         addr_raw:
           type: string
@@ -633,8 +818,8 @@ components:
           type: string
           description: User-friendly whale account address.
         balance_nanogram:
-          type: integer
           description: Account balance in nanograms.
+          $ref: "#/components/schemas/uint64"
         balance_percentage_of_total:
           type: number
           format: double
@@ -656,6 +841,9 @@ components:
     AddrCount:
       description: ""
       type: object
+      required:
+        - addr
+        - addr_uf
       properties:
         workchain_id:
           type: integer
@@ -671,6 +859,9 @@ components:
 
     MessageFeedResponse:
       type: object
+      required:
+        - scroll_id
+        - messages
       properties:
         scroll_id:
           type: string
@@ -681,6 +872,9 @@ components:
 
     TransactionsFeedResponse:
       type: object
+      required:
+        - scroll_id
+        - transactions
       properties:
         scroll_id:
           type: string
@@ -692,47 +886,63 @@ components:
     MessageFeed:
       description: ""
       type: object
+      required:
+        - workchain_id
+        - shard
+        - seq_no
+        - lt
+        - time
+        - message_lt
+        - trx_hash
+        - direction
+        - src_workchain_id
+        - src
+        - src_uf
+        - dest_workchain_id
+        - dest
+        - dest_uf
+        - value_nanogram
+        - total_fee_nanogram
+        - bounce
+        - body
       properties:
         workchain_id:
           type: integer
           format: int32
         shard:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         time:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         message_lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         trx_hash:
           type: string
         direction:
           type: string
         src_workchain_id:
-          type: string
+          type: integer
+          format: int32
         src:
           type: string
         src_uf:
           type: string
           description: User-friendly source account address.
         dest_workchain_id:
-          type: string
+          type: integer
+          format: int32
         dest:
           type: string
         dest_uf:
           type: string
           description: User-friendly destination account address.
         value_nanogram:
-          type: integer
+          $ref: "#/components/schemas/uint64"
         total_fee_nanogram:
-          type: integer
+          $ref: "#/components/schemas/uint64"
         bounce:
           type: boolean
         body:
@@ -741,27 +951,46 @@ components:
     TransactionsFeed:
       description: ""
       type: object
+      required:
+        - workchain_id
+        - shard
+        - seq_no
+        - time
+        - is_tock
+        - lt
+        - msg_in_created_lt
+        - trx_hash
+        - type
+        - msg_in_type
+        - src_uf
+        - src_workchain_id
+        - account_addr
+        - account_addr_uf
+        - src
+        - dest_uf
+        - dest_workchain_id
+        - dest
+        - total_nanograms
+        - total_fees_nanograms
+        - total_fwd_fee_nanograms
+        - total_ihr_fee_nanograms
+        - total_import_fee_nanograms
       properties:
         workchain_id:
           type: integer
           format: int32
         shard:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         seq_no:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         time:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         is_tock:
           type: integer
         lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         msg_in_created_lt:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         trx_hash:
           type: string
         type:
@@ -772,6 +1001,7 @@ components:
           type: string
         src_workchain_id:
           type: integer
+          format: int32
         account_addr:
           type: string
         account_addr_uf:
@@ -782,27 +1012,25 @@ components:
           type: string
         dest_workchain_id:
           type: integer
+          format: int32
         dest:
           type: string
         total_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_fees_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_fwd_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_ihr_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_import_fee_nanograms:
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
 
     MessagesByTypeResult:
       description: ""
       type: object
+      required:
+        - rows
       properties:
         rows:
           type: array
@@ -811,21 +1039,32 @@ components:
 
     MessagesByTypeTimeseries:
       type: object
+      required:
+        - workchain_id
+        - type
+        - time
+        - messages_count
       properties:
         workchain_id:
           description: workchain_id
-          type: string
+          type: integer
+          format: int32
         type:
           description: type
           type: string
+        msg_type:
+          description: Msg type
+          type: string
         time:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
         messages_count:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
 
     VolumeByGramsResult:
       description: ""
       type: object
+      required:
+        - rows
       properties:
         rows:
           type: array
@@ -834,18 +1073,25 @@ components:
 
     VolumeByGramsTimeseries:
       type: object
+      required:
+        - workchain_id
+        - time
+        - volume_grams
       properties:
         workchain_id:
           description: workchain_id
-          type: string
+          type: integer
+          format: int32
         time:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
         volume_grams:
           $ref: "#/components/schemas/stringArray"
 
     MessagesOrdCountResult:
       description: ""
       type: object
+      required:
+        - rows
       properties:
         rows:
           type: array
@@ -854,54 +1100,68 @@ components:
 
     MessagesOrdCountTimeseries:
       type: object
+      required:
+        - workchain_id
+        - time
+        - count
       properties:
         workchain_id:
           description: workchain_id
-          type: string
+          type: integer
+          format: int32
         time:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
         count:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
 
     TimeseriesBlocksByWorkchain:
       description: ""
       type: object
+      required:
+        - time
+        - masterchain
+        - workchain0
       properties:
         time:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
         masterchain:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
         workchain0:
-          $ref: "#/components/schemas/int64Array"
+          $ref: "#/components/schemas/uint64Array"
 
     GlobalMetrics:
       description: ""
       type: object
+      required:
+        - total_addr
+        - total_nanogram
+        - total_blocks
+        - total_messages
+        - total_transactions
       properties:
         total_addr:
           description: Total number of addresses
           type: integer
           format: int64
         total_nanogram:
+          $ref: "#/components/schemas/uint64"
           description: Total number of nanograms
-          type: integer
-          format: int64
         total_blocks:
           description: Total number of blocks
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_messages:
           description: Total number of messages
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
         total_transactions:
           description: Total number of transactions
-          type: integer
-          format: int64
+          $ref: "#/components/schemas/uint64"
 
     TrxMetrics:
       description: ""
       type: object
+      required:
+        - trx_last_day
+        - trx_last_month
       properties:
         trx_last_day:
           description: "Total number of transactions for last 24 hours"
@@ -915,15 +1175,17 @@ components:
     BlocksMetrics:
       description: ""
       type: object
+      required:
+        - total_blocks
+        - blocks_height
+        - avg_block_time
       properties:
         total_blocks:
+          $ref: "#/components/schemas/uint64"
           description: Total number of blocks
-          type: integer
-          format: int64
         blocks_height:
+          $ref: "#/components/schemas/uint64"
           description: Maximum SeqNo
-          type: integer
-          format: int64
         avg_block_time:
           description: Average time between blocks
           type: number
@@ -932,15 +1194,19 @@ components:
     AddressesMetrics:
       description: ""
       type: object
+      required:
+        - total_addr
+        - total_nanogram
+        - daily_active
+        - monthly_active
       properties:
         total_addr:
           description: Total number of addresses
           type: integer
           format: int64
         total_nanogram:
+          $ref: "#/components/schemas/uint64"
           description: Total number of nanograms
-          type: integer
-          format: int64
         daily_active:
           description: Daily active accounts
           type: integer
@@ -953,15 +1219,18 @@ components:
     MessagesMetrics:
       description: ""
       type: object
+      required:
+        - total_transactions
+        - total_messages
+        - tps
+        - mps
       properties:
         total_transactions:
+          $ref: "#/components/schemas/uint64"
           description: Total number of transactions
-          type: integer
-          format: int64
         total_messages:
+          $ref: "#/components/schemas/uint64"
           description: Total number of messages
-          type: integer
-          format: int64
         tps:
           description: Transactions per second
           type: number
@@ -984,8 +1253,18 @@ components:
         type: integer
         format: int64
 
+    uint64Array:
+      description: Uint64 array type
+      type: array
+      items:
+        $ref: "#/components/schemas/uint64"
+
     SearchResult:
       type: object
+      required:
+        - type
+        - hint
+        - link
       properties:
         type:
           description: Search result type
@@ -1062,7 +1341,9 @@ paths:
           required: true
           description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
           schema:
-            type: string
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: OK
@@ -1091,7 +1372,9 @@ paths:
           required: true
           description: "Master Block ID string in format: (WorkchainId,ShardHEX,SeqNo). You can set multiply block_master's."
           schema:
-            type: string
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: OK
@@ -1127,9 +1410,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/BlockId"
+                $ref: "#/components/schemas/BlockId"
         default:
           description: generic error response
           content:
@@ -1153,17 +1434,21 @@ paths:
       parameters:
         - name: block
           in: query
-          description: "Block ID string in format:
+          description: "Block ID strings in format:
                   (WorkchainId,ShardHEX,SeqNo)"
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: block_master
           in: query
-          description: "Master Block ID string in format:
+          description: "Master Block ID strings in format:
                   (WorkchainId,ShardHEX,SeqNo). Search only in shards
                   block."
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: block_from
           in: query
           description: "Block range from. Block ID string in format:
@@ -1204,7 +1489,9 @@ paths:
           description: "Block ID string in format:
               (WorkchainId,ShardHEX,SeqNo)"
           schema:
-            type: string
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: OK
@@ -1240,12 +1527,16 @@ paths:
           in: query
           description: "Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: block_master
           in: query
           description: "Master Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>. Search only in shards block."
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: block_from
           in: query
           description: "Block range from. Block ID string in format: <b><i>(WorkchainId,ShardHEX,SeqNo)</i></b>"
@@ -1268,28 +1559,37 @@ paths:
           in: query
           description: "Message addr. Search in MessageSrcAddr AND MessageDestAddr. You can set multiple <b>addr</b>'s. Accepts <b>addr</b>'s in both raw and user-friendly format."
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: message_type
           in: query
           description: Message type
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: type
           in: query
           description: Transaction type
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: hash
           in: query
           description: Transaction hash
           schema:
-            type: string
+            type: array
+            items:
+              type: string
         - name: lt
           in: query
           description: Logical Time
           schema:
-            type: integer
-            format: int64
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: OK
@@ -1317,6 +1617,7 @@ paths:
         - name: hash
           in: query
           description: Transaction hash
+          required: true
           schema:
             type: string
       responses:
@@ -1464,6 +1765,7 @@ paths:
           description: Workchain Id filter
           schema:
             type: integer
+            format: int32
       responses:
         "200":
           description: OK
@@ -1581,6 +1883,7 @@ paths:
           description: Workchain Id filter
           schema:
             type: integer
+            format: int32
       responses:
         "200":
           description: OK
@@ -1595,7 +1898,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/error"
 
-  /v1/message:
+  /v1/message/get:
     get:
       summary: Get message
       tags:
@@ -1614,6 +1917,7 @@ paths:
           required: true
           schema:
             type: integer
+            format: int64
       responses:
         "200":
           description: OK
@@ -1645,12 +1949,14 @@ paths:
           description: Limit messages
           schema:
             type: integer
+            format: int32
             default: 50
         - name: workchain_id
           in: query
           description: Workchain Id filter
           schema:
             type: integer
+            format: int32
       responses:
         "200":
           description: OK
@@ -1697,19 +2003,21 @@ paths:
           description: Get top whales for specific WorckchainId. Do not specify to get
             workchain agnostic stats.
           schema:
-            type: string
-            default: ""
+            type: integer
+            format: int32
         - name: limit
           in: query
           description: Get top whales with limit. Do not specify to get first 50 whales.
           schema:
             type: integer
+            format: int64
             default: 50
         - name: offset
           in: query
           description: Get top whales with offset. Do not specify to get first whales (with no offset applied).
           schema:
             type: integer
+            format: int64
             default: 0
       responses:
         "200":

@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"net/http"
 	"strings"
 
@@ -11,31 +12,28 @@ import (
 
 	apiFilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 )
 
 type GetBlockTlb struct {
 	blocksFetcher *blocks_fetcher.Client
 }
 
-func (m *GetBlockTlb) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (m *GetBlockTlb) GetV1BlockTlb(ctx echo.Context, params tonapi.GetV1BlockTlbParams) error {
 	// block
-	blockFilter, err := apiFilter.BlockFilterFromRequest(r, "block", 1)
+	blockFilter, err := apiFilter.BlockFilterFromParam(params.Block, 1)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"`+err.Error()+`"}`))
 	}
 
 	if len(blockFilter.Blocks()) != 1 {
-		http.Error(w, `{"error":true,"message":"should be exactly one block"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"should be exactly one block"}`))
 	}
 
 	block := blockFilter.Blocks()[0]
 	blockTlb, err := m.blocksFetcher.FetchBlockTlb(*block, blocks_fetcher.FormatBoc)
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"tlb block fetch error"}`, http.StatusInternalServerError)
-		return
+		return ctx.JSONBlob(http.StatusInternalServerError, []byte(`{"error":true,"message":"tlb block fetch error"}`))
 	}
 	fileName := fmt.Sprintf(
 		"(%d,%s,%d).boc",
@@ -43,9 +41,14 @@ func (m *GetBlockTlb) Handler(w http.ResponseWriter, r *http.Request, p httprout
 		strings.ToUpper(utils.DecToHex(block.Shard)),
 		block.SeqNo,
 	)
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
-	w.WriteHeader(200)
-	w.Write(blockTlb)
+
+	responseWriter := ctx.Response().Writer
+
+	responseWriter.Header().Set("Content-Disposition", "attachment; filename=\""+fileName+"\"")
+	responseWriter.WriteHeader(200)
+	_, err = responseWriter.Write(blockTlb)
+
+	return err
 }
 
 func NewGetBlockTlb(blocksFetcher *blocks_fetcher.Client) *GetBlockTlb {

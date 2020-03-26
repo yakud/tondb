@@ -2,13 +2,16 @@ package search
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"strconv"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
 
-func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
+func (s *Searcher) searchBlockFull(q string) ([]tonapi.SearchResult, error) {
 	blockId, err := ton.ParseBlockId(q)
 	if err != nil {
 		return nil, fmt.Errorf("error parse blocks id full '%s', %w", q, err)
@@ -22,11 +25,11 @@ func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
 		return nil, fmt.Errorf("block not found '%s'", q)
 	}
 
-	var result []Result
+	var result []tonapi.SearchResult
 	for _, block := range blocks {
-		blockIdStr := block.BlockId.String()
-		result = append(result, Result{
-			Type: ResultTypeBlock,
+		blockIdStr := fmt.Sprintf("(%d,%s,%d)", *block.WorkchainId, strings.ToUpper(utils.DecToHex(uint64(block.Shard))), block.SeqNo)
+		result = append(result, tonapi.SearchResult{
+			Type: string(ResultTypeBlock),
 			Hint: blockIdStr,
 			Link: "/block/info?block=" + blockIdStr,
 		})
@@ -35,7 +38,7 @@ func (s *Searcher) searchBlockFull(q string) ([]Result, error) {
 	return result, nil
 }
 
-func (s *Searcher) searchBlocksBySeqNo(q string) ([]Result, error) {
+func (s *Searcher) searchBlocksBySeqNo(q string) ([]tonapi.SearchResult, error) {
 	blockSeqNo, err := strconv.ParseUint(q, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("is not number '%s': %w", q, err)
@@ -46,10 +49,10 @@ func (s *Searcher) searchBlocksBySeqNo(q string) ([]Result, error) {
 		return nil, err
 	}
 
-	var result []Result
+	var result []tonapi.SearchResult
 	for _, blockId := range blocksId {
-		result = append(result, Result{
-			Type: ResultTypeBlock,
+		result = append(result, tonapi.SearchResult{
+			Type: string(ResultTypeBlock),
 			Hint: blockId.String(),
 			Link: "/block/info?block=" + blockId.String(),
 		})

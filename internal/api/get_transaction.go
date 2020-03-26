@@ -2,14 +2,15 @@ package api
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 	"net/http"
-
-	apiFilter "gitlab.flora.loc/mills/tondb/internal/api/filter"
+	"strings"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/storage"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query"
 )
 
@@ -18,33 +19,23 @@ type GetTransactions struct {
 	shardsDescrStorage *storage.ShardsDescr
 }
 
-func (m *GetTransactions) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	trFilter, err := apiFilter.TransactionHashByIndexFilterFromRequest(r, "hash")
+func (m *GetTransactions) GetV1Transaction(ctx echo.Context, params tonapi.GetV1TransactionParams) error {
+	trFilter, err := filter.NewTransactionHashByIndex(strings.ToUpper(params.Hash))
 	if err != nil {
-		http.Error(w, `{"error":true,"message":"`+err.Error()+`"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"`+err.Error()+`"}`))
 	}
 
 	if trFilter == nil {
-		http.Error(w, `{"error":true,"message":"empty hash filter"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"empty hash filter"}`))
 	}
 
 	blocksTransactions, err := m.q.SearchByFilter(trFilter)
 	if err != nil {
 		log.Println(fmt.Errorf("query SearchByFilter error: %w", err))
-		http.Error(w, `{"error":true,"message":"SearchByFilter query error"}`, http.StatusBadRequest)
-		return
+		return ctx.JSONBlob(http.StatusBadRequest, []byte(`{"error":true,"message":"SearchByFilter query error"}`))
 	}
 
-	resp, err := json.Marshal(blocksTransactions)
-	if err != nil {
-		http.Error(w, `{"error":true,"message":"response json marshaling error"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(200)
-	w.Write(resp)
+	return ctx.JSON(http.StatusOK, blocksTransactions)
 }
 
 func NewGetTransactions(q *query.SearchTransactions) *GetTransactions {

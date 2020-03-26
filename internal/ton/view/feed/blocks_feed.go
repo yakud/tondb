@@ -1,6 +1,7 @@
 package feed
 
 import (
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -102,19 +103,6 @@ const (
 `
 )
 
-type BlockInFeed struct {
-	WorkchainId        int32  `db:"WorkchainId" json:"workchain_id"`
-	Shard              uint64 `db:"Shard" json:"shard"`
-	SeqNo              uint64 `db:"SeqNo" json:"seq_no"`
-	Time               uint64 `db:"TimeUnix" json:"time"`
-	StartLt            uint64 `db:"StartLt" json:"start_lt"`
-	RootHash           string `db:"RootHash" json:"root_hash"`
-	FileHash           string `db:"FileHash" json:"file_hash"`
-	TotalFeesNanograms uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
-	TrxCount           uint64 `db:"TrxCount" json:"trx_count"`
-	ValueNanograms     uint64 `db:"ValueNanograms" json:"value_nanograms"`
-}
-
 type BlocksFeedScrollId struct {
 	Time        uint64 `json:"t"`
 	Lt          uint64 `json:"l"`
@@ -147,7 +135,7 @@ func (t *BlocksFeed) DropTable() error {
 	return err
 }
 
-func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([]*BlockInFeed, *BlocksFeedScrollId, error) {
+func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([]tonapi.BlockInFeed, *BlocksFeedScrollId, error) {
 	if scrollId == nil {
 		scrollId = &BlocksFeedScrollId{
 			WorkchainId: EmptyWorkchainId,
@@ -178,14 +166,18 @@ func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([
 	}
 	defer rows.Close()
 
-	var feed []*BlockInFeed
+	var feed []tonapi.BlockInFeed
 	for rows.Next() {
-		msg := &BlockInFeed{}
-		if err := rows.StructScan(msg); err != nil {
+		msg := &tonapi.BlockInFeed{}
+
+		err := rows.Scan(&msg.WorkchainId, &msg.Shard, &msg.SeqNo, &msg.Time, &msg.StartLt, &msg.RootHash,
+			&msg.FileHash, &msg.TrxCount, &msg.ValueNanograms, &msg.TotalFeesNanograms)
+
+		if err != nil {
 			return nil, nil, err
 		}
 
-		feed = append(feed, msg)
+		feed = append(feed, *msg)
 	}
 
 	if len(feed) == 0 {
@@ -194,9 +186,9 @@ func (t *BlocksFeed) SelectBlocks(scrollId *BlocksFeedScrollId, limit uint16) ([
 
 	var lastMsg = feed[len(feed)-1]
 	newScrollId := &BlocksFeedScrollId{
-		Time:        lastMsg.Time,
-		Lt:          lastMsg.StartLt,
-		Shard:       lastMsg.Shard,
+		Time:        uint64(lastMsg.Time),
+		Lt:          uint64(lastMsg.StartLt),
+		Shard:       uint64(lastMsg.Shard),
 		WorkchainId: scrollId.WorkchainId,
 	}
 

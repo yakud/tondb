@@ -2,6 +2,7 @@ package timeseries
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
@@ -25,35 +26,43 @@ const (
 `
 )
 
-type BlocksByWorkchain struct {
-	Time        []uint64 `json:"time"`
-	Masterchain []uint64 `json:"masterchain"`
-	Workchain0  []uint64 `json:"workchain0"`
-}
-
 type GetBlocksByWorkchain struct {
 	conn        *sql.DB
 	resultCache *cache.WithTimer
 }
 
-func (q *GetBlocksByWorkchain) GetBlocksByWorkchain() (*BlocksByWorkchain, error) {
+func (q *GetBlocksByWorkchain) GetBlocksByWorkchain() (*tonapi.TimeseriesBlocksByWorkchain, error) {
 	if res, ok := q.resultCache.Get(); ok {
 		switch res.(type) {
-		case *BlocksByWorkchain:
-			return res.(*BlocksByWorkchain), nil
+		case *tonapi.TimeseriesBlocksByWorkchain:
+			return res.(*tonapi.TimeseriesBlocksByWorkchain), nil
 		}
 	}
 
 	row := q.conn.QueryRow(selectBlocksCountByWorkchain, []byte("INTERVAL 8 MINUTE"))
 
-	var resp = &BlocksByWorkchain{
-		Time:        make([]uint64, 8*60/5), // 8 min by 5 sec per point
-		Masterchain: make([]uint64, 8*60/5),
-		Workchain0:  make([]uint64, 8*60/5),
+	times := make([]uint64, 8*60/5)
+	masterchains := make([]uint64, 8*60/5)
+	workchain0s := make([]uint64, 8*60/5)
+
+	var resp = &tonapi.TimeseriesBlocksByWorkchain{
+		Time:        make([]tonapi.Uint64, 0, 8*60/5), // 8 min by 5 sec per point
+		Masterchain: make([]tonapi.Uint64, 0, 8*60/5),
+		Workchain0:  make([]tonapi.Uint64, 0, 8*60/5),
 	}
 
-	if err := row.Scan(&resp.Time, &resp.Masterchain, &resp.Workchain0); err != nil {
+	if err := row.Scan(&times, &masterchains, &workchain0s); err != nil {
 		return nil, err
+	}
+
+	for _, v := range times {
+		resp.Time = append(resp.Time, tonapi.Uint64(v))
+	}
+	for _, v := range masterchains {
+		resp.Masterchain= append(resp.Masterchain, tonapi.Uint64(v))
+	}
+	for _, v := range workchain0s {
+		resp.Workchain0 = append(resp.Workchain0, tonapi.Uint64(v))
 	}
 
 	q.resultCache.Set(resp)

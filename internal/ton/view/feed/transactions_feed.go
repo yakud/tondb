@@ -2,6 +2,7 @@ package feed
 
 import (
 	"fmt"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -101,32 +102,6 @@ const (
 `
 )
 
-type TransactionInFeed struct {
-	WorkchainId             int32  `db:"WorkchainId" json:"workchain_id"`
-	Shard                   uint64 `db:"Shard" json:"shard"`
-	SeqNo                   uint64 `db:"SeqNo" json:"seq_no"`
-	TimeUnix                uint64 `db:"TimeUnix" json:"time"`
-	Lt                      uint64 `db:"Lt" json:"lt"`
-	MsgInCreatedLt          uint64 `db:"MsgInCreatedLt" json:"msg_in_created_lt"`
-	TrxHash                 string `db:"TrxHash" json:"trx_hash"`
-	Type                    string `db:"Type" json:"type"`
-	AccountAddr             string `db:"AccountAddr" json:"account_addr"`
-	AccountAddrUF           string `db:"-" json:"account_addr_uf"`
-	IsTock                  uint8  `db:"IsTock" json:"is_tock"`
-	MsgInType               string `db:"MsgInType" json:"msg_in_type"`
-	SrcUf                   string `db:"-" json:"src_uf"`
-	SrcWorkchainId          int32  `db:"SrcWorkchainId" json:"src_workchain_id"`
-	Src                     string `db:"Src" json:"src"`
-	DestUf                  string `db:"-" json:"dest_uf"`
-	DestWorkchainId         int32  `db:"DestWorkchainId" json:"dest_workchain_id"`
-	Dest                    string `db:"Dest" json:"dest"`
-	TotalNanograms          uint64 `db:"TotalNanograms" json:"total_nanograms"`
-	TotalFeesNanograms      uint64 `db:"TotalFeesNanograms" json:"total_fees_nanograms"`
-	TotalFwdFeeNanograms    uint64 `db:"TotalFwdFeeNanograms" json:"total_fwd_fee_nanograms"`
-	TotalIhrFeeNanograms    uint64 `db:"TotalIhrFeeNanograms" json:"total_ihr_fee_nanograms"`
-	TotalImportFeeNanograms uint64 `db:"TotalImportFeeNanograms" json:"total_import_fee_nanograms"`
-}
-
 type TransactionsFeedScrollId struct {
 	Time        uint64 `json:"t"`
 	Lt          uint64 `json:"l"`
@@ -157,7 +132,7 @@ func (t *TransactionsFeed) DropTable() error {
 	return err
 }
 
-func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId, limit uint16) ([]*TransactionInFeed, *TransactionsFeedScrollId, error) {
+func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId, limit uint16) ([]tonapi.TransactionsFeed, *TransactionsFeedScrollId, error) {
 	if scrollId == nil {
 		scrollId = &TransactionsFeedScrollId{
 			WorkchainId: EmptyWorkchainId,
@@ -186,10 +161,16 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 		return nil, nil, err
 	}
 	defer rows.Close()
-	var feed []*TransactionInFeed
+	var feed []tonapi.TransactionsFeed
 	for rows.Next() {
-		trx := &TransactionInFeed{}
-		if err := rows.StructScan(trx); err != nil {
+		trx := tonapi.TransactionsFeed{}
+
+		err := rows.Scan(&trx.WorkchainId, &trx.Shard, &trx.SeqNo, &trx.Time, &trx.Lt, &trx.MsgInCreatedLt, &trx.TrxHash,
+			&trx.Type, &trx.AccountAddr, &trx.IsTock, &trx.MsgInType, &trx.SrcWorkchainId, &trx.Src, &trx.DestWorkchainId,
+			&trx.Dest, &trx.TotalNanograms, &trx.TotalFeesNanograms, &trx.TotalFwdFeeNanograms, &trx.TotalIhrFeeNanograms,
+			&trx.TotalImportFeeNanograms)
+
+		if err != nil {
 			return nil, nil, err
 		}
 
@@ -211,7 +192,7 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 			}
 		}
 		if trx.AccountAddr != "" {
-			if trx.AccountAddrUF, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, trx.AccountAddr); err != nil {
+			if trx.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, trx.AccountAddr); err != nil {
 				// Maybe we shouldn't fail here?
 				return nil, nil, fmt.Errorf("error make uf address: %w", err)
 			}
@@ -225,9 +206,9 @@ func (t *TransactionsFeed) SelectTransactions(scrollId *TransactionsFeedScrollId
 	}
 	var lastTrx = feed[len(feed)-1]
 	newScrollId := &TransactionsFeedScrollId{
-		Time:        lastTrx.TimeUnix,
-		Lt:          lastTrx.Lt,
-		MessageLt:   lastTrx.MsgInCreatedLt,
+		Time:        uint64(lastTrx.Time),
+		Lt:          uint64(lastTrx.Lt),
+		MessageLt:   uint64(lastTrx.MsgInCreatedLt),
 		WorkchainId: scrollId.WorkchainId,
 	}
 

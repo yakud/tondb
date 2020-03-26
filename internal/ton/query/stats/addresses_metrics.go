@@ -6,6 +6,7 @@ import (
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 )
 
 const (
@@ -64,20 +65,13 @@ const (
 	cacheKeyAddressesMetrics = "addresses_metrics"
 )
 
-type AddressesMetricsResult struct {
-	TotalAddr     uint64 `json:"total_addr"`
-	TotalNanogram uint64 `json:"total_nanogram"`
-	DailyActive   uint64 `json:"daily_active"`
-	MonthlyActive uint64 `json:"monthly_active"`
-}
-
 type AddressesMetrics struct {
 	conn        *sql.DB
 	resultCache cache.Cache
 }
 
 func (t *AddressesMetrics) UpdateQuery() error {
-	res := AddressesMetricsResult{}
+	res := tonapi.AddressesMetrics{}
 
 	filterAll := filter.NewKV("1", 1)
 	queryGetTotalAddrAndNanogram, args, err := filter.RenderQuery(getTotalAddrAndNanogram, filterAll, filterAll)
@@ -109,7 +103,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyAddressesMetrics, &res)
 
-	resWorkchain := AddressesMetricsResult{}
+	resWorkchain := tonapi.AddressesMetrics{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
 	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
@@ -141,7 +135,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 
 	t.resultCache.Set(cacheKeyAddressesMetrics+"0", &resWorkchain)
 
-	resMasterchain := AddressesMetricsResult{}
+	resMasterchain := tonapi.AddressesMetrics{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
 	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
@@ -176,11 +170,11 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	return nil
 }
 
-func (t *AddressesMetrics) GetAddressesMetrics(workchainId string) (*AddressesMetricsResult, error) {
+func (t *AddressesMetrics) GetAddressesMetrics(workchainId string) (*tonapi.AddressesMetrics, error) {
 	if res, err := t.resultCache.Get(cacheKeyAddressesMetrics + workchainId); err == nil {
 		switch res.(type) {
-		case *AddressesMetricsResult:
-			return res.(*AddressesMetricsResult), nil
+		case *tonapi.AddressesMetrics:
+			return res.(*tonapi.AddressesMetrics), nil
 		default:
 			return nil, errors.New("couldn't get addresses metrics from cache, cache contains object of wrong type")
 		}

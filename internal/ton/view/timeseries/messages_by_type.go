@@ -2,6 +2,7 @@ package timeseries
 
 import (
 	"database/sql"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 	"time"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
@@ -77,11 +78,11 @@ func (t *MessagesByType) DropTable() error {
 	return err
 }
 
-func (t *MessagesByType) GetMessagesByType() (*MessagesByTypeResult, error) {
+func (t *MessagesByType) GetMessagesByType() (*tonapi.MessagesByTypeResult, error) {
 	if res, ok := t.resultCache.Get(); ok {
 		switch res.(type) {
-		case *MessagesByTypeResult:
-			return res.(*MessagesByTypeResult), nil
+		case *tonapi.MessagesByTypeResult:
+			return res.(*tonapi.MessagesByTypeResult), nil
 		}
 	}
 
@@ -90,25 +91,37 @@ func (t *MessagesByType) GetMessagesByType() (*MessagesByTypeResult, error) {
 		return nil, err
 	}
 
-	var resp = &MessagesByTypeResult{
-		Rows: make([]*MessagesByTypeTimeseries, 0),
+	var resp = &tonapi.MessagesByTypeResult{
+		Rows: make([]tonapi.MessagesByTypeTimeseries, 0),
 	}
 
 	for rows.Next() {
-		row := &MessagesByTypeTimeseries{
-			Time:          make([]uint64, 0),
-			MessagesCount: make([]uint64, 0),
+		times := make([]uint64, 0)
+		messagesCount := make([]uint64, 0)
+
+		row := tonapi.MessagesByTypeTimeseries{
+			Time:          make([]tonapi.Uint64, 0),
+			MessagesCount: make([]tonapi.Uint64, 0),
 		}
+
 		if err := rows.Scan(
 			&row.WorkchainId,
 			&row.Type,
 			&row.MsgType,
-			&row.Time,
-			&row.MessagesCount,
+			&times,
+			&messagesCount,
 		); err != nil {
 			rows.Close()
 			return nil, err
 		}
+
+		for _, v := range times {
+			row.Time = append(row.Time, tonapi.Uint64(v))
+		}
+		for _, v := range messagesCount {
+			row.MessagesCount = append(row.MessagesCount, tonapi.Uint64(v))
+		}
+
 		resp.Rows = append(resp.Rows, row)
 	}
 

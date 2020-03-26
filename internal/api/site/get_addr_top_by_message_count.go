@@ -1,41 +1,30 @@
 package site
 
 import (
-	"encoding/json"
-	"net/http"
+	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/labstack/echo/v4"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/stats"
 )
 
 const defaultTopAddrCount = 50
 
-type AddrTopByMessageCountResponse struct {
-	TopIn  []stats.AddrCount `json:"top_in"`
-	TopOut []stats.AddrCount `json:"top_out"`
-}
-
 type GetAddrTopByMessageCount struct {
 	q *stats.AddrMessagesCount
 }
 
-func (api *GetAddrTopByMessageCount) Handler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (api *GetAddrTopByMessageCount) GetV1AddrTopByMessageCount(ctx echo.Context) error {
 	topIn, topOut, err := api.q.SelectTopMessagesCount(defaultTopAddrCount)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error retrieve top accounts from DB"}`))
-		return
+		return err
 	}
 
-	resp, err := json.Marshal(AddrTopByMessageCountResponse{topIn, topOut})
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":true,"message":"error serialize response"}`))
-		return
+	addr := tonapi.AddrTopByMessageCountResponse{
+		TopIn:  &topIn,
+		TopOut: &topOut,
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+	return ctx.JSON(200, addr)
 }
 
 func NewGetAddrTopByMessageCount(q *stats.AddrMessagesCount) *GetAddrTopByMessageCount {

@@ -32,7 +32,7 @@ services:
         CMD_PATH: "cmd/ton-api"
     restart: always
     ports:
-      - 192.168.100.3:8512:8512
+      - 10.236.0.3:8512:8512
     depends_on:
       - go-base
       - redis

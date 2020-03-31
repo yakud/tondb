@@ -39,8 +39,6 @@ services:
     depends_on:
       - go-base
       - redis
-    links:
-      - redis
     environment:
       - ADDR=0.0.0.0:8512
       - CH_ADDR=http://10.236.0.5:8123/default?max_query_size=3145728000

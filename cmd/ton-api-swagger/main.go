@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"gitlab.flora.loc/mills/tondb/internal/server"
-
 	"gitlab.flora.loc/mills/tondb/swagger/tonapi"
 
 	"github.com/deepmap/oapi-codegen/pkg/middleware"
@@ -27,8 +25,8 @@ func main() {
 	e.Use(echomiddleware.Logger())
 	e.Use(middleware.OapiRequestValidator(swagger))
 
-	tonApiServer := &server.TonApi{} // todo: constructor func
-	tonapi.RegisterHandlers(e, tonApiServer)
+	//tonApiServer := &server.TonApi{} // todo: constructor func
+	//tonapi.RegisterHandlers(e, tonApiServer)
 
 	if err := e.Start("0.0.0.0:112233"); err != nil {
 		e.Logger.Fatal(err)

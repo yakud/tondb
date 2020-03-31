@@ -8,9 +8,11 @@ services:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
     volumes:
       - redis_data:/bitnami/redis/data
-    networks:
-      - tondb-net
     network_mode: "host"
+    ports:
+      - 127.0.0.1:6379:6379
+#    networks:
+#      - tondb-net
 #    privileged: true
 #    sysctls:
 #      net.core.somaxconn: '4096'
@@ -43,12 +45,12 @@ services:
       - ADDR=0.0.0.0:8512
       - CH_ADDR=http://10.236.0.5:8123/default?max_query_size=3145728000
       - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
-      - REDIS_ADDR=redis:6379
+      - REDIS_ADDR=127.0.0.1:6379
       - REDIS_PASSWORD=
       - REDIS_DB=0
     network_mode: "host"
-    networks:
-      - tondb-net
+#    networks:
+#      - tondb-net
 #    privileged: true
 #    sysctls:
 #      net.core.somaxconn: '4096'
@@ -57,6 +59,6 @@ volumes:
   redis_data:
     driver: local
 
-networks:
-  tondb-net:
-    driver: bridge
+#networks:
+#  tondb-net:
+#    driver: bridge

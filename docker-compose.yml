@@ -10,9 +10,9 @@ services:
       - redis_data:/bitnami/redis/data
     networks:
       - tondb-net
-    privileged: true
-    sysctls:
-      net.core.somaxconn: '4096'
+#    privileged: true
+#    sysctls:
+#      net.core.somaxconn: '4096'
 
   go-base:
     image: tondb/go-base

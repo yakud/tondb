@@ -53,10 +53,6 @@ func (t *TonApi) GetV1MasterBlockShardsRange(ctx echo.Context, params tonapi.Get
 	panic("implement me")
 }
 
-func (t *TonApi) GetV1MessageGet(ctx echo.Context, params tonapi.GetV1MessageGetParams) error {
-	panic("implement me")
-}
-
 func (t *TonApi) GetV1MessagesFeed(ctx echo.Context, params tonapi.GetV1MessagesFeedParams) error {
 	panic("implement me")
 }

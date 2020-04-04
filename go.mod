@@ -7,6 +7,10 @@ require (
 	github.com/getkin/kin-openapi v0.2.0
 	github.com/go-cmd/cmd v1.1.0
 	github.com/go-redis/redis v6.15.7+incompatible
+	github.com/gobwas/httphead v0.0.0-20180130184737-2c6c146eadee // indirect
+	github.com/gobwas/pool v0.2.0 // indirect
+	github.com/gobwas/ws v1.0.3 // indirect
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/json-iterator/go v1.1.8
 	github.com/julienschmidt/httprouter v1.3.0

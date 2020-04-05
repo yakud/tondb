@@ -30,6 +30,8 @@ func (f *Filter) Match(block *ton.Block) (ok bool) {
 	for _, v := range block.Transactions {
 		ok = v.AccountAddr == f.AccountAddr
 	}
+
+	// TODO: rewrite this logic, it is not how it should be)
 	return block.Info.WorkchainId == f.WorkchainId || block.Info.Shard == f.Shard || ok
 }
 

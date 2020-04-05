@@ -1,4 +1,4 @@
-package blocks_stream_ws
+package main
 
 import (
 	"context"
@@ -125,19 +125,19 @@ func wsHandler(w http.ResponseWriter, req *http.Request) {
 		subHandlers := make([]streaming.SubHandler, 0, 4)
 
 		for {
-			msg, op, err := wsutil.ReadClientData(conn)
+			msg, _, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				// handle error
 			}
 
 			params := &streaming.Params{}
-			if err := json.Unmarshal(msg, params); err != nil {
+			if err := json.Unmarshal(msg, params); err == nil {
 				subHandlers = append(subHandlers, streaming.NewSubHandler(streaming.NewSub(conn, params.Filter), params.FetchFromDb))
 				subManager.Add(&subHandlers[len(subHandlers)-1])
 
-				err = wsutil.WriteServerMessage(conn, op, []byte("subscribed"))
+				err = wsutil.WriteServerMessage(conn, ws.OpText, []byte(subHandlers[len(subHandlers)-1].Sub.Uuid))
 				if err != nil {
-					// handle error
+					log.Println(err)
 				}
 			} else {
 				if id, err := uuid.FromBytes(msg); err == nil {
@@ -148,18 +148,13 @@ func wsHandler(w http.ResponseWriter, req *http.Request) {
 						}
 					}
 
-					err = wsutil.WriteServerMessage(conn, op, []byte("unsubscribed"))
+					err = wsutil.WriteServerMessage(conn, ws.OpText, []byte("unsubscribed"))
 					if err != nil {
 						// handle error
 					}
 				} else {
 					continue
 				}
-			}
-			
-			err = wsutil.WriteServerMessage(conn, op, msg)
-			if err != nil {
-				// handle error
 			}
 		}
 	}()

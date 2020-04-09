@@ -39,7 +39,7 @@ type AccountMessagesCount struct {
 }
 
 func (t *AccountMessagesCount) CreateTable() error {
-	_, err := t.conn.Exec(createAddrMessagesCount)
+	_, err := t.conn.Exec(createAccountMessagesCount)
 	return err
 }
 

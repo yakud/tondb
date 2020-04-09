@@ -53,6 +53,29 @@ services:
 #    sysctls:
 #      net.core.somaxconn: '4096'
 
+  ton-api-preliminary:
+    hostname: ton-api-preliminary
+    build:
+      context: ./
+      dockerfile: ./docker/ton-api/Dockerfile
+      args:
+        PACKAGE: "gitlab.flora.loc/mills/tondb"
+        CMD_PATH: "cmd/ton-api"
+    restart: always
+    ports:
+      - 192.168.100.3:8513
+    depends_on:
+      - go-base
+      - redis
+    environment:
+      - ADDR=0.0.0.0:8513
+      - CH_ADDR=http://10.236.0.5:8123/preliminary?max_query_size=3145728000
+      - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
+      - REDIS_ADDR=127.0.0.1:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=2
+    network_mode: "host"
+
 volumes:
   redis_data:
     driver: local

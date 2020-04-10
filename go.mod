@@ -20,6 +20,7 @@ require (
 	github.com/npat-efault/crc16 v0.0.0-20161013170008-4128ccbe47c3
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
+	github.com/panjf2000/ants/v2 v2.3.1
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/rs/cors v1.7.0

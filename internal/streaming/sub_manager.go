@@ -3,6 +3,8 @@ package streaming
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/panjf2000/ants/v2"
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"sync"
 	"time"
@@ -11,6 +13,7 @@ import (
 type SubManager struct {
 	subs map[Filter][]*SubHandler
 	rw   sync.RWMutex
+	pool *ants.Pool
 }
 
 func (m *SubManager) HandleBlock(block *ton.Block) error {
@@ -44,13 +47,12 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 			for _, sub := range subs {
 				if sub != nil && !sub.Abandoned {
 					switch sub.Sub.Filter.FeedName {
-					// TODO: these goroutines should not be spawned freely, we need to use goroutine pool
 					case "blocks":
-						go sub.Handle(blockJson)
+						return m.poolSubmit(sub, blockJson)
 					case "transactions":
-						go sub.Handle(transactionsJson)
+						return m.poolSubmit(sub, transactionsJson)
 					case "messages":
-						go sub.Handle(messagesJson)
+						return m.poolSubmit(sub, messagesJson)
 					}
 				}
 			}
@@ -115,10 +117,24 @@ func (m *SubManager) collectGarbage() {
 	}
 }
 
-func NewSubManager() *SubManager {
+func (m *SubManager) poolSubmit(sub *SubHandler, res []byte) error {
+	if m.pool == nil {
+		return fmt.Errorf("sub_manager goroutine pool not initialized")
+	}
+
+	var err error
+	err = m.pool.Submit(func() {
+		err = sub.Handle(res)
+	})
+
+	return err
+}
+
+func NewSubManager(pool *ants.Pool) *SubManager {
 	return &SubManager{
 		subs: make(map[Filter][]*SubHandler),
 		rw:   sync.RWMutex{},
+		pool: pool,
 	}
 }
 

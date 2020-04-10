@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/streaming"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -19,13 +20,14 @@ import (
 	"github.com/gobwas/ws/wsutil"
 
 	"github.com/google/uuid"
+	"github.com/panjf2000/ants/v2"
 )
 
 var tlbParser = tlb_pretty.NewParser()
 var treeSimplifier = tlb_pretty.NewTreeSimplifier()
 var astTonConverter = tlb_pretty.NewAstTonConverter()
 var blocksChan = make(chan []byte, 100000)
-var subManager = streaming.NewSubManager()
+var subManager *streaming.SubManager
 
 func handler() func(resp []byte) error {
 	return func(resp []byte) error {
@@ -60,9 +62,9 @@ func workerBlocksHandler() error {
 			//fmt.Println(block.Info.ShardWorkchainId, block.Info.SeqNo)
 			fmt.Print(".")
 
-			if block.Info.WorkchainId == -1 {
-				fmt.Print("(-1;", block.Info.SeqNo, ")")
-			}
+			//if block.Info.WorkchainId == -1 {
+			//	fmt.Print("(-1;", block.Info.SeqNo, ")")
+			//}
 		}
 	}
 
@@ -83,9 +85,18 @@ func main() {
 		serverAddr = "0.0.0.0:7315"
 	}
 
+	pool, err := ants.NewPool(256)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer pool.Release()
+
+	subManager = streaming.NewSubManager(pool)
+
 	wsServer := http.Server{
 		Addr: "0.0.0.0:1818",
-		Handler: http.HandlerFunc(wsHandler),
+		Handler: http.HandlerFunc(wsHandler(pool)),
 	}
 
 	go func() {
@@ -112,17 +123,24 @@ func main() {
 	}
 }
 
-func wsHandler(w http.ResponseWriter, req *http.Request) {
-	conn, _, _, err := ws.UpgradeHTTP(req, w)
-	if err != nil {
-		// handle error
-	}
+func wsHandler(pool *ants.Pool) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		conn, _, _, err := ws.UpgradeHTTP(req, w)
+		if err != nil {
+			// handle error
+		}
 
-	// TODO: we need to use goroutine pool
-	go func() {
+		if err = pool.Submit(manageWsConn(conn)); err != nil {
+			// handle error
+		}
+	}
+}
+
+func manageWsConn(conn net.Conn) func() {
+	return func() {
 		defer conn.Close()
 
-		subHandlers := make([]streaming.SubHandler, 0, 4)
+		connSubHandlers := streaming.NewConnSubHandlers(subManager)
 
 		for {
 			msg, _, err := wsutil.ReadClientData(conn)
@@ -132,24 +150,17 @@ func wsHandler(w http.ResponseWriter, req *http.Request) {
 
 			params := &streaming.Params{}
 			if err := json.Unmarshal(msg, params); err == nil {
-				subHandlers = append(subHandlers, streaming.NewSubHandler(streaming.NewSub(conn, params.Filter), params.FetchFromDb))
-				subManager.Add(&subHandlers[len(subHandlers)-1])
+				id := uuid.New().String()
+				connSubHandlers.AddHandler(conn, *params, id)
 
-				err = wsutil.WriteServerMessage(conn, ws.OpText, []byte(subHandlers[len(subHandlers)-1].Sub.Uuid))
-				if err != nil {
+				if err = wsutil.WriteServerText(conn, []byte(id)); err != nil {
 					log.Println(err)
 				}
 			} else {
-				if id, err := uuid.FromBytes(msg); err == nil {
-					for i := range subHandlers {
-						if subHandlers[i].Sub.Uuid == id.String() {
-							subHandlers[i].Abandoned = true
-							subHandlers = append(subHandlers[:i], subHandlers[i+1:]...)
-						}
-					}
+				if id, err := uuid.Parse(string(msg)); err == nil {
+					connSubHandlers.RemoveHandler(id.String())
 
-					err = wsutil.WriteServerMessage(conn, ws.OpText, []byte("unsubscribed"))
-					if err != nil {
+					if err = wsutil.WriteServerText(conn, []byte("unsubscribed " + id.String())); err != nil {
 						// handle error
 					}
 				} else {
@@ -157,6 +168,6 @@ func wsHandler(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 		}
-	}()
+	}
 }
 

@@ -15,9 +15,9 @@ type Params struct {
 
 type Filter struct {
 	FeedName    string `json:"feed_name"`
-	WorkchainId int32  `json:"workchain_id"`
-	Shard       uint64 `json:"shard"`
-	AccountAddr string `json:"account_addr"`
+	WorkchainId *int32  `json:"workchain_id"`
+	Shard       *uint64 `json:"shard"`
+	AccountAddr *string `json:"account_addr"`
 }
 
 type Sub struct {
@@ -26,13 +26,17 @@ type Sub struct {
 	Uuid   string
 }
 
-func (f *Filter) Match(block *ton.Block) (ok bool) {
-	for _, v := range block.Transactions {
-		ok = v.AccountAddr == f.AccountAddr
+func (f *Filter) Match(block *ton.Block) bool {
+	if f.AccountAddr != nil {
+		for _, v := range block.Transactions {
+			if v.AccountAddr == *f.AccountAddr {
+				return true
+			}
+		}
 	}
 
-	// TODO: rewrite this logic, it is not how it should be)
-	return block.Info.WorkchainId == f.WorkchainId || block.Info.Shard == f.Shard || ok
+	return (f.WorkchainId == nil || (f.WorkchainId != nil && block.Info.WorkchainId == *f.WorkchainId)) &&
+		(f.Shard == nil || (f.Shard != nil && block.Info.Shard == *f.Shard))
 }
 
 func NewSub(conn net.Conn, filter Filter) *Sub {
@@ -43,6 +47,13 @@ func NewSub(conn net.Conn, filter Filter) *Sub {
 	}
 }
 
+func NewSubUuid(conn net.Conn, filter Filter, id string) *Sub {
+	return &Sub{
+		Conn: conn,
+		Filter: filter,
+		Uuid: id,
+	}
+}
 
 
 

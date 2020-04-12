@@ -15,7 +15,7 @@ func AccountFilterFromRequest(r *http.Request, field string) (*filter.Account, e
 		return nil, errors.New("address is empty")
 	}
 	if len(addr) != 1 {
-		return nil, errors.New("wrong count address field should be exactly one")
+		return nil, errors.New("wrong count address field. should be exactly one")
 	}
 
 	accAddr, err := ton.ParseAccountAddress(strings.TrimSpace(addr[0]))

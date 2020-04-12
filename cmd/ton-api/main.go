@@ -86,7 +86,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	accountTransactions := feed.NewAccountTransactions(chConnect)
+	accountTransactions := feed.NewAccountMessages(chConnect)
 	if err := accountTransactions.CreateTable(); err != nil {
 		log.Fatal(err)
 	}
@@ -140,11 +140,12 @@ func main() {
 
 	// Address (account) routes
 	getAccountHandler := api.NewGetAccount(accountState)
-	getAccountTransactions := api.NewGetAccountTransactions(accountTransactions)
+	getAccountMessages := api.NewGetAccountMessages(accountTransactions)
 	getAccountQR := api.NewGetAccountQR()
 	for _, addrRoot := range addressRootAliases {
 		routerGetVersioning(addrRoot, rateLimitMiddleware(getAccountHandler.Handler))
-		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountTransactions.Handler))
+		routerGetVersioning(addrRoot+"/transactions", rateLimitMiddleware(getAccountMessages.Handler)) // TODO: Remove this in favor of /messages. This is deprecated.
+		routerGetVersioning(addrRoot+"/messages", rateLimitMiddleware(getAccountMessages.Handler))
 		routerGetVersioning(addrRoot+"/qr", rateLimitMiddleware(getAccountQR.Handler))
 	}
 
@@ -194,6 +195,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	accountMessagesCount := stats.NewAccountMessagesCount(chConnect)
+	if err := accountMessagesCount.CreateTable(); err != nil {
+		log.Fatal(err)
+	}
+
 	ctxBgCache, _ := context.WithCancel(context.Background())
 	metricsCache := cache.NewBackground()
 	blocksCache := cache.NewBackground()
@@ -204,37 +210,37 @@ func main() {
 		log.Fatal(err)
 	}
 	if err := messagesMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("messagesMetrics error:", err)
 	}
 
 	globalMetrics := statsQ.NewGlobalMetrics(chConnect, metricsCache)
 	if err := globalMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("globalMetrics error:", err)
 	}
 
 	blocksMetrics := statsQ.NewBlocksMetrics(chConnect, metricsCache)
 	if err := blocksMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("blocksMetrics error:", err)
 	}
 
 	addressesMetrics := statsQ.NewAddressesMetrics(chConnect, metricsCache)
 	if err := addressesMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("addressesMetrics error:", err)
 	}
 
 	trxMetrics := statsQ.NewTrxMetrics(chConnect, metricsCache)
 	if err := trxMetrics.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("trxMetrics error:", err)
 	}
 
-	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, globalMetrics)
+	topWhales := statsQ.NewGetTopWhales(chConnect, whalesCache, addressesMetrics)
 	if err := topWhales.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("topWhales error:", err)
 	}
 
 	sentAndFees := timeseriesQ.NewSentAndFees(chConnect, whalesCache)
 	if err := sentAndFees.UpdateQuery(); err != nil {
-		log.Fatal(err)
+		log.Fatal("sentAndFees error:", err)
 	}
 
 	metricsCache.AddQuery(globalMetrics)

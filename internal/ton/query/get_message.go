@@ -2,6 +2,7 @@ package query
 
 import (
 	"database/sql"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
@@ -9,11 +10,12 @@ import (
 const (
 	querySelectMessage = `
 	SELECT  
+		TrxHash,
 		Messages.Type as MessagesType,
 		Messages.Init as MessagesInit,
 		Messages.Bounce as MessagesBounce,
 		Messages.Bounced as MessagesBounced,
-		Messages.CreatedAt as MessagesCreatedAt,
+		if(Messages.CreatedAt != 0, Messages.CreatedAt, toUInt64(TrxTime)) as MessagesCreatedAt,
 		Messages.CreatedLt as MessagesCreatedLt,
 		Messages.ValueNanograms as MessagesValueNanograms,
 		Messages.ValueNanogramsLen as MessagesValueNanogramsLen,
@@ -40,6 +42,8 @@ const (
 	    ) AS BodyValue
 	FROM(
  		SELECT 
+			Hash as TrxHash,
+			Time as TrxTime,
 			Messages.Type,
 			Messages.Init,
 			Messages.Bounce,
@@ -88,19 +92,26 @@ func (t *GetMessage) SelectMessage(trxHash string, messageLt uint64) (msg *ton.T
 	src := ton.AddrStd{}
 	dest := ton.AddrStd{}
 	row := t.conn.QueryRow(querySelectMessage, trxHash, trxHash, messageLt)
-	if err = row.Scan(&msg.Type, &msg.Init, &msg.Bounce, &msg.Bounced, &msg.CreatedAt, &msg.CreatedLt, &msg.ValueNanograms,
+	if err = row.Scan(&msg.TrxHash, &msg.Type, &msg.Init, &msg.Bounce, &msg.Bounced, &msg.CreatedAt, &msg.CreatedLt, &msg.ValueNanograms,
 		&msg.ValueNanogramsLen, &msg.FwdFeeNanograms, &msg.FwdFeeNanogramsLen, &msg.IhrDisabled, &msg.IhrFeeNanograms,
 		&msg.IhrFeeNanogramsLen, &msg.ImportFeeNanograms, &msg.ImportFeeNanogramsLen, &dest.IsEmpty, &dest.WorkchainId,
 		&dest.Addr, &dest.Anycast, &src.IsEmpty, &src.WorkchainId, &src.Addr, &src.Anycast, &msg.BodyType, &msg.BodyValue); err != nil {
 		return nil, err
 	}
 
-	if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
-		return nil, err
+	src.Addr = utils.NullAddrToString(src.Addr)
+	dest.Addr = utils.NullAddrToString(dest.Addr)
+
+	if !src.IsEmpty {
+		if src.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(src.WorkchainId, src.Addr); err != nil {
+			return nil, err
+		}
 	}
 
-	if dest.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(dest.WorkchainId, dest.Addr); err != nil {
-		return nil, err
+	if !dest.IsEmpty {
+		if dest.AddrUf, err = utils.ComposeRawAndConvertToUserFriendly(dest.WorkchainId, dest.Addr); err != nil {
+			return nil, err
+		}
 	}
 
 	msg.Src = src

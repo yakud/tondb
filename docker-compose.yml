@@ -8,11 +8,14 @@ services:
       - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
     volumes:
       - redis_data:/bitnami/redis/data
-    networks:
-      - tondb-net
-    privileged: true
-    sysctls:
-      net.core.somaxconn: '4096'
+    network_mode: "host"
+    ports:
+      - 127.0.0.1:6379:6379
+#    networks:
+#      - tondb-net
+#    privileged: true
+#    sysctls:
+#      net.core.somaxconn: '4096'
 
   go-base:
     image: tondb/go-base
@@ -32,29 +35,51 @@ services:
         CMD_PATH: "cmd/ton-api"
     restart: always
     ports:
-      - 192.168.100.3:8512:8512
+      - 10.236.0.3:8512:8512
     depends_on:
       - go-base
-      - redis
-    links:
       - redis
     environment:
       - ADDR=0.0.0.0:8512
       - CH_ADDR=http://10.236.0.5:8123/default?max_query_size=3145728000
       - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
-      - REDIS_ADDR=redis:6379
+      - REDIS_ADDR=127.0.0.1:6379
       - REDIS_PASSWORD=
       - REDIS_DB=0
-    networks:
-      - tondb-net
-    privileged: true
-    sysctls:
-      net.core.somaxconn: '4096'
+    network_mode: "host"
+#    networks:
+#      - tondb-net
+#    privileged: true
+#    sysctls:
+#      net.core.somaxconn: '4096'
+
+  ton-api-preliminary:
+    hostname: ton-api-preliminary
+    build:
+      context: ./
+      dockerfile: ./docker/ton-api/Dockerfile
+      args:
+        PACKAGE: "gitlab.flora.loc/mills/tondb"
+        CMD_PATH: "cmd/ton-api"
+    restart: always
+    ports:
+      - 192.168.100.3:8513:8513
+    depends_on:
+      - go-base
+      - redis
+    environment:
+      - ADDR=0.0.0.0:8513
+      - CH_ADDR=http://10.236.0.5:8123/preliminary?max_query_size=3145728000
+      - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
+      - REDIS_ADDR=127.0.0.1:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=2
+    network_mode: "host"
 
 volumes:
   redis_data:
     driver: local
 
-networks:
-  tondb-net:
-    driver: bridge
+#networks:
+#  tondb-net:
+#    driver: bridge

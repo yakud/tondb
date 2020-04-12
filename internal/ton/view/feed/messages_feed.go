@@ -16,7 +16,7 @@ const (
 	MaxMessagesLimit     = 500
 
 	createMessagesFeedGlobal = `
-	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobalNew
+	CREATE MATERIALIZED VIEW IF NOT EXISTS _view_feed_MessagesFeedGlobal
 	ENGINE = MergeTree() 
 	PARTITION BY toYYYYMM(Time)
 	ORDER BY (Time, Lt, MessageLt, WorkchainId)

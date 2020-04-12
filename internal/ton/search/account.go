@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton"
-	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
 )
 
@@ -14,10 +13,10 @@ func (s *Searcher) searchAccount(q string) ([]Result, error) {
 		return nil, fmt.Errorf("error parse acc query '%s': %w", q, err)
 	}
 
-	accFilter := filter.NewAccount(ton.AddrStd{
+	accFilter := ton.AddrStd{
 		WorkchainId: workchainId,
 		Addr:        addr,
-	})
+	}
 
 	if _, err := s.accountStorage.GetAccount(accFilter); err != nil {
 		return nil, fmt.Errorf("account not found %s", q)

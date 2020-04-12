@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	// todo: very ugly query, beautify it later
 	querySelectTransactionsByFilter = `
 	SELECT
 		WorkchainId,
@@ -31,6 +30,51 @@ const (
 		PrevTransHash,
 		StateUpdateNewHash,
 		StateUpdateOldHash,
+		ActionPhaseExists,
+		ActionPhaseSuccess,
+		ActionPhaseValid,
+		ActionPhaseNoFunds,
+		ActionPhaseCodeChanged,
+		ActionPhaseActionListInvalid,
+		ActionPhaseAccDeleteReq,
+		ActionPhaseAccStatusChange,
+		ActionPhaseTotalFwdFees,
+		ActionPhaseTotalActionFees,
+		ActionPhaseResultCode,
+		ActionPhaseResultArg,
+		ActionPhaseTotActions,
+		ActionPhaseSpecActions,
+		ActionPhaseSkippedActions,
+		ActionPhaseMsgsCreated,
+		ActionPhaseRemainingBalance,
+		ActionPhaseReservedBalance,
+		ActionPhaseEndLt,
+		ActionPhaseTotMsgBits,
+		ActionPhaseTotMsgCells,
+		ComputePhaseExists,
+		ComputePhaseSkipped,
+		ComputePhaseSkippedReason,
+		ComputePhaseAccountActivated,
+		ComputePhaseSuccess,
+		ComputePhaseMsgStateUsed,
+		ComputePhaseOutOfGas,
+		ComputePhaseAccepted,
+		ComputePhaseExitArg,
+		ComputePhaseExitCode,
+		ComputePhaseMode,
+		ComputePhaseVmSteps,
+		ComputePhaseGasUsed,
+		ComputePhaseGasMax,
+		ComputePhaseGasCredit,
+		ComputePhaseGasLimit,
+		ComputePhaseGasFees,
+		StoragePhaseExists,
+		StoragePhaseStatus,
+		StoragePhaseFeesCollected,
+		StoragePhaseFeesDue,
+		CreditPhaseExists,
+		CreditPhaseDueFeesCollected,
+		CreditPhaseCreditNanograms,
 		Messages.Direction as MessagesDirection,
 		Messages.Type as MessagesType,
 		Messages.Init as MessagesInit,
@@ -56,7 +100,13 @@ const (
 		Messages.SrcAddr as MessagesSrcAddr,
 		Messages.SrcAnycast as MessagesSrcAnycast,
 		Messages.BodyType as MessagesBodyType,
-		Messages.BodyValue as MessagesBodyValue,
+		arrayMap(body -> (
+			if(
+				(substr(body, 1, 10) = 'x{00000000' AND body != 'x{00000000}'),
+				unhex(substring(replaceRegexpAll(body,'x{|}|\t|\n|\ ', ''), 9, length(body))),
+	       		''
+	   		 )
+		), Messages.BodyValue) as MessagesBodyValue,
    		arraySum(Messages.ValueNanograms) as TotalNanograms,
 	   	IsTock
 	FROM transactions
@@ -113,6 +163,12 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		messagesBodyValue := make([]string, 0)
 		trTime := &time.Time{}
 		var isTock uint8
+		actionPhase := &ton.ActionPhase{}
+		computePhase := &ton.ComputePhase{}
+		storagePhase := &ton.StoragePhase{}
+		creditPhase := &ton.CreditPhase{}
+		var actionPhaseExists, computePhaseExists, storagePhaseExists, creditPhaseExists bool
+
 		err = rows.Scan(
 			&transaction.WorkchainId,
 			&transaction.Shard,
@@ -130,6 +186,51 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&transaction.PrevTransHash,
 			&transaction.StateUpdateNewHash,
 			&transaction.StateUpdateOldHash,
+			&actionPhaseExists,
+			&actionPhase.Success,
+			&actionPhase.Valid,
+			&actionPhase.NoFunds,
+			&actionPhase.CodeChanged,
+			&actionPhase.ActionListInvalid,
+			&actionPhase.AccDeleteReq,
+			&actionPhase.AccStatusChange,
+			&actionPhase.TotalFwdFees,
+			&actionPhase.TotalActionFees,
+			&actionPhase.ResultCode,
+			&actionPhase.ResultArg,
+			&actionPhase.TotActions,
+			&actionPhase.SpecActions,
+			&actionPhase.SkippedActions,
+			&actionPhase.MsgsCreated,
+			&actionPhase.RemainingBalance,
+			&actionPhase.ReservedBalance,
+			&actionPhase.EndLt,
+			&actionPhase.TotMsgBits,
+			&actionPhase.TotMsgCells,
+			&computePhaseExists,
+			&computePhase.Skipped,
+			&computePhase.SkippedReason,
+			&computePhase.AccountActivated,
+			&computePhase.Success,
+			&computePhase.MsgStateUsed,
+			&computePhase.OutOfGas,
+			&computePhase.Accepted,
+			&computePhase.ExitArg,
+			&computePhase.ExitCode,
+			&computePhase.Mode,
+			&computePhase.VmSteps,
+			&computePhase.GasUsed,
+			&computePhase.GasMax,
+			&computePhase.GasCredit,
+			&computePhase.GasLimit,
+			&computePhase.GasFees,
+			&storagePhaseExists,
+			&storagePhase.Status,
+			&storagePhase.FeesCollected,
+			&storagePhase.FeesDue,
+			&creditPhaseExists,
+			&creditPhase.DueFeesCollected,
+			&creditPhase.CreditNanograms,
 			&messagesDirection,
 			&messagesType,
 			&messagesInit,
@@ -164,6 +265,30 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			return nil, err
 		}
 
+		if actionPhaseExists {
+			transaction.ActionPhase = actionPhase
+		} else {
+			transaction.ActionPhase = nil
+		}
+
+		if computePhaseExists {
+			transaction.ComputePhase = computePhase
+		} else {
+			transaction.ComputePhase = nil
+		}
+
+		if storagePhaseExists {
+			transaction.StoragePhase = storagePhase
+		} else {
+			transaction.StoragePhase = nil
+		}
+
+		if creditPhaseExists {
+			transaction.CreditPhase = creditPhase
+		} else {
+			transaction.CreditPhase = nil
+		}
+
 		transaction.AccountAddrUf, err = utils.ComposeRawAndConvertToUserFriendly(transaction.WorkchainId, transaction.AccountAddr)
 		if err != nil {
 			return nil, err
@@ -194,7 +319,12 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 				}
 			}
 
+			if messagesCreatedAt[i] == 0 {
+				messagesCreatedAt[i] = transaction.Now
+			}
+
 			msg := &ton.TransactionMessage{
+				TrxHash:               transaction.Hash,
 				Type:                  messagesType[i],
 				Init:                  messagesInit[i],
 				Bounce:                messagesBounce[i] == 1,

@@ -3,6 +3,7 @@ package stats
 import (
 	"database/sql"
 	"errors"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/cache"
 	"gitlab.flora.loc/mills/tondb/internal/ton/query/filter"
 )
@@ -10,11 +11,38 @@ import (
 const (
 	getTotalAddrAndNanogram = `
 	SELECT 
-    	count() AS TotalAddr, 
-    	sum(BalanceNanogram) AS TotalNanogram
-	FROM ".inner._view_state_AccountState"
-	FINAL
-	WHERE %s
+		sum(TotalAddr),
+		sum(TotalNanogram)
+	FROM (
+		SELECT 
+			count() AS TotalAddr, 
+			0 AS TotalNanogram
+		FROM ".inner._view_state_AccountState"
+		FINAL
+		WHERE %s
+	
+		UNION ALL
+	
+		SELECT
+			0  AS TotalAddr,
+			sum(ValueFlowToNextBlk) AS TotalNanogram
+		FROM blocks
+		PREWHERE (WorkchainId, Shard, SeqNo) IN (
+			SELECT
+				ShardWorkchainId as WorkchainId,
+				Shard,
+				ShardSeqNo as SeqNo
+			FROM shards_descr
+			PREWHERE MasterSeqNo = (SELECT MasterSeqNo FROM shards_descr ORDER BY MasterSeqNo DESC LIMIT 1)
+	
+			UNION ALL
+	
+			SELECT 
+				-1 as WorkchainId,
+				9223372036854775808 as Shard,
+				(SELECT MasterSeqNo FROM shards_descr ORDER BY MasterSeqNo DESC LIMIT 1) as SeqNo
+		) AND %s
+	)
 `
 
 	getDailyActiveAccounts = `
@@ -51,11 +79,12 @@ type AddressesMetrics struct {
 func (t *AddressesMetrics) UpdateQuery() error {
 	res := AddressesMetricsResult{}
 
-	queryGetTotalAddrAndNanogram, _, err := filter.RenderQuery(getTotalAddrAndNanogram, nil)
+	filterAll := filter.NewKV("1", 1)
+	queryGetTotalAddrAndNanogram, args, err := filter.RenderQuery(getTotalAddrAndNanogram, filterAll, filterAll)
 	if err != nil {
 		return err
 	}
-	row := t.conn.QueryRow(queryGetTotalAddrAndNanogram)
+	row := t.conn.QueryRow(queryGetTotalAddrAndNanogram, args...)
 	if err := row.Scan(&res.TotalAddr, &res.TotalNanogram); err != nil {
 		return err
 	}
@@ -83,7 +112,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 	resWorkchain := AddressesMetricsResult{}
 	workchainFilter := filter.NewKV("WorkchainId", 0)
 
-	queryGetTotalAddrAndNanogram, args, err := filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
 	if err != nil {
 		return err
 	}
@@ -110,12 +139,12 @@ func (t *AddressesMetrics) UpdateQuery() error {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyAddressesMetrics + "0", &resWorkchain)
+	t.resultCache.Set(cacheKeyAddressesMetrics+"0", &resWorkchain)
 
 	resMasterchain := AddressesMetricsResult{}
 	workchainFilter = filter.NewKV("WorkchainId", -1)
 
-	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter)
+	queryGetTotalAddrAndNanogram, args, err = filter.RenderQuery(getTotalAddrAndNanogram, workchainFilter, workchainFilter)
 	if err != nil {
 		return err
 	}
@@ -142,7 +171,7 @@ func (t *AddressesMetrics) UpdateQuery() error {
 		return err
 	}
 
-	t.resultCache.Set(cacheKeyAddressesMetrics + "-1", &resMasterchain)
+	t.resultCache.Set(cacheKeyAddressesMetrics+"-1", &resMasterchain)
 
 	return nil
 }
@@ -166,4 +195,3 @@ func NewAddressesMetrics(conn *sql.DB, cache cache.Cache) *AddressesMetrics {
 		resultCache: cache,
 	}
 }
-

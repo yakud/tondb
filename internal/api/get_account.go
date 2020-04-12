@@ -73,7 +73,7 @@ func (m *GetAccount) Handler(w http.ResponseWriter, r *http.Request, p httproute
 	//	return
 	//}
 
-	accountState, err := m.s.GetAccount(accountFilter)
+	accountState, err := m.s.GetAccountWithStats(accountFilter.Addr())
 	if err != nil {
 		http.Error(w, `{"error":true,"message":"error fetch account: `+err.Error()+`"}`, http.StatusBadRequest)
 		return

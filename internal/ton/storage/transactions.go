@@ -13,23 +13,6 @@ import (
 )
 
 const (
-
-	/*
-			TODO: parse action
-			https://test.ton.org/testnet/transaction?account=kQCdg18XAu8jH9hu-7quHh_-dzYXZs4RHf20PfOLuf1q3o3e&lt=1237041000001&hash=F637ED15777330A0EC006716F5730C9A94F67CE2EFA213C86D112E1451BC458B
-		 action:(just
-		      value:^(tr_phase_action success:0 valid:0 no_funds:0
-		        status_change:acst_unchanged
-		        total_fwd_fees:nothing
-		        total_action_fees:nothing result_code:34
-		        result_arg:nothing tot_actions:1 spec_actions:0 skipped_actions:0 msgs_created:0 action_list_hash:xB8E7CDD84A94754E8727D53B154094FE9CB1802D7A81668D8CABC680368D8268
-		        tot_msg_size:(storage_used_short
-		          cells:(var_uint len:0 value:0)
-		          bits:(var_uint len:0 value:0)))) aborted:1
-		    bounce:nothing destroyed:0))
-	*/
-
-	// ALTER TABLE transactions ADD COLUMN IsTock UInt8 AFTER StateUpdateOldHash
 	queryCreateTableTransactions string = `CREATE TABLE IF NOT EXISTS transactions (
 		WorkchainId           Int32,
 		Shard                 UInt64,
@@ -49,6 +32,55 @@ const (
 		StateUpdateNewHash    FixedString(64),
 		StateUpdateOldHash    FixedString(64),
 		IsTock                UInt8,
+		
+		ActionPhaseExists             UInt8,
+		ActionPhaseSuccess            UInt8,
+		ActionPhaseValid              UInt8,
+		ActionPhaseNoFunds            UInt8,
+		ActionPhaseCodeChanged        UInt8,
+		ActionPhaseActionListInvalid  UInt8,
+		ActionPhaseAccDeleteReq       UInt8,
+		ActionPhaseAccStatusChange    LowCardinality(String),
+		ActionPhaseTotalFwdFees       UInt64,
+		ActionPhaseTotalActionFees    UInt64,
+		ActionPhaseResultCode         Int32,
+		ActionPhaseResultArg          Int32,
+		ActionPhaseTotActions         UInt32,
+		ActionPhaseSpecActions        UInt32,
+		ActionPhaseSkippedActions     UInt32,
+		ActionPhaseMsgsCreated        UInt32,
+		ActionPhaseRemainingBalance   UInt64,
+		ActionPhaseReservedBalance    UInt64,
+		ActionPhaseEndLt              UInt64,
+		ActionPhaseTotMsgBits         UInt64,
+		ActionPhaseTotMsgCells        UInt64,
+		
+		ComputePhaseExists           UInt8,
+		ComputePhaseSkipped          UInt8,
+		ComputePhaseSkippedReason    LowCardinality(String),
+		ComputePhaseAccountActivated UInt8,
+		ComputePhaseSuccess          UInt8,
+		ComputePhaseMsgStateUsed     UInt8,
+		ComputePhaseOutOfGas         UInt8,
+		ComputePhaseAccepted         UInt8,
+		ComputePhaseExitArg          Int32,
+		ComputePhaseExitCode         Int32,
+		ComputePhaseMode             Int8,
+		ComputePhaseVmSteps          UInt32,
+		ComputePhaseGasUsed          UInt64,
+		ComputePhaseGasMax           UInt64,
+		ComputePhaseGasCredit        UInt64,
+		ComputePhaseGasLimit         UInt64,
+		ComputePhaseGasFees          UInt64,
+		
+		StoragePhaseExists        UInt8,
+		StoragePhaseStatus        LowCardinality(String),
+		StoragePhaseFeesCollected UInt64,
+		StoragePhaseFeesDue       UInt64,
+		
+		CreditPhaseExists           UInt8,
+		CreditPhaseDueFeesCollected UInt64,
+		CreditPhaseCreditNanograms  UInt64,
 		
 		Messages Nested
     	(
@@ -102,6 +134,51 @@ const (
 	StateUpdateNewHash,
 	StateUpdateOldHash,
 	IsTock,
+    ActionPhaseExists,
+	ActionPhaseSuccess,
+	ActionPhaseValid,
+	ActionPhaseNoFunds,
+	ActionPhaseCodeChanged,
+	ActionPhaseActionListInvalid,
+	ActionPhaseAccDeleteReq,
+	ActionPhaseAccStatusChange,
+	ActionPhaseTotalFwdFees,
+	ActionPhaseTotalActionFees,
+	ActionPhaseResultCode,
+	ActionPhaseResultArg,
+	ActionPhaseTotActions,
+	ActionPhaseSpecActions,
+	ActionPhaseSkippedActions,
+	ActionPhaseMsgsCreated,
+	ActionPhaseRemainingBalance,
+	ActionPhaseReservedBalance,
+	ActionPhaseEndLt,
+	ActionPhaseTotMsgBits,
+	ActionPhaseTotMsgCells,
+	ComputePhaseExists,                          
+	ComputePhaseSkipped,
+	ComputePhaseSkippedReason,
+	ComputePhaseAccountActivated,
+	ComputePhaseSuccess,
+	ComputePhaseMsgStateUsed,
+	ComputePhaseOutOfGas,
+	ComputePhaseAccepted,
+	ComputePhaseExitArg,
+	ComputePhaseExitCode,
+	ComputePhaseMode,
+	ComputePhaseVmSteps,
+	ComputePhaseGasUsed,
+	ComputePhaseGasMax,
+	ComputePhaseGasCredit,
+	ComputePhaseGasLimit,
+	ComputePhaseGasFees,
+	StoragePhaseExists,                          
+	StoragePhaseStatus,
+	StoragePhaseFeesCollected,
+	StoragePhaseFeesDue,
+	CreditPhaseExists,                          
+	CreditPhaseDueFeesCollected,
+	CreditPhaseCreditNanograms,                          
 	Messages.Direction,
 	Messages.Type,
 	Messages.Init,
@@ -128,7 +205,7 @@ const (
 	Messages.SrcAnycast,
 	Messages.BodyType,
 	Messages.BodyValue
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 	queryDropTransactions = `DROP TABLE transactions;`
 )
@@ -229,6 +306,30 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 		messagesBodyType := make([]string, 0)
 		messagesBodyValue := make([]string, 0)
 
+		actionPhase, actionPhaseExists := &ton.ActionPhase{}, false
+		if tr.ActionPhase != nil {
+			actionPhase = tr.ActionPhase
+			actionPhaseExists = true
+		}
+
+		computePhase, computePhaseExists := &ton.ComputePhase{}, false
+		if tr.ComputePhase != nil {
+			computePhase = tr.ComputePhase
+			computePhaseExists = true
+		}
+
+		storagePhase, storagePhaseExists := &ton.StoragePhase{}, false
+		if tr.StoragePhase != nil {
+			storagePhase = tr.StoragePhase
+			storagePhaseExists = true
+		}
+
+		creditPhase, creditPhaseExists := &ton.CreditPhase{}, false
+		if tr.CreditPhase != nil {
+			creditPhase = tr.CreditPhase
+			creditPhaseExists = true
+		}
+
 		for _, msg := range tr.OutMsgs {
 			messagesDirection = append(messagesDirection, "out")
 			messagesType = append(messagesType, msg.Type)
@@ -311,6 +412,55 @@ func (s *Transactions) InsertManyExec(transactions []*ton.Transaction, bdTx *sql
 			strings.TrimLeft(tr.StateUpdateNewHash, "x"),
 			strings.TrimLeft(tr.StateUpdateOldHash, "x"),
 			isTock,
+
+			utils.BoolToUint8(actionPhaseExists),
+			utils.BoolToUint8(actionPhase.Success),
+			utils.BoolToUint8(actionPhase.Valid),
+			utils.BoolToUint8(actionPhase.NoFunds),
+			utils.BoolToUint8(actionPhase.CodeChanged),
+			utils.BoolToUint8(actionPhase.ActionListInvalid),
+			utils.BoolToUint8(actionPhase.AccDeleteReq),
+			actionPhase.AccStatusChange,
+			actionPhase.TotalFwdFees,
+			actionPhase.TotalActionFees,
+			actionPhase.ResultCode,
+			actionPhase.ResultArg,
+			actionPhase.TotActions,
+			actionPhase.SpecActions,
+			actionPhase.SkippedActions,
+			actionPhase.MsgsCreated,
+			actionPhase.RemainingBalance,
+			actionPhase.ReservedBalance,
+			actionPhase.EndLt,
+			actionPhase.TotMsgBits,
+			actionPhase.TotMsgCells,
+
+			utils.BoolToUint8(computePhaseExists),
+			utils.BoolToUint8(computePhase.Skipped),
+			computePhase.SkippedReason,
+			utils.BoolToUint8(computePhase.AccountActivated),
+			utils.BoolToUint8(computePhase.Success),
+			utils.BoolToUint8(computePhase.MsgStateUsed),
+			utils.BoolToUint8(computePhase.OutOfGas),
+			utils.BoolToUint8(computePhase.Accepted),
+			computePhase.ExitArg,
+			computePhase.ExitCode,
+			computePhase.Mode,
+			computePhase.VmSteps,
+			computePhase.GasUsed,
+			computePhase.GasMax,
+			computePhase.GasCredit,
+			computePhase.GasLimit,
+			computePhase.GasFees,
+
+			utils.BoolToUint8(storagePhaseExists),
+			storagePhase.Status,
+			storagePhase.FeesCollected,
+			storagePhase.FeesDue,
+
+			utils.BoolToUint8(creditPhaseExists),
+			creditPhase.DueFeesCollected,
+			creditPhase.CreditNanograms,
 
 			clickhouse.Array(messagesDirection),
 			clickhouse.Array(messagesType),

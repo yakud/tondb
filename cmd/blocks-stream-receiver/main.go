@@ -59,7 +59,8 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 		} else {
 			block, err := astTonConverter.ConvertToBlock(astPretty)
 			if err != nil {
-				log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+				ast, _ := astPretty.ToJSON()
+				log.Fatal(err, "block size:", len(blockPretty), string(blockPretty), string(ast))
 			}
 
 			if err := buffer.AddBlock(block); err != nil {
@@ -79,7 +80,7 @@ func workerBlocksHandler(buffer *writer.BulkBuffer) error {
 }
 
 func main() {
-	log.Println("started v0.0.1")
+	log.Println("started v0.0.2")
 	go func() {
 		for {
 			<-time.After(time.Second * 5)

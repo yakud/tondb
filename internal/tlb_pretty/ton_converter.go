@@ -120,7 +120,10 @@ func (c *AstTonConverter) extractShardsDescr(node *AstNode) ([]*ton.ShardDescr, 
 	err = shardsDescrRoot.EachNode(func(i int, el *AstNode) error {
 		leafNode, err := el.GetNode("leaf")
 		if err != nil {
-			return err
+			leafNode, err = el.GetNode("value", "leaf")
+			if err != nil {
+				return err
+			}
 		}
 
 		shardDescr := &ton.ShardDescr{

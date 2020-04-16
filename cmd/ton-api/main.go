@@ -281,6 +281,7 @@ func main() {
 		Addr:    config.Addr,
 		Handler: handler,
 	}
+
 	log.Println("Start listening:", config.Addr)
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)

@@ -70,7 +70,7 @@ services:
     environment:
       - ADDR=0.0.0.0:8513
       - CH_ADDR=http://10.236.0.5:8123/tcf?max_query_size=3145728000
-      - TLB_BLOCKS_FETCHER_ADDR=10.236.0.3:13699
+      - TLB_BLOCKS_FETCHER_ADDR=127.0.0.1:13699
       - REDIS_ADDR=127.0.0.1:6379
       - REDIS_PASSWORD=
       - REDIS_DB=2

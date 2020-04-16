@@ -2,10 +2,13 @@ package streaming
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"github.com/panjf2000/ants/v2"
 	"gitlab.flora.loc/mills/tondb/internal/ton"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+	"gitlab.flora.loc/mills/tondb/internal/utils"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,27 +16,62 @@ import (
 type SubManager struct {
 	subs map[Filter][]*SubHandler
 	rw   sync.RWMutex
-	pool *ants.Pool
 }
 
 func (m *SubManager) HandleBlock(block *ton.Block) error {
-	blockJson, err := json.Marshal(block)
-	if err != nil {
-		return err
-	}
-	transactionsJson, err := json.Marshal(block.Transactions)
+	trxMap := make(map[string]*[]byte, len(block.Transactions))
+	msgMap := make(map[string]*[]byte, 2*len(block.Transactions))
+
+	blockJson, err := json.Marshal(blockToFeedBlock(block))
 	if err != nil {
 		return err
 	}
 
-	messages := make([]*ton.TransactionMessage, 0, 64)
+	transactions := make([]*feed.TransactionInFeed, 0, len(block.Transactions))
+	messages := make([]*ton.TransactionMessage, 0, 2*len(block.Transactions))
 	for _, trx := range block.Transactions {
+		var trxFeed *feed.TransactionInFeed
+		if trxFeed, err = trxToFeedTrx(trx); err != nil {
+			return err
+		}
+		transactions = append(transactions, trxFeed)
+		trxJson, err := json.Marshal(trxFeed)
+		if err != nil {
+			return err
+		}
+
+		trxKey := strconv.FormatInt(int64(trx.WorkchainId), 10)+":"+trxFeed.AccountAddr
+		trxMap[trxKey] = addToJsonList(trxMap[trxKey], trxJson)
+
 		if trx.InMsg != nil {
+			msg, err := messageToFeedMessage(block, trx.InMsg, "in", trx.Lt)
+			if err != nil {
+				return err
+			}
+
+			if err := addMessageToMap(msgMap, msg); err != nil {
+				return err
+			}
 			messages = append(messages, trx.InMsg)
 		}
 		if trx.OutMsgs != nil {
+			for _, msg := range trx.OutMsgs {
+				msgFeed, err := messageToFeedMessage(block, msg, "out", trx.Lt)
+				if err != nil {
+					return err
+				}
+
+				if err := addMessageToMap(msgMap, msgFeed); err != nil {
+					return err
+				}
+			}
 			messages = append(messages, trx.OutMsgs...)
 		}
+	}
+
+	transactionsJson, err := json.Marshal(transactions)
+	if err != nil {
+		return err
 	}
 
 	messagesJson, err := json.Marshal(messages)
@@ -43,16 +81,28 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 
 	m.rw.RLock()
 	for filter, subs := range m.subs {
-		if filter.Match(block) {
+		if filter.MatchWorkhainAndShard(block) {
 			for _, sub := range subs {
 				if sub != nil && !sub.Abandoned {
 					switch sub.Sub.Filter.FeedName {
 					case "blocks":
-						return m.poolSubmit(sub, blockJson)
+						sub.HandleOrAbandon(blockJson)
 					case "transactions":
-						return m.poolSubmit(sub, transactionsJson)
+						if sub.Sub.Filter.AccountAddr != nil {
+							if trxJson, ok := trxMap[*sub.Sub.Filter.AccountAddr]; ok {
+								sub.HandleOrAbandon(*trxJson)
+							}
+						} else {
+							sub.HandleOrAbandon(transactionsJson)
+						}
 					case "messages":
-						return m.poolSubmit(sub, messagesJson)
+						if sub.Sub.Filter.AccountAddr != nil {
+							if msgJson, ok := msgMap[*sub.Sub.Filter.AccountAddr]; ok {
+								sub.HandleOrAbandon(*msgJson)
+							}
+						} else {
+							sub.HandleOrAbandon(messagesJson)
+						}
 					}
 				}
 			}
@@ -117,24 +167,197 @@ func (m *SubManager) collectGarbage() {
 	}
 }
 
-func (m *SubManager) poolSubmit(sub *SubHandler, res []byte) error {
-	if m.pool == nil {
-		return fmt.Errorf("sub_manager goroutine pool not initialized")
+func addToJsonList(original *[]byte, toAdd []byte) *[]byte {
+	if original == nil {
+		res := make([]byte, 0, len(toAdd) + 2)
+		res = append(res, '[')
+		res = append(res, toAdd...)
+		res = append(res, ']')
+		original = &res
+	} else {
+		*original = append((*original)[:len(*original) - 1], ',')
+		*original = append(*original, toAdd...)
+		*original = append(*original, ']')
 	}
 
-	var err error
-	err = m.pool.Submit(func() {
-		err = sub.Handle(res)
-	})
-
-	return err
+	return original
 }
 
-func NewSubManager(pool *ants.Pool) *SubManager {
+func addMessageToMap(msgMap map[string]*[]byte, msg *feed.MessageInFeed) error {
+	msgJson, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	var key string
+	if len(msg.Src) > 1 {
+		key = strconv.FormatInt(int64(msg.SrcWorkchainId), 10)+":"+msg.Src
+		msgMap[key] = addToJsonList(msgMap[key], msgJson)
+	}
+	if len(msg.Dest) > 1 {
+		key = strconv.FormatInt(int64(msg.DestWorkchainId), 10)+":"+msg.Dest
+		msgMap[key] = addToJsonList(msgMap[key], msgJson)
+	}
+
+	return nil
+}
+
+func blockToFeedBlock(block *ton.Block) *feed.BlockInFeed {
+	return &feed.BlockInFeed{
+		WorkchainId: block.Info.WorkchainId,
+		Shard:       block.Info.Shard,
+		SeqNo:       block.Info.SeqNo,
+		Time:        uint64(time.Unix(int64(block.Info.GenUtime), 0).UTC().Unix()),
+		StartLt:     block.Info.StartLt,
+		RootHash:    block.Info.RootHash,
+		FileHash:    block.Info.FileHash,
+
+		TotalFeesNanograms: block.Info.ValueFlow.FeesCollected,
+		TrxCount:           uint64(block.Info.BlockStats.TrxCount),
+		ValueNanograms:     block.Info.BlockStats.SentNanograms,
+	}
+}
+
+func trxToFeedTrx(trx *ton.Transaction) (*feed.TransactionInFeed, error) {
+	var isTock uint8
+	if trx.IsTock {
+		isTock = 1
+	}
+
+	var totalNanograms, totalFwdFeeNanograms, totalIhrFeeNanograms, totalImportFeeNanograms, msgInCreatedLt uint64
+	var addrUf, msgInType, src, srcUf, dest, destUf string
+	var srcWorkchainId, destWorkchainId int32
+	var err error
+
+	if trx.InMsg != nil {
+		totalNanograms, totalFwdFeeNanograms, totalIhrFeeNanograms, totalImportFeeNanograms =
+			trx.InMsg.ValueNanograms, trx.InMsg.FwdFeeNanograms, trx.InMsg.IhrFeeNanograms, trx.InMsg.ImportFeeNanograms
+
+		msgInCreatedLt = trx.InMsg.CreatedLt
+		msgInType = trx.InMsg.Type
+
+		if len(trx.InMsg.Src.Addr) > 1 {
+			src = trx.InMsg.Src.Addr[1:]
+		}
+		if len(trx.InMsg.Dest.Addr) > 1 {
+			dest = trx.InMsg.Dest.Addr[1:]
+		}
+
+		srcWorkchainId, destWorkchainId = trx.InMsg.Src.WorkchainId, trx.InMsg.Dest.WorkchainId
+
+		if len(trx.AccountAddr) == 65 {
+			if addrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, trx.AccountAddr[1:]); err != nil {
+				return nil, err
+			}
+		}
+
+		if len(src) == 64 {
+			if srcUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, src); err != nil {
+				return nil, err
+			}
+		}
+
+		if len(dest) == 64 {
+			if destUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, dest); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	for _, msg := range trx.OutMsgs {
+		totalNanograms += msg.ValueNanograms
+		totalFwdFeeNanograms += msg.FwdFeeNanograms
+		totalIhrFeeNanograms += msg.IhrFeeNanograms
+		totalImportFeeNanograms += msg.ImportFeeNanograms
+	}
+
+	return &feed.TransactionInFeed{
+		WorkchainId:   trx.WorkchainId,
+		Shard:         trx.Shard,
+		SeqNo:         trx.SeqNo,
+		TimeUnix:      trx.Now,
+		Lt:            trx.Lt,
+		TrxHash:       trx.Hash,
+		Type:          trx.Type,
+		AccountAddr:   trx.AccountAddr[1:],
+		AccountAddrUF: addrUf,
+		IsTock:        isTock,
+
+		MsgInCreatedLt:  msgInCreatedLt,
+		MsgInType:       msgInType,
+		SrcWorkchainId:  srcWorkchainId,
+		Src:             src,
+		SrcUf:           srcUf,
+		DestWorkchainId: destWorkchainId,
+		Dest:            dest,
+		DestUf:          destUf,
+
+		TotalNanograms:          totalNanograms,
+		TotalFeesNanograms:      trx.TotalFeesNanograms,
+		TotalFwdFeeNanograms:    totalFwdFeeNanograms,
+		TotalIhrFeeNanograms:    totalIhrFeeNanograms,
+		TotalImportFeeNanograms: totalImportFeeNanograms,
+	}, nil
+}
+
+func messageToFeedMessage(block *ton.Block, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error) {
+	var src, srcUf, dest, destUf, msgBody string
+	var err error
+
+	if len(msg.Src.Addr) > 1 {
+		src = msg.Src.Addr[1:]
+	}
+	if len(msg.Dest.Addr) > 1 {
+		dest = msg.Dest.Addr[1:]
+	}
+	if len(src) == 64 {
+		if srcUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.Src.WorkchainId, src); err != nil {
+			return nil, err
+		}
+	}
+	if len(dest) == 64 {
+		if destUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.Dest.WorkchainId, dest); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(msg.BodyValue) >= 10 && msg.BodyValue[0:9] == "x{00000000" && msg.BodyValue != "x{00000000}" {
+		replacer := strings.NewReplacer("x{", "", "}", "", "\t", "", "\n", "", " ", "")
+		if msgBodyBytes, err := hex.DecodeString(replacer.Replace(msg.BodyValue)[8:]); err != nil {
+			return nil, err
+		} else {
+			msgBody = string(msgBodyBytes)
+		}
+	}
+
+	return &feed.MessageInFeed{
+		WorkchainId: block.Info.WorkchainId,
+		Shard:       block.Info.Shard,
+		SeqNo:       block.Info.SeqNo,
+		Lt:          lt,
+		Time:        msg.CreatedAt,
+		TrxHash:     msg.TrxHash,
+		MessageLt:   msg.CreatedLt,
+		Direction:   direction,
+
+		SrcWorkchainId:  msg.Src.WorkchainId,
+		Src:             src,
+		SrcUf:           srcUf,
+		DestWorkchainId: msg.Dest.WorkchainId,
+		Dest:            dest,
+		DestUf:          destUf,
+
+		ValueNanogram:    msg.ValueNanograms,
+		TotalFeeNanogram: msg.FwdFeeNanograms + msg.IhrFeeNanograms + msg.ImportFeeNanograms,
+		Bounce:           msg.Bounce,
+		Body:             msgBody,
+	}, nil
+}
+
+func NewSubManager() *SubManager {
 	return &SubManager{
 		subs: make(map[Filter][]*SubHandler),
 		rw:   sync.RWMutex{},
-		pool: pool,
 	}
 }
 

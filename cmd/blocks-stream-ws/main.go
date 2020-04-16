@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"gitlab.flora.loc/mills/tondb/internal/streaming"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -20,7 +19,7 @@ import (
 	"github.com/gobwas/ws/wsutil"
 
 	"github.com/google/uuid"
-	"github.com/panjf2000/ants/v2"
+	"github.com/mailru/easygo/netpoll"
 )
 
 var tlbParser = tlb_pretty.NewParser()
@@ -85,18 +84,16 @@ func main() {
 		serverAddr = "0.0.0.0:7315"
 	}
 
-	pool, err := ants.NewPool(256)
+	poller, err := netpoll.New(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer pool.Release()
-
-	subManager = streaming.NewSubManager(pool)
+	subManager = streaming.NewSubManager()
 
 	wsServer := http.Server{
 		Addr: "0.0.0.0:1818",
-		Handler: http.HandlerFunc(wsHandler(pool)),
+		Handler: http.HandlerFunc(wsHandler(poller)),
 	}
 
 	go func() {
@@ -123,26 +120,23 @@ func main() {
 	}
 }
 
-func wsHandler(pool *ants.Pool) func(w http.ResponseWriter, req *http.Request) {
+func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(req, w)
 		if err != nil {
 			// handle error
 		}
 
-		if err = pool.Submit(manageWsConn(conn)); err != nil {
-			// handle error
-		}
-	}
-}
+		pollerDesc := netpoll.Must(netpoll.HandleRead(conn))
+		err = poller.Start(pollerDesc, func(event netpoll.Event) {
+			if event&netpoll.EventReadHup != 0 {
+				poller.Stop(pollerDesc)
+				conn.Close()
+				return
+			}
+			connSubHandlers := streaming.NewConnSubHandlers(subManager)
 
-func manageWsConn(conn net.Conn) func() {
-	return func() {
-		defer conn.Close()
 
-		connSubHandlers := streaming.NewConnSubHandlers(subManager)
-
-		for {
 			msg, _, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				// handle error
@@ -151,7 +145,10 @@ func manageWsConn(conn net.Conn) func() {
 			params := &streaming.Params{}
 			if err := json.Unmarshal(msg, params); err == nil {
 				id := uuid.New().String()
-				connSubHandlers.AddHandler(conn, *params, id)
+				subHandler := connSubHandlers.AddHandler(conn, *params, id)
+
+
+				go subHandler.Handle()
 
 				if err = wsutil.WriteServerText(conn, []byte(id)); err != nil {
 					log.Println(err)
@@ -163,11 +160,12 @@ func manageWsConn(conn net.Conn) func() {
 					if err = wsutil.WriteServerText(conn, []byte("unsubscribed " + id.String())); err != nil {
 						// handle error
 					}
-				} else {
-					continue
 				}
 			}
+		})
+
+		if err != nil {
+			// handle error
 		}
 	}
 }
-

@@ -26,15 +26,7 @@ type Sub struct {
 	Uuid   string
 }
 
-func (f *Filter) Match(block *ton.Block) bool {
-	if f.AccountAddr != nil {
-		for _, v := range block.Transactions {
-			if v.AccountAddr == *f.AccountAddr {
-				return true
-			}
-		}
-	}
-
+func (f *Filter) MatchWorkhainAndShard(block *ton.Block) bool {
 	return (f.WorkchainId == nil || (f.WorkchainId != nil && block.Info.WorkchainId == *f.WorkchainId)) &&
 		(f.Shard == nil || (f.Shard != nil && block.Info.Shard == *f.Shard))
 }

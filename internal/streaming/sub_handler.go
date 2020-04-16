@@ -11,31 +11,62 @@ type SubHandler struct {
 
 	Abandoned bool
 
+	resChan   chan []byte
+	resBuffer [][]byte
+
 	//some kind of db stuff
 	blocksFeed *feed.BlocksFeed
 
 	fromDbCount   uint32
 	fetchedFromDb bool
-	resBuffer     [][]byte
+	dbBuffer      [][]byte
 }
 
 // TODO: figure out logic of fetching some blocks from db first and then streaming
-func (h *SubHandler) Handle(res []byte) error {
+func (h *SubHandler) Handle() {
 	if !h.fetchedFromDb {
-		h.resBuffer = append(h.resBuffer, res)
-		return nil
+		for v := range h.resChan {
+			h.resBuffer = append(h.resBuffer, v)
+		}
 	} else {
-		return wsutil.WriteServerText(h.Sub.Conn, res)
+		for {
+			select {
+			case res := <- h.resChan:
+				h.resBuffer = append(h.resBuffer, res)
+			default:
+				// channel is empty, flush buffer to user
+				// TODO: we send here separate messages for every entry in buffer, maybe it's better to join all or some
+				//  entries with some delimiter and then send them as one message
+				for _, res := range h.resBuffer {
+					if err := wsutil.WriteServerText(h.Sub.Conn, res); err != nil {
+						// TODO: handle error properly, maybe we need to return it?
+					}
+				}
+
+				h.resBuffer = make([][]byte, 0, 25)
+			}
+		}
 	}
 }
+
+func (h *SubHandler) HandleOrAbandon(jsonBytes []byte) {
+	select {
+	case h.resChan <- jsonBytes:
+	default:
+		h.Abandoned = true
+	}
+}
+
 
 func NewSubHandler(sub *Sub, fromDbCount uint32) SubHandler {
 	return SubHandler{
 		Sub:           sub,
 		Abandoned:     false,
+		resChan:       make(chan []byte, 25),
+		resBuffer:     make([][]byte, 0, 25),
 		fromDbCount:   fromDbCount,
 		fetchedFromDb: fromDbCount == 0,
-		resBuffer:     make([][]byte, 0, 8),
+		dbBuffer:      make([][]byte, 0, 8),
 	}
 }
 
@@ -44,9 +75,10 @@ type ConnSubHandlers struct {
 	subManager *SubManager
 }
 
-func (h *ConnSubHandlers) AddHandler(conn net.Conn, params Params, id string) {
+func (h *ConnSubHandlers) AddHandler(conn net.Conn, params Params, id string) *SubHandler {
 	h.handlers = append(h.handlers, NewSubHandler(NewSubUuid(conn, params.Filter, id), params.FetchFromDb))
 	h.subManager.Add(&h.handlers[len(h.handlers)-1])
+	return &h.handlers[len(h.handlers)-1]
 }
 
 func (h *ConnSubHandlers) RemoveHandler(id string) {

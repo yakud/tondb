@@ -25,7 +25,7 @@ func TestBlocksStreamReceiver(t *testing.T) {
 	defer conn.Close()
 
 	// send message
-	err = wsutil.WriteClientText(conn, []byte(`{"feed_name": "blocks", "workchain_id": -1, "shard": 9223372036854775808}`))
+	err = wsutil.WriteClientText(conn, []byte(`{"feed_name": "messages", "account_addr": "-1:3333333333333333333333333333333333333333333333333333333333333333"}`))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestBlocksStreamReceiver(t *testing.T) {
 			uuidObtained = true
 			go func() {
 				for {
-					<-time.After(time.Second * 10)
+					<-time.After(time.Second * 100)
 					log.Println("unsubscribing")
 					wsutil.WriteClientText(conn, []byte(id.String()))
 					return

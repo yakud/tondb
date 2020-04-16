@@ -16,6 +16,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.1.15
+	github.com/mailru/easygo v0.0.0-20190618140210-3c14a0dc985f
 	github.com/mailru/go-clickhouse v1.2.0
 	github.com/npat-efault/crc16 v0.0.0-20161013170008-4128ccbe47c3
 	github.com/onsi/ginkgo v1.12.0 // indirect

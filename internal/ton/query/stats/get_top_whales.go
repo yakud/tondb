@@ -91,7 +91,22 @@ func (q *GetTopWhales) GetTopWhales(workchainId int32, limit uint32, offset uint
 		switch res.(type) {
 		case *TopWhales:
 			resPaginated := make(TopWhales, 0, limit)
-			resPaginated = append(resPaginated, (*res.(*TopWhales))[offset:offset+limit]...)
+			maxIndex := len(*res.(*TopWhales)) - 1
+
+			if maxIndex < int(offset) {
+				return &resPaginated, nil
+			}
+
+			topBound := int(offset + limit)
+			if maxIndex < topBound {
+				topBound = maxIndex
+			}
+			for i := int(offset); i <= topBound; i++ {
+				whale := (*res.(*TopWhales))[i]
+				if whale.AddrRaw != "" {
+					resPaginated = append(resPaginated, whale)
+				}
+			}
 			return &resPaginated, nil
 		default:
 			return nil, errors.New("couldn't get top whales from cache, cache contains object of wrong type")

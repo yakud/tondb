@@ -7,7 +7,6 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +18,7 @@ type SubManager struct {
 }
 
 func (m *SubManager) HandleBlock(block *ton.Block) error {
-	trxMap := make(map[string]*[]byte, len(block.Transactions))
-	msgMap := make(map[string]*[]byte, 2*len(block.Transactions))
+	indexer := NewTransactionsAndMessagesIndexer()
 
 	blockJson, err := json.Marshal(blockToFeedBlock(block))
 	if err != nil {
@@ -28,7 +26,7 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 	}
 
 	transactions := make([]*feed.TransactionInFeed, 0, len(block.Transactions))
-	messages := make([]*ton.TransactionMessage, 0, 2*len(block.Transactions))
+	messages := make([]*feed.MessageInFeed, 0, 2*len(block.Transactions))
 	for _, trx := range block.Transactions {
 		var trxFeed *feed.TransactionInFeed
 		if trxFeed, err = trxToFeedTrx(trx); err != nil {
@@ -40,8 +38,7 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 			return err
 		}
 
-		trxKey := strconv.FormatInt(int64(trx.WorkchainId), 10)+":"+trxFeed.AccountAddr
-		trxMap[trxKey] = addToJsonList(trxMap[trxKey], trxJson)
+		indexer.AddTransaction(trxFeed, trxJson)
 
 		if trx.InMsg != nil {
 			msg, err := messageToFeedMessage(block, trx.InMsg, "in", trx.Lt)
@@ -49,10 +46,13 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 				return err
 			}
 
-			if err := addMessageToMap(msgMap, msg); err != nil {
+			msgJson, err := json.Marshal(msg)
+			if err != nil {
 				return err
 			}
-			messages = append(messages, trx.InMsg)
+
+			indexer.AddMessage(msg, msgJson)
+			messages = append(messages, msg)
 		}
 		if trx.OutMsgs != nil {
 			for _, msg := range trx.OutMsgs {
@@ -61,11 +61,15 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 					return err
 				}
 
-				if err := addMessageToMap(msgMap, msgFeed); err != nil {
+				msgJson, err := json.Marshal(msgFeed)
+				if err != nil {
 					return err
 				}
+
+				indexer.AddMessage(msgFeed, msgJson)
+
+				messages = append(messages, msgFeed)
 			}
-			messages = append(messages, trx.OutMsgs...)
 		}
 	}
 
@@ -81,24 +85,24 @@ func (m *SubManager) HandleBlock(block *ton.Block) error {
 
 	m.rw.RLock()
 	for filter, subs := range m.subs {
-		if filter.MatchWorkhainAndShard(block) {
+		if filter.MatchWorkchainAndShard(block) {
 			for _, sub := range subs {
 				if sub != nil && !sub.Abandoned {
 					switch sub.Sub.Filter.FeedName {
 					case "blocks":
 						sub.HandleOrAbandon(blockJson)
 					case "transactions":
-						if sub.Sub.Filter.AccountAddr != nil {
-							if trxJson, ok := trxMap[*sub.Sub.Filter.AccountAddr]; ok {
-								sub.HandleOrAbandon(*trxJson)
+						if sub.Sub.Filter.AccountAddr != nil || len(sub.Sub.Filter.customFilters) > 0 {
+							if trxJson := indexer.Filter(sub.Sub.Filter); len(trxJson) > 0 {
+								sub.HandleOrAbandon(trxJson)
 							}
 						} else {
 							sub.HandleOrAbandon(transactionsJson)
 						}
 					case "messages":
-						if sub.Sub.Filter.AccountAddr != nil {
-							if msgJson, ok := msgMap[*sub.Sub.Filter.AccountAddr]; ok {
-								sub.HandleOrAbandon(*msgJson)
+						if sub.Sub.Filter.AccountAddr != nil || len(sub.Sub.Filter.customFilters) > 0 {
+							if msgJson := indexer.Filter(sub.Sub.Filter); len(msgJson) > 0 {
+								sub.HandleOrAbandon(msgJson)
 							}
 						} else {
 							sub.HandleOrAbandon(messagesJson)
@@ -154,8 +158,14 @@ func (m *SubManager) collectGarbage() {
 		newSubs := make([]*SubHandler, 0, 8)
 
 		for _, v := range subs {
-			if v != nil && !v.Abandoned {
-				newSubs = append(newSubs, v)
+			if v != nil {
+				if v.Abandoned {
+					if err := v.Sub.Conn.Close(); err != nil {
+						// TODO: handle error
+					}
+				} else {
+					newSubs = append(newSubs, v)
+				}
 			}
 		}
 
@@ -165,41 +175,6 @@ func (m *SubManager) collectGarbage() {
 			m.subs[key] = newSubs
 		}
 	}
-}
-
-func addToJsonList(original *[]byte, toAdd []byte) *[]byte {
-	if original == nil {
-		res := make([]byte, 0, len(toAdd) + 2)
-		res = append(res, '[')
-		res = append(res, toAdd...)
-		res = append(res, ']')
-		original = &res
-	} else {
-		*original = append((*original)[:len(*original) - 1], ',')
-		*original = append(*original, toAdd...)
-		*original = append(*original, ']')
-	}
-
-	return original
-}
-
-func addMessageToMap(msgMap map[string]*[]byte, msg *feed.MessageInFeed) error {
-	msgJson, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
-
-	var key string
-	if len(msg.Src) > 1 {
-		key = strconv.FormatInt(int64(msg.SrcWorkchainId), 10)+":"+msg.Src
-		msgMap[key] = addToJsonList(msgMap[key], msgJson)
-	}
-	if len(msg.Dest) > 1 {
-		key = strconv.FormatInt(int64(msg.DestWorkchainId), 10)+":"+msg.Dest
-		msgMap[key] = addToJsonList(msgMap[key], msgJson)
-	}
-
-	return nil
 }
 
 func blockToFeedBlock(block *ton.Block) *feed.BlockInFeed {
@@ -224,6 +199,7 @@ func trxToFeedTrx(trx *ton.Transaction) (*feed.TransactionInFeed, error) {
 		isTock = 1
 	}
 
+	accountAddr := trx.AccountAddr
 	var totalNanograms, totalFwdFeeNanograms, totalIhrFeeNanograms, totalImportFeeNanograms, msgInCreatedLt uint64
 	var addrUf, msgInType, src, srcUf, dest, destUf string
 	var srcWorkchainId, destWorkchainId int32
@@ -233,22 +209,29 @@ func trxToFeedTrx(trx *ton.Transaction) (*feed.TransactionInFeed, error) {
 		totalNanograms, totalFwdFeeNanograms, totalIhrFeeNanograms, totalImportFeeNanograms =
 			trx.InMsg.ValueNanograms, trx.InMsg.FwdFeeNanograms, trx.InMsg.IhrFeeNanograms, trx.InMsg.ImportFeeNanograms
 
+		src, dest = trx.InMsg.Src.Addr, trx.InMsg.Dest.Addr
 		msgInCreatedLt = trx.InMsg.CreatedLt
 		msgInType = trx.InMsg.Type
 
-		if len(trx.InMsg.Src.Addr) > 1 {
-			src = trx.InMsg.Src.Addr[1:]
+		if len(src) > 1 {
+			if strings.HasPrefix(src, "x") {
+				src = src[1:]
+			}
 		}
-		if len(trx.InMsg.Dest.Addr) > 1 {
-			dest = trx.InMsg.Dest.Addr[1:]
+		if len(dest) > 1 {
+			if strings.HasPrefix(src, "x") {
+				dest = dest[1:]
+			}
 		}
 
 		srcWorkchainId, destWorkchainId = trx.InMsg.Src.WorkchainId, trx.InMsg.Dest.WorkchainId
 
-		if len(trx.AccountAddr) == 65 {
-			if addrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, trx.AccountAddr[1:]); err != nil {
-				return nil, err
-			}
+		if len(accountAddr) == 65 && strings.HasPrefix(accountAddr, "x") {
+			accountAddr = accountAddr[1:]
+		}
+
+		if addrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, accountAddr); err != nil {
+			return nil, err
 		}
 
 		if len(src) == 64 {
@@ -279,7 +262,7 @@ func trxToFeedTrx(trx *ton.Transaction) (*feed.TransactionInFeed, error) {
 		Lt:            trx.Lt,
 		TrxHash:       trx.Hash,
 		Type:          trx.Type,
-		AccountAddr:   trx.AccountAddr[1:],
+		AccountAddr:   accountAddr,
 		AccountAddrUF: addrUf,
 		IsTock:        isTock,
 
@@ -301,14 +284,15 @@ func trxToFeedTrx(trx *ton.Transaction) (*feed.TransactionInFeed, error) {
 }
 
 func messageToFeedMessage(block *ton.Block, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error) {
-	var src, srcUf, dest, destUf, msgBody string
+	var src, dest = msg.Src.Addr, msg.Dest.Addr
+	var srcUf, destUf, msgBody string
 	var err error
 
-	if len(msg.Src.Addr) > 1 {
-		src = msg.Src.Addr[1:]
+	if len(src) > 1 && strings.HasPrefix(src, "x") {
+		src = src[1:]
 	}
-	if len(msg.Dest.Addr) > 1 {
-		dest = msg.Dest.Addr[1:]
+	if len(dest) > 1 {
+		dest = dest[1:]
 	}
 	if len(src) == 64 {
 		if srcUf, err = utils.ComposeRawAndConvertToUserFriendly(msg.Src.WorkchainId, src); err != nil {
@@ -321,6 +305,7 @@ func messageToFeedMessage(block *ton.Block, msg *ton.TransactionMessage, directi
 		}
 	}
 
+	// TODO: add support for x{00000001 format (crypted) to all message body parsing
 	if len(msg.BodyValue) >= 10 && msg.BodyValue[0:9] == "x{00000000" && msg.BodyValue != "x{00000000}" {
 		replacer := strings.NewReplacer("x{", "", "}", "", "\t", "", "\n", "", " ", "")
 		if msgBodyBytes, err := hex.DecodeString(replacer.Replace(msg.BodyValue)[8:]); err != nil {

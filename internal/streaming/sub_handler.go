@@ -76,7 +76,16 @@ type ConnSubHandlers struct {
 }
 
 func (h *ConnSubHandlers) AddHandler(conn net.Conn, params Params, id string) *SubHandler {
-	h.handlers = append(h.handlers, NewSubHandler(NewSubUuid(conn, params.Filter, id), params.FetchFromDb))
+	var fetchFromDb uint32 = 0
+	if params.FetchFromDb != nil {
+		fetchFromDb = *params.FetchFromDb
+	}
+
+	// sorting because we use type Filter as key in map and we want this key to be correct
+	params.CustomFilters.Sort()
+	params.Filter.customFilters = params.CustomFilters.String()
+
+	h.handlers = append(h.handlers, NewSubHandler(NewSubUuid(conn, params.Filter, id), fetchFromDb))
 	h.subManager.Add(&h.handlers[len(h.handlers)-1])
 	return &h.handlers[len(h.handlers)-1]
 }

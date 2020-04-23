@@ -127,7 +127,11 @@ func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Requ
 			// handle error
 		}
 
-		pollerDesc := netpoll.Must(netpoll.HandleRead(conn))
+		pollerDesc, err := netpoll.HandleRead(conn)
+		if err != nil {
+			// TODO: handle errors properly
+			log.Println(err)
+		}
 		err = poller.Start(pollerDesc, func(event netpoll.Event) {
 			if event&netpoll.EventReadHup != 0 {
 				poller.Stop(pollerDesc)
@@ -146,7 +150,6 @@ func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Requ
 			if err := json.Unmarshal(msg, params); err == nil {
 				id := uuid.New().String()
 				subHandler := connSubHandlers.AddHandler(conn, *params, id)
-
 
 				go subHandler.Handle()
 

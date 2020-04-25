@@ -181,6 +181,7 @@ func (fi *TransactionsAndMessagesIndexer) intersect(first, second map[string]str
 				res[key] = struct{}{}
 			}
 		}
+		return res
 	} else {
 		res := make(map[string]struct{}, len(first))
 		for key := range first {
@@ -188,10 +189,8 @@ func (fi *TransactionsAndMessagesIndexer) intersect(first, second map[string]str
 				res[key] = struct{}{}
 			}
 		}
+		return res
 	}
-
-	// code never goes here
-	return nil
 }
 
 func (fi *TransactionsAndMessagesIndexer) setToBytes(set map[string]struct{}) []byte {
@@ -203,7 +202,7 @@ func (fi *TransactionsAndMessagesIndexer) setToBytes(set map[string]struct{}) []
 	res = append(res, '[')
 
 	for key := range set {
-		// check if key is json array (but it shouldn't be so, so maybe this check is redundant)
+		// check if key is json array
 		if strings.HasPrefix(key, "[") && strings.HasSuffix(key, "]") {
 			// if res has no items yet (just [) we dont need to separate array entries
 			if len(res) > 1 {

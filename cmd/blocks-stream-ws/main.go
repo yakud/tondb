@@ -90,6 +90,8 @@ func main() {
 	}
 
 	subManager = streaming.NewSubManager()
+	subManagerCtx, _ := context.WithCancel(context.Background())
+	subManager.GarbageCollection(subManagerCtx, 5*time.Minute)
 
 	wsServer := http.Server{
 		Addr: "0.0.0.0:1818",

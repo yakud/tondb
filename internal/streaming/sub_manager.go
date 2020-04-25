@@ -305,7 +305,7 @@ func messageToFeedMessage(block *ton.Block, msg *ton.TransactionMessage, directi
 		}
 	}
 
-	// TODO: add support for x{00000001 format (crypted) to all message body parsing
+	// TODO: add support for x{00000001 format (encrypted) to all message body parsing
 	if len(msg.BodyValue) >= 10 && msg.BodyValue[0:9] == "x{00000000" && msg.BodyValue != "x{00000000}" {
 		replacer := strings.NewReplacer("x{", "", "}", "", "\t", "", "\n", "", " ", "")
 		if msgBodyBytes, err := hex.DecodeString(replacer.Replace(msg.BodyValue)[8:]); err != nil {

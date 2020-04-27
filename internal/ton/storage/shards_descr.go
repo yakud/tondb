@@ -166,12 +166,12 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	resp := make([]ShardBlocksRange, 0)
 	for rows.Next() {
 		s := ShardBlocksRange{}
 		if err := rows.Scan(&s.MasterSeq, &s.WorkchainId, &s.Shard, &s.FromSeq, &s.ToSeq); err != nil {
-			rows.Close()
 			return nil, err
 		}
 
@@ -182,8 +182,6 @@ func (c *ShardsDescr) GetShardsSeqRangeInMasterBlock(masterSeq uint64) ([]ShardB
 		resp = append(resp, s)
 	}
 
-	rows.Close()
-
 	return resp, nil
 }
 func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]ShardBlock, error) {
@@ -191,19 +189,17 @@ func (c *ShardsDescr) GetShardsSeqInMasterBlock(masterSeq uint64) ([]ShardBlock,
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	resp := make([]ShardBlock, 0)
 	for rows.Next() {
 		s := ShardBlock{}
 		if err := rows.Scan(&s.WorkchainId, &s.Shard, &s.SeqNo); err != nil {
-			rows.Close()
 			return nil, err
 		}
 
 		resp = append(resp, s)
 	}
-
-	rows.Close()
 
 	return resp, nil
 }
@@ -214,6 +210,7 @@ func (c *ShardsDescr) GetMasterByShardBlock(shard *ton.BlockId) (*ton.BlockId, e
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	resp := &ton.BlockId{
 		WorkchainId: -1,
@@ -221,12 +218,9 @@ func (c *ShardsDescr) GetMasterByShardBlock(shard *ton.BlockId) (*ton.BlockId, e
 	}
 	for rows.Next() {
 		if err := rows.Scan(&resp.SeqNo); err != nil {
-			rows.Close()
 			return nil, err
 		}
 	}
-
-	rows.Close()
 
 	return resp, nil
 }

@@ -159,11 +159,9 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 
 	rows, err := t.conn.Query(query, args...)
 	if err != nil {
-		if rows != nil {
-			rows.Close()
-		}
 		return nil, nil, err
 	}
+	defer rows.Close()
 
 	res := make([]*AccountMessage, 0, count)
 	for rows.Next() {
@@ -217,15 +215,8 @@ func (t *AccountMessages) GetAccountMessages(addr ton.AddrStd, scrollId *Account
 			return nil, nil, err
 		}
 
-		if err != nil {
-			rows.Close()
-			return nil, nil, err
-		}
-
 		res = append(res, accTrans)
 	}
-
-	rows.Close()
 
 	if len(res) == 0 {
 		return res, nil, nil

@@ -67,12 +67,9 @@ func (t *AddrMessagesCount) DropTable() error {
 func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []AddrCount, error) {
 	rows, err := t.conn.Query(selectAddrMessagesCountTop, topN)
 	if err != nil {
-		if rows != nil {
-			rows.Close()
-		}
-
 		return nil, nil, err
 	}
+	defer rows.Close()
 
 	var direction string
 	topIn := make([]AddrCount, 0, topN)
@@ -86,7 +83,6 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 			&row.Count,
 		)
 		if err != nil {
-			rows.Close()
 			return nil, nil, err
 		}
 
@@ -103,10 +99,6 @@ func (t *AddrMessagesCount) SelectTopMessagesCount(topN int) ([]AddrCount, []Add
 		case "out":
 			topOut = append(topOut, row)
 		}
-	}
-
-	if rows != nil {
-		rows.Close()
 	}
 
 	return topIn, topOut, err

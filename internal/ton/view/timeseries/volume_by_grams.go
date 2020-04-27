@@ -82,6 +82,7 @@ func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var resp = &VolumeByGramsResult{
 		Rows: make([]*VolumeByGramsTimeseries, 0),
@@ -97,7 +98,6 @@ func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {
 			&row.Time,
 			&row.VolumeGrams,
 		); err != nil {
-			rows.Close()
 			return nil, err
 		}
 		for i, v := range row.VolumeGrams {
@@ -106,8 +106,6 @@ func (t *VolumeByGrams) GetVolumeByGrams() (*VolumeByGramsResult, error) {
 
 		resp.Rows = append(resp.Rows, row)
 	}
-
-	rows.Close()
 
 	t.resultCache.Set(resp)
 

@@ -89,6 +89,7 @@ func (t *MessagesByType) GetMessagesByType() (*MessagesByTypeResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var resp = &MessagesByTypeResult{
 		Rows: make([]*MessagesByTypeTimeseries, 0),
@@ -106,13 +107,10 @@ func (t *MessagesByType) GetMessagesByType() (*MessagesByTypeResult, error) {
 			&row.Time,
 			&row.MessagesCount,
 		); err != nil {
-			rows.Close()
 			return nil, err
 		}
 		resp.Rows = append(resp.Rows, row)
 	}
-
-	rows.Close()
 
 	t.resultCache.Set(resp)
 

@@ -129,6 +129,7 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	transactions := make([]*ton.Transaction, 0)
 	for rows.Next() {
@@ -261,7 +262,6 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 			&isTock,
 		)
 		if err != nil {
-			rows.Close()
 			return nil, err
 		}
 
@@ -372,7 +372,6 @@ func (s *SearchTransactions) SearchByFilter(f filter.Filter) ([]*ton.Transaction
 		}
 		transactions = append(transactions, transaction)
 	}
-	rows.Close()
 
 	return transactions, nil
 }

@@ -131,6 +131,7 @@ func (q *GetTopWhales) queryTopWhales(workchainId int32) (*TopWhales, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var resp = make(TopWhales, 0, WhalesDefaultCacheLimit)
 	for rows.Next() {

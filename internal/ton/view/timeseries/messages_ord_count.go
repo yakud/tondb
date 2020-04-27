@@ -84,6 +84,7 @@ func (t *MessagesOrdCount) GetMessagesOrdCount() (*MessagesOrdCountResult, error
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var resp = &MessagesOrdCountResult{
 		Rows: make([]*MessagesOrdCountTimeseries, 0),
@@ -99,14 +100,11 @@ func (t *MessagesOrdCount) GetMessagesOrdCount() (*MessagesOrdCountResult, error
 			&row.Time,
 			&row.Count,
 		); err != nil {
-			rows.Close()
 			return nil, err
 		}
 
 		resp.Rows = append(resp.Rows, row)
 	}
-
-	rows.Close()
 
 	t.resultCache.Set(resp)
 

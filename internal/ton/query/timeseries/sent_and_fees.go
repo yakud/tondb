@@ -42,6 +42,7 @@ func (t *SentAndFees) UpdateQuery() error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		sentAndFees := &SentAndFeesResult{}

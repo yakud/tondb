@@ -2,10 +2,11 @@ package streaming
 
 import (
 	"errors"
-	"github.com/google/btree"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"strconv"
 	"strings"
+
+	"github.com/google/btree"
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 )
 
 const (
@@ -13,9 +14,9 @@ const (
 	FeedMessages     = "messages"
 )
 
-var MessagesFieldsIndices     = [...]string{"lt", "time", "message_lt", "value_nanogram", "total_fee_nanogram"}
+var MessagesFieldsIndices = [...]string{"lt", "time", "message_lt", "value_nanogram", "total_fee_nanogram"}
 var TransactionsFieldsIndices = [...]string{"lt", "time", "msg_in_created_lt", "total_nanograms", "total_fees_nanograms",
-											"total_fwd_fee_nanograms", "total_ihr_fee_nanograms", "total_import_fee_nanograms"}
+	"total_fwd_fee_nanograms", "total_ihr_fee_nanograms", "total_import_fee_nanograms"}
 
 type TransactionsAndMessagesIndexer struct {
 	addrIndex map[string]map[string]struct{}
@@ -35,7 +36,7 @@ func (fi *TransactionsAndMessagesIndexer) Add(value interface{}, valueJson []byt
 	}
 }
 
-func (fi *TransactionsAndMessagesIndexer) AddMessage(msg *feed.MessageInFeed, msgJson []byte)  {
+func (fi *TransactionsAndMessagesIndexer) AddMessage(msg *feed.MessageInFeed, msgJson []byte) {
 	fi.addAddrToMap(FeedMessages, msg.WorkchainId, msg.Src, msgJson)
 	fi.addAddrToMap(FeedMessages, msg.WorkchainId, msg.Dest, msgJson)
 
@@ -92,7 +93,7 @@ func (fi *TransactionsAndMessagesIndexer) filterWithIntersection(feed string, fi
 	}
 
 	iter := NewIndexIterator()
-	if len(filters) > 0	 {
+	if len(filters) > 0 {
 		filter := filters[0]
 		if tree, ok := fi.indices[feed+"_"+filter.Field]; ok {
 			switch filter.Operation {
@@ -100,7 +101,6 @@ func (fi *TransactionsAndMessagesIndexer) filterWithIntersection(feed string, fi
 				if v, err := strconv.ParseUint(filter.ValueString, 10, 64); err == nil {
 
 					if raw := tree.Get(UInt64Index{value: v}); raw != nil {
-
 						if len(filters) == 1 {
 							// it is last filter so final result is intersection of current result and previous intersection
 							return fi.setToBytes(fi.intersect(intersection, raw.(IndexItem).GetJsons()))
@@ -226,13 +226,13 @@ func (fi *TransactionsAndMessagesIndexer) addJsonToAddrMap(key string, json []by
 	if v, ok := fi.addrIndex[key]; ok {
 		v[string(json)] = struct{}{}
 	} else {
-		v = map[string]struct{}{string(json):{}}
+		v = map[string]struct{}{string(json): {}}
 	}
 }
 
 func (fi *TransactionsAndMessagesIndexer) addAddrToMap(feed string, wcId int32, addr string, json []byte) {
 	if len(addr) > 1 {
-		key := feed+"_"+strconv.FormatInt(int64(wcId), 10)+":"+addr
+		key := feed + "_" + strconv.FormatInt(int64(wcId), 10) + ":" + addr
 		fi.addJsonToAddrMap(key, json)
 	}
 }

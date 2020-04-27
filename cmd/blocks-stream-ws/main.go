@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitlab.flora.loc/mills/tondb/internal/streaming"
 	"log"
 	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"gitlab.flora.loc/mills/tondb/internal/streaming_new"
+
+	"gitlab.flora.loc/mills/tondb/internal/streaming"
 
 	"gitlab.flora.loc/mills/tondb/internal/tlb_pretty"
 
@@ -94,7 +97,7 @@ func main() {
 	subManager.GarbageCollection(subManagerCtx, 5*time.Minute)
 
 	wsServer := http.Server{
-		Addr: "0.0.0.0:1818",
+		Addr:    "0.0.0.0:1818",
 		Handler: http.HandlerFunc(wsHandler(poller)),
 	}
 
@@ -129,19 +132,23 @@ func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Requ
 			// handle error
 		}
 
+		isWriterRun := false
+		subscribtionsIds := []streaming_new.SubscriptionID{}
+		client := &streaming_new.Client{}
+
 		pollerDesc, err := netpoll.HandleRead(conn)
 		if err != nil {
 			// TODO: handle errors properly
 			log.Println(err)
 		}
 		err = poller.Start(pollerDesc, func(event netpoll.Event) {
-			if event&netpoll.EventReadHup != 0 {
+			if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0 {
 				poller.Stop(pollerDesc)
 				conn.Close()
+
 				return
 			}
 			connSubHandlers := streaming.NewConnSubHandlers(subManager)
-
 
 			msg, _, err := wsutil.ReadClientData(conn)
 			if err != nil {
@@ -153,7 +160,13 @@ func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Requ
 				id := uuid.New().String()
 				subHandler := connSubHandlers.AddHandler(conn, *params, id)
 
+				//subscribtionsIds TODO: append
 				go subHandler.Handle()
+
+				if !isWriterRun {
+					// TODO: run async writer
+					isWriterRun = true
+				}
 
 				if err = wsutil.WriteServerText(conn, []byte(id)); err != nil {
 					log.Println(err)
@@ -162,7 +175,7 @@ func wsHandler(poller netpoll.Poller) func(w http.ResponseWriter, req *http.Requ
 				if id, err := uuid.Parse(string(msg)); err == nil {
 					connSubHandlers.RemoveHandler(id.String())
 
-					if err = wsutil.WriteServerText(conn, []byte("unsubscribed " + id.String())); err != nil {
+					if err = wsutil.WriteServerText(conn, []byte("unsubscribed "+id.String())); err != nil {
 						// handle error
 					}
 				}

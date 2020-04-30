@@ -3,11 +3,12 @@ package streaming
 import (
 	"errors"
 	"fmt"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 )
 
 var rangeRegexp = regexp.MustCompile(`(?m)\[(\d+), *(\d+)\]`)
@@ -24,12 +25,16 @@ const (
 	OpLt    CustomFilterOperation = "lt"
 	OpGt    CustomFilterOperation = "gt"
 	OpRange CustomFilterOperation = "range"
+
+	MessageDirectionIn  MessageDirection = "in"
+	MessageDirectionOut MessageDirection = "out"
 )
 
 type (
-	FeedName   string
-	Addr       string
-	FilterHash string
+	FeedName         string
+	Addr             string
+	FilterHash       string
+	MessageDirection string
 
 	CustomFilterField     string
 	CustomFilterOperation string
@@ -37,10 +42,13 @@ type (
 	CustomFilters []CustomFilter
 
 	Filter struct {
-		FeedName      FeedName       `json:"feed_name"`
-		WorkchainId   *int32         `json:"workchain_id,omitempty"`
-		Shard         *uint64        `json:"shard,omitempty"`
-		AccountAddr   *string        `json:"account_addr,omitempty"`
+		FeedName    FeedName `json:"feed_name"`
+		WorkchainId *int32   `json:"workchain_id,omitempty"`
+		Shard       *uint64  `json:"shard,omitempty"`
+		AccountAddr *string  `json:"account_addr,omitempty"`
+
+		MessageDirection *MessageDirection // TODO: only for feed messages
+
 		CustomFilters CustomFilters `json:"custom_filters,omitempty"`
 	}
 

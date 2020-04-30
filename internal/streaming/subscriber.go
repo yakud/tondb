@@ -2,9 +2,10 @@ package streaming
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Subscriber interface {
@@ -52,6 +53,7 @@ func (s *SubscriberImpl) Subscribe(client *Client, filter Filter) (*Subscription
 }
 
 func (s *SubscriberImpl) Unsubscribe(id SubscriptionID) error {
+	// todo: mutex
 	if sub, ok := s.subBySubId[id]; ok {
 		sub.abandoned = true
 		delete(s.subBySubId, id)
@@ -87,7 +89,7 @@ func (s *SubscriberImpl) collectGarbage() {
 	s.Lock()
 	defer s.Unlock()
 
-	for key, subs := range s.subsByFilterHash {
+	for filterHash, subs := range s.subsByFilterHash {
 		newSubs := make([]*Subscription, 0, 8)
 
 		for _, v := range subs.subs {
@@ -109,7 +111,7 @@ func (s *SubscriberImpl) collectGarbage() {
 		subs.subs = newSubs
 
 		if len(newSubs) == 0 {
-			delete(s.subsByFilterHash, key)
+			delete(s.subsByFilterHash, filterHash)
 		}
 	}
 }

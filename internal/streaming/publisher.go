@@ -3,8 +3,9 @@ package streaming
 import (
 	"encoding/json"
 	"fmt"
-	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"strconv"
+
+	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 )
 
 type Publisher interface {
@@ -90,7 +91,7 @@ func (p *JSONPublisher) ClearCache() {
 }
 
 func toWsFeed(id SubscriptionID, json JSON, fieldName string) JSON {
-	res := JSON(`{"subscription_id": ` + string(id) + `, "` + fieldName + `": `)
+	res := JSON(`{"subscription_id":"` + string(id) + `","` + fieldName + `":`)
 	res = append(res, json...)
 	res = append(res, []byte("}")...)
 	return res

@@ -8,11 +8,10 @@ import (
 type StreamReceiver struct {
 	converter  FeedConverter
 	subscriber Subscriber
-	publisher  Publisher
 }
 
 func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
-	defer r.publisher.ClearCache()
+	var publisher Publisher
 
 	index := NewIndex() // TODO: Maybe we need to pass built index when building StreamReceiver?
 
@@ -26,19 +25,25 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 		return err
 	}
 
-
 	transactionsInFeed := make([]*feed.TransactionInFeed, 0, len(block.Transactions))
 	messagesInFeed := make([]*feed.MessageInFeed, 0, len(transactionsInFeed)*5)
+
+	trxByTotalNanogram := map[uint64][]*feed.TransactionInFeed{}
+
 	for _, trx := range block.Transactions {
 		trxInFeed, err := r.converter.ConvertTransaction(trx)
 		if err != nil {
 			return err
 		}
 		transactionsInFeed = append(transactionsInFeed, trxInFeed)
-		err = index.IndexTransaction(trxInFeed)
-		if err != nil {
-			return err
-		}
+
+		// Todo: проверки
+		trxByTotalNanogram[trxInFeed.TotalNanograms] = append(trxByTotalNanogram[trxInFeed.TotalNanograms], trxInFeed)
+
+		//err = index.IndexTransaction(trxInFeed)
+		//if err != nil {
+		//	return err
+		//}
 
 		inMsgInFeed, err := r.converter.ConvertMessage(block, trx.InMsg, "in", trx.Lt)
 		if err != nil {
@@ -63,6 +68,11 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 		}
 	}
 
+	// todo: for messages same
+	for totalNanogram, trxs := range trxByTotalNanogram {
+		index.transactionsTotalNanogram.ReplaceOrInsert(NewUInt64TrxsIndex(totalNanogram, trxs))
+	}
+
 	return r.subscriber.IterateSubscriptions(func(subscriptions *Subscriptions) error {
 		switch subscriptions.filter.FeedName {
 		case FeedNameBlocks:
@@ -73,11 +83,11 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 
 			// Async Send block to all clients
 			for _, sub := range subscriptions.subs {
-				if sub.abandoned {
+				if sub.abandoned { // todo: atomic
 					continue
 				}
 
-				err := r.publisher.PublishBlock(sub, block)
+				err := publisher.PublishBlock(sub, block)
 				if err != nil { // TODO: check error if we need to destroy sub client (we need to destroy it if it is slow)
 					err = r.subscriber.Unsubscribe(sub.id)
 					if err != nil {
@@ -98,7 +108,7 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 					continue
 				}
 
-				err := r.publisher.PublishTransactions(sub, trxs)
+				err := publisher.PublishTransactions(sub, trxs)
 				if err != nil { // TODO: check error if we need to destroy sub client (we need to destroy it if it is slow)
 					err = r.subscriber.Unsubscribe(sub.id)
 					if err != nil {
@@ -119,7 +129,7 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 					continue
 				}
 
-				err := r.publisher.PublishMessages(sub, msgs)
+				err := publisher.PublishMessages(sub, msgs)
 				if err != nil { // TODO: check error if we need to destroy sub client (we need to destroy it if it is slow)
 					err = r.subscriber.Unsubscribe(sub.id)
 					if err != nil {
@@ -133,10 +143,9 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 	})
 }
 
-func NewStreamReceiver(subscriber Subscriber, publisher Publisher) *StreamReceiver {
+func NewStreamReceiver(subscriber Subscriber) *StreamReceiver {
 	return &StreamReceiver{
 		converter:  &FeedConverterImpl{},
 		subscriber: subscriber,
-		publisher:  publisher,
 	}
 }

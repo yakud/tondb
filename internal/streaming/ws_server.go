@@ -3,17 +3,25 @@ package streaming
 import (
 	"context"
 	"encoding/json"
+	"log"
+	"net/http"
+
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/google/uuid"
 	"github.com/mailru/easygo/netpoll"
-	"log"
-	"net/http"
 )
 
 type WSServer struct {
-	poller      netpoll.Poller
-	subscriber  Subscriber
+	poller     netpoll.Poller
+	subscriber Subscriber
+
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
+func (s *WSServer) Stop() {
+	s.cancel()
 }
 
 func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
@@ -22,14 +30,22 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 		// handle error
 	}
 
-	isWriterRun := false
+	//isWriterRun := false
 	client := NewClient(conn)
+	ctx, cancel := context.WithCancel(s.ctx) // todo: положить в юзера
+	client.cancelWriter = cancel
 
 	pollerDesc, err := netpoll.HandleRead(conn)
 	if err != nil {
 		// TODO: handle errors properly
 		log.Println(err)
 	}
+
+	//defer s.poller.Stop(pollerDesc)
+	//defer pollerDesc.Close()
+	//
+	//ctx, cancel := context.WithCancel(s.ctx)
+	//defer cancel()
 
 	err = s.poller.Start(pollerDesc, func(event netpoll.Event) {
 		if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0 {
@@ -51,10 +67,9 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 				// TODO handle error
 			}
 
-			if !isWriterRun {
-				writer := NewAsyncWriter(client)
-				go writer.Run(context.Background()) // TODO
-				isWriterRun = true
+			if client.writer == nil {
+				client.writer = NewAsyncWriter()
+				go client.writer.Run(ctx, client) // TODO
 			}
 
 			if err = wsutil.WriteServerText(conn, []byte(sub.id)); err != nil {
@@ -80,7 +95,7 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 
 func NewWSServer(poller netpoll.Poller, subscriber Subscriber) *WSServer {
 	return &WSServer{
-		poller:      poller,
-		subscriber:  subscriber,
+		poller:     poller,
+		subscriber: subscriber,
 	}
 }

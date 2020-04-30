@@ -2,9 +2,10 @@ package streaming
 
 import (
 	"errors"
+	"strconv"
+
 	"github.com/google/btree"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
-	"strconv"
 )
 
 type (
@@ -38,13 +39,13 @@ type (
 
 	// TODO: Do we need some kind of interfaces for these two structs
 	UInt64TrxIndex struct {
-		key    uint64
-		trxs   []*feed.TransactionInFeed
+		key  uint64
+		trxs []*feed.TransactionInFeed
 	}
 
 	UInt64MsgIndex struct {
-		key    uint64
-		msgs   []*feed.MessageInFeed
+		key  uint64
+		msgs []*feed.MessageInFeed
 	}
 
 	TrxIndexIterator struct {
@@ -97,7 +98,7 @@ func (i *Index) FetchTransactions(f Filter) ([]*feed.TransactionInFeed, error) {
 	for _, cf := range f.CustomFilters {
 		iter := NewTrxIndexIterator()
 		if err := i.fetch(cf, iter, ConstructUInt64TrxIndex); err != nil {
-		    return nil, err
+			return nil, err
 		}
 		trxsToIntersect = append(trxsToIntersect, iter.GetTransactions())
 	}
@@ -140,6 +141,8 @@ func (i *Index) FetchMessage(f Filter) ([]*feed.MessageInFeed, error) {
 	}
 
 	return i.intersectMessages(msgsToIntersect), nil
+
+	// todo: in/out filter
 }
 
 func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(uint64) btree.Item) error {
@@ -184,6 +187,7 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 	return nil
 }
 
+// TODO: make test
 func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFeed) []*feed.TransactionInFeed {
 	smallestTrxs := trxsToIntersect[0]
 	trxSets := make([]map[string]struct{}, 0, len(trxsToIntersect))
@@ -202,7 +206,7 @@ func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFee
 	for _, trx := range smallestTrxs {
 		for i, set := range trxSets {
 			if _, ok := set[trx.TrxHash]; ok {
-				if i == len(trxSets) - 1 {
+				if i == len(trxSets)-1 {
 					result = append(result, trx)
 				}
 			} else {
@@ -232,7 +236,7 @@ func (i *Index) intersectMessages(msgsToIntersect [][]*feed.MessageInFeed) []*fe
 	for _, msg := range smallestMsgs {
 		for i, set := range msgSets {
 			if _, ok := set[msg.TrxHash]; ok {
-				if i == len(msgSets) - 1 {
+				if i == len(msgSets)-1 {
 					result = append(result, msg)
 				}
 			} else {
@@ -315,6 +319,13 @@ func NewUInt64TrxIndex(key uint64, trx *feed.TransactionInFeed) UInt64TrxIndex {
 	return UInt64TrxIndex{
 		key:  key,
 		trxs: []*feed.TransactionInFeed{trx},
+	}
+}
+
+func NewUInt64TrxsIndex(key uint64, trxs []*feed.TransactionInFeed) UInt64TrxIndex {
+	return UInt64TrxIndex{
+		key:  key,
+		trxs: trxs,
 	}
 }
 

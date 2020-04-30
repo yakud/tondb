@@ -23,8 +23,7 @@ var treeSimplifier = tlb_pretty.NewTreeSimplifier()
 var astTonConverter = tlb_pretty.NewAstTonConverter()
 var blocksChan = make(chan []byte, 100000)
 var subscriber = streaming.NewSubscriber()
-var publisher = streaming.NewJSONPublisher()
-var streamReceiver = streaming.NewStreamReceiver(subscriber, publisher)
+var streamReceiver = streaming.NewStreamReceiver(subscriber)
 
 func handler() func(resp []byte) error {
 	return func(resp []byte) error {
@@ -40,7 +39,8 @@ func workerBlocksHandler() error {
 		astPretty = tlbParser.Parse(blockPretty)
 		astPretty, err = treeSimplifier.Simplify(astPretty)
 		if err != nil {
-			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			log.Println(err, "block size:", len(blockPretty), string(blockPretty))
+			return err
 		}
 
 		if t, err := astPretty.Type(); err == nil && t == "account_state" {
@@ -49,11 +49,14 @@ func workerBlocksHandler() error {
 		}
 		block, err := astTonConverter.ConvertToBlock(astPretty)
 		if err != nil {
-			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			log.Println(err, "block size:", len(blockPretty), string(blockPretty))
+			return err
 		}
 
 		if err := streamReceiver.HandleBlock(block); err != nil {
-			log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			//log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
+			log.Println(err, "block size:", len(blockPretty), string(blockPretty))
+			continue
 		}
 
 		fmt.Print(".")

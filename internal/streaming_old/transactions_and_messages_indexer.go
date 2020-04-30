@@ -1,4 +1,4 @@
-package streaming
+package streaming_old
 
 import (
 	"errors"

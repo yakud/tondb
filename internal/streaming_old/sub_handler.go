@@ -1,4 +1,4 @@
-package streaming
+package streaming_old
 
 import (
 	"github.com/gobwas/ws/wsutil"

@@ -1,8 +1,10 @@
-package streaming_new
+package streaming
 
 import (
 	"fmt"
 	"net"
+
+	"github.com/google/uuid"
 )
 
 type (
@@ -12,7 +14,7 @@ type (
 	Client struct {
 		id        ClientID
 		conn      net.Conn
-		writeChan chan JSON // TODO: buffered
+		writeChan chan JSON
 	}
 )
 
@@ -26,6 +28,10 @@ func (c *Client) WriteAsync(j JSON) error {
 	}
 }
 
-//func NewClient() *Client {
-//	....
-//}
+func NewClient(conn net.Conn) *Client {
+	return &Client{
+		id:        ClientID(uuid.New().String()),
+		conn:      conn,
+		writeChan: make(chan JSON, 25),
+	}
+}

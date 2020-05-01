@@ -76,7 +76,12 @@ func main() {
 
 	serverAddr := os.Getenv("ADDR")
 	if serverAddr == "" {
-		serverAddr = "0.0.0.0:7315"
+		serverAddr = "0.0.0.0:8189"
+	}
+
+	wsServerAddr := os.Getenv("WS_ADDR")
+	if wsServerAddr == "" {
+		wsServerAddr = "0.0.0.0:1818"
 	}
 
 	poller, err := netpoll.New(nil)
@@ -85,17 +90,18 @@ func main() {
 	}
 
 	subscriberCtx, _ := context.WithCancel(context.Background())
-	go subscriber.GarbageCollection(subscriberCtx, 5*time.Minute)
+	go subscriber.GarbageCollection(subscriberCtx, 30*time.Second)
 
 	wsServerCtx, wsServerCancel := context.WithCancel(context.Background())
 	wsHandler := streaming.NewWSServer(poller, subscriber, wsServerCtx, wsServerCancel)
 
 	wsServer := http.Server{
-		Addr:    "0.0.0.0:1818",
+		Addr:    wsServerAddr,
 		Handler: http.HandlerFunc(wsHandler.Handler),
 	}
 
 	go func() {
+		log.Println("Listening ws server on " + wsServer.Addr)
 		if err := wsServer.ListenAndServe(); err != nil {
 			log.Println(err)
 		}

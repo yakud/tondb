@@ -2,20 +2,21 @@ package streaming
 
 import (
 	"encoding/hex"
+	"strings"
+	"time"
+
 	"gitlab.flora.loc/mills/tondb/internal/ton"
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 	"gitlab.flora.loc/mills/tondb/internal/utils"
-	"strings"
-	"time"
 )
 
 type FeedConverter interface {
 	ConvertBlock(*ton.Block) (*feed.BlockInFeed, error)
 	ConvertTransaction(*ton.Transaction) (*feed.TransactionInFeed, error)
-	ConvertMessage(block *ton.Block, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error)
+	ConvertMessage(block *ton.Block, trx *ton.Transaction, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error)
 }
 
-type FeedConverterImpl struct {}
+type FeedConverterImpl struct{}
 
 func (*FeedConverterImpl) ConvertBlock(block *ton.Block) (*feed.BlockInFeed, error) {
 	return &feed.BlockInFeed{
@@ -123,7 +124,7 @@ func (*FeedConverterImpl) ConvertTransaction(trx *ton.Transaction) (*feed.Transa
 	}, nil
 }
 
-func (*FeedConverterImpl) ConvertMessage(block *ton.Block, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error) {
+func (*FeedConverterImpl) ConvertMessage(block *ton.Block, trx *ton.Transaction, msg *ton.TransactionMessage, direction string, lt uint64) (*feed.MessageInFeed, error) {
 	var src, dest = msg.Src.Addr, msg.Dest.Addr
 	var srcUf, destUf, msgBody string
 	var err error
@@ -155,13 +156,20 @@ func (*FeedConverterImpl) ConvertMessage(block *ton.Block, msg *ton.TransactionM
 		}
 	}
 
+	var createdTime uint64
+	if msg.CreatedAt != 0 {
+		createdTime = msg.CreatedAt
+	} else {
+		createdTime = trx.Now
+	}
+
 	return &feed.MessageInFeed{
 		WorkchainId: block.Info.WorkchainId,
 		Shard:       block.Info.Shard,
 		SeqNo:       block.Info.SeqNo,
 		Lt:          lt,
-		Time:        msg.CreatedAt,
-		TrxHash:     msg.TrxHash,
+		Time:        createdTime,
+		TrxHash:     trx.Hash,
 		MessageLt:   msg.CreatedLt,
 		Direction:   direction,
 

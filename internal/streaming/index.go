@@ -17,7 +17,7 @@ type (
 	}
 
 	Fetcher interface {
-		FetchBlocks(Filter) (*feed.BlockInFeed, error)
+		FetchBlock(Filter) (*feed.BlockInFeed, error)
 		FetchTransactions(Filter) ([]*feed.TransactionInFeed, error)
 		FetchMessage(Filter) ([]*feed.MessageInFeed, error)
 	}
@@ -62,7 +62,7 @@ type (
 	}
 )
 
-func (i *Index) FetchBlocks(f Filter) (*feed.BlockInFeed, error) {
+func (i *Index) FetchBlock(f Filter) (*feed.BlockInFeed, error) {
 	if i.block == nil {
 		return nil, errors.New("no block in index")
 	}
@@ -149,7 +149,7 @@ func (i *Index) FetchMessage(f Filter) ([]*feed.MessageInFeed, error) {
 		return i.intersectMessages(msgsToIntersect), nil
 	}
 
-	res := make([]*feed.MessageInFeed, 0, len(msgsToIntersect) * len(msgsToIntersect[0]) + len(msgsToIntersect) * 10)
+	res := make([]*feed.MessageInFeed, 0, len(msgsToIntersect)*len(msgsToIntersect[0])+len(msgsToIntersect)*10)
 	for _, msg := range i.intersectMessages(msgsToIntersect) {
 		if MessageDirection(msg.Direction) == *f.MessageDirection {
 			res = append(res, msg)

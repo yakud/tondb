@@ -32,8 +32,8 @@ type (
 )
 
 type SubscriberImpl struct {
-	subsByFilterHashRWMutex sync.RWMutex
-	subBySubIdMutex         sync.Mutex
+	subsByFilterHashRWMutex *sync.RWMutex
+	subBySubIdMutex         *sync.Mutex
 
 	subsByFilterHash map[FilterHash]*Subscriptions
 	subBySubId       map[SubscriptionID]*Subscription
@@ -110,7 +110,7 @@ func (s *SubscriberImpl) collectGarbage() {
 				continue
 			}
 
-			if !v.GetAbandoned() {
+			if !v.IsAbandoned() {
 				newSubs = append(newSubs, v)
 			} else {
 				s.subBySubIdMutex.Lock()
@@ -127,23 +127,20 @@ func (s *SubscriberImpl) collectGarbage() {
 	}
 }
 
-func NewSubscriber() *SubscriberImpl {
-	return &SubscriberImpl{
-		subsByFilterHashRWMutex: sync.RWMutex{},
-		subBySubIdMutex:         sync.Mutex{},
-
-		subsByFilterHash: make(map[FilterHash]*Subscriptions, 8192),
-		subBySubId:       make(map[SubscriptionID]*Subscription, 8192),
-	}
-}
-
-func (s *Subscription) GetAbandoned() bool {
-	if atomic.LoadInt32(&(s.abandoned)) != 0 {
-		return true
-	}
-	return false
+func (s *Subscription) IsAbandoned() bool {
+	return atomic.LoadInt32(&(s.abandoned)) == 1
 }
 
 func (s *Subscription) Abandon() {
 	atomic.StoreInt32(&(s.abandoned), 1)
+}
+
+func NewSubscriber() *SubscriberImpl {
+	return &SubscriberImpl{
+		subsByFilterHashRWMutex: &sync.RWMutex{},
+		subBySubIdMutex:         &sync.Mutex{},
+
+		subsByFilterHash: make(map[FilterHash]*Subscriptions, 8192),
+		subBySubId:       make(map[SubscriptionID]*Subscription, 8192),
+	}
 }

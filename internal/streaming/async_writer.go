@@ -25,19 +25,20 @@ func (w *AsyncWriter) Run(ctx context.Context, client *Client) error {
 
 			jsonBuffer = append(jsonBuffer, json)
 
+		case <-ctx.Done():
+			return nil
+
 		default:
 			// channel is empty, flush buffer to user
 			for _, json := range jsonBuffer {
+				// todo: make it in one bulk write
 				if err := wsutil.WriteServerText(client.conn, json); err != nil {
 					client.Close()
 					return err
 				}
 			}
 
-			jsonBuffer = make([]JSON, 0, 25)
-
-		case <-ctx.Done():
-			return nil
+			jsonBuffer = jsonBuffer[:0]
 		}
 	}
 }

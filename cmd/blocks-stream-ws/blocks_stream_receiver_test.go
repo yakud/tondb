@@ -25,7 +25,7 @@ func TestBlocksStreamReceiver(t *testing.T) {
 	defer conn.Close()
 
 	// send message
-	err = wsutil.WriteClientText(conn, []byte(`{"feed_name": "messages", "account_addr": "-1:3333333333333333333333333333333333333333333333333333333333333333"}`))
+	err = wsutil.WriteClientText(conn, []byte(`{"feed_name": "messages", "workchain_id":0,"account_addr": "-1:3333333333333333333333333333333333333333333333333333333333333333"}`))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -32,7 +32,7 @@ func (t *TcpReceiver) Run(ctx context.Context, wg *sync.WaitGroup, handler Handl
 
 	// Close the listener when the application closes.
 	defer l.Close()
-	log.Println("Listening on " + t.ServerAddr)
+	log.Println("Listening blocks stream on " + t.ServerAddr)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()

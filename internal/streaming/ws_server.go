@@ -33,7 +33,6 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 
 	ctx, cancel := context.WithCancel(s.ctx)
 	client := NewClient(conn, cancel)
-	client.cancelWriter = cancel
 
 	pollerDesc, err := netpoll.HandleRead(conn)
 	if err != nil {
@@ -41,7 +40,7 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	err = s.poller.Start(pollerDesc, func(event netpoll.Event) {
-		if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0  || client.Cancelled() {
+		if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0 || client.Cancelled() {
 			s.poller.Stop(pollerDesc)
 			pollerDesc.Close()
 			client.Close()
@@ -82,7 +81,8 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 				}
 
 				if err = wsutil.WriteServerText(conn, []byte("unsubscribed "+id.String())); err != nil {
-					// handle error
+					log.Println(err)
+					return
 				}
 			}
 		}

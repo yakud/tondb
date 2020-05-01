@@ -47,6 +47,7 @@ func workerBlocksHandler() error {
 			// ignore state
 			continue
 		}
+
 		block, err := astTonConverter.ConvertToBlock(astPretty)
 		if err != nil {
 			log.Println(err, "block size:", len(blockPretty), string(blockPretty))
@@ -54,7 +55,6 @@ func workerBlocksHandler() error {
 		}
 
 		if err := streamReceiver.HandleBlock(block); err != nil {
-			//log.Fatal(err, "block size:", len(blockPretty), string(blockPretty))
 			log.Println(err, "block size:", len(blockPretty), string(blockPretty))
 			continue
 		}
@@ -87,7 +87,8 @@ func main() {
 	subscriberCtx, _ := context.WithCancel(context.Background())
 	go subscriber.GarbageCollection(subscriberCtx, 5*time.Minute)
 
-	wsHandler := streaming.NewWSServer(poller, subscriber)
+	wsServerCtx, wsServerCancel := context.WithCancel(context.Background())
+	wsHandler := streaming.NewWSServer(poller, subscriber, wsServerCtx, wsServerCancel)
 
 	wsServer := http.Server{
 		Addr:    "0.0.0.0:1818",
@@ -100,7 +101,7 @@ func main() {
 		}
 	}()
 
-	workers := 4
+	workers := 1
 	for i := 0; i < workers; i++ {
 		go func() {
 			if err := workerBlocksHandler(); err != nil {

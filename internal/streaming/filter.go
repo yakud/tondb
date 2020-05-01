@@ -47,7 +47,7 @@ type (
 		Shard       *uint64  `json:"shard,omitempty"`
 		AccountAddr *string  `json:"account_addr,omitempty"`
 
-		MessageDirection *MessageDirection // TODO: only for feed messages
+		MessageDirection *MessageDirection `json:"message_direction,omitempty"`
 
 		CustomFilters CustomFilters `json:"custom_filters,omitempty"`
 	}
@@ -62,18 +62,22 @@ type (
 func (f *Filter) Hash() FilterHash {
 	sb := strings.Builder{}
 
-	sb.WriteString("feed_name=" + string(f.FeedName))
+	sb.WriteString("feed_name=" + string(f.FeedName) + ",")
 
 	if f.WorkchainId != nil {
-		sb.WriteString(fmt.Sprintf("workchain_id=%d", *f.WorkchainId))
+		sb.WriteString(fmt.Sprintf("workchain_id=%d,", *f.WorkchainId))
 	}
 
 	if f.Shard != nil {
-		sb.WriteString(fmt.Sprintf("shard=%d", *f.Shard))
+		sb.WriteString(fmt.Sprintf("shard=%d,", *f.Shard))
 	}
 
 	if f.AccountAddr != nil && len(*f.AccountAddr) != 0 {
-		sb.WriteString(fmt.Sprintf("shard=%d", *f.Shard))
+		sb.WriteString("account_addr=%s," + *f.AccountAddr + ",")
+	}
+
+	if f.MessageDirection != nil {
+		sb.WriteString("message_direction=" + string(*f.MessageDirection) + ",")
 	}
 
 	f.CustomFilters.Sort()

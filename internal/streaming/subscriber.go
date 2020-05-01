@@ -3,6 +3,7 @@ package streaming
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,7 +22,7 @@ type (
 		id        SubscriptionID
 		client    *Client
 		filter    Filter
-		abandoned bool
+		abandoned int32
 	}
 
 	Subscriptions struct {
@@ -31,7 +32,9 @@ type (
 )
 
 type SubscriberImpl struct {
-	sync.RWMutex
+	subsByFilterHashRWMutex sync.RWMutex
+	subBySubIdMutex         sync.Mutex
+
 	subsByFilterHash map[FilterHash]*Subscriptions
 	subBySubId       map[SubscriptionID]*Subscription
 }
@@ -43,32 +46,42 @@ func (s *SubscriberImpl) Subscribe(client *Client, filter Filter) (*Subscription
 		filter: filter,
 	}
 
-	s.Lock()
+	client.AddSubscription(sub)
+
+	s.subBySubIdMutex.Lock()
+	s.subBySubId[sub.id] = sub
+	s.subBySubIdMutex.Unlock()
+
+	s.subsByFilterHashRWMutex.Lock()
 	if cli, ok := s.subsByFilterHash[filter.Hash()]; ok {
 		cli.subs = append(cli.subs, sub)
+		s.subsByFilterHash[filter.Hash()] = cli
+	} else {
+		s.subsByFilterHash[filter.Hash()] = &Subscriptions{filter: filter, subs: []*Subscription{sub}}
 	}
-	s.Unlock()
+	s.subsByFilterHashRWMutex.Unlock()
 
 	return sub, nil
 }
 
 func (s *SubscriberImpl) Unsubscribe(id SubscriptionID) error {
-	// todo: mutex
+	s.subBySubIdMutex.Lock()
 	if sub, ok := s.subBySubId[id]; ok {
-		sub.abandoned = true
+		sub.Abandon()
 		delete(s.subBySubId, id)
 	}
+	s.subBySubIdMutex.Unlock()
 	return nil
 }
 
 func (s *SubscriberImpl) IterateSubscriptions(iterator func(subscriptions *Subscriptions) error) error {
-	s.RLock()
+	s.subsByFilterHashRWMutex.RLock()
 	for _, subscriptions := range s.subsByFilterHash {
 		if err := iterator(subscriptions); err != nil {
 			return err
 		}
 	}
-	s.RUnlock()
+	s.subsByFilterHashRWMutex.RUnlock()
 
 	return nil
 }
@@ -86,25 +99,23 @@ func (s *SubscriberImpl) GarbageCollection(ctx context.Context, interval time.Du
 }
 
 func (s *SubscriberImpl) collectGarbage() {
-	s.Lock()
-	defer s.Unlock()
+	s.subsByFilterHashRWMutex.Lock()
+	defer s.subsByFilterHashRWMutex.Unlock()
 
 	for filterHash, subs := range s.subsByFilterHash {
 		newSubs := make([]*Subscription, 0, 8)
 
 		for _, v := range subs.subs {
-			if v != nil {
-				if v.abandoned {
-					// TODO: How and when do we need to close client connection and channel?
-					// as long as we one client can have many subs we need to check if it is last his sub and if it is,
-					// we need to close conn (If we need to close conn at all)
-					// if we need to close a con it would be helpful to use map[ClientID]int that contains noumber of subs for each client
-					//if err := v.client.conn.Close(); err != nil {
-					//	// TODO: handle error
-					//}
-				} else {
-					newSubs = append(newSubs, v)
-				}
+			if v == nil {
+				continue
+			}
+
+			if !v.GetAbandoned() {
+				newSubs = append(newSubs, v)
+			} else {
+				s.subBySubIdMutex.Lock()
+				delete(s.subBySubId, v.id)
+				s.subBySubIdMutex.Unlock()
 			}
 		}
 
@@ -118,8 +129,21 @@ func (s *SubscriberImpl) collectGarbage() {
 
 func NewSubscriber() *SubscriberImpl {
 	return &SubscriberImpl{
-		RWMutex:          sync.RWMutex{},
+		subsByFilterHashRWMutex: sync.RWMutex{},
+		subBySubIdMutex:         sync.Mutex{},
+
 		subsByFilterHash: make(map[FilterHash]*Subscriptions, 8192),
 		subBySubId:       make(map[SubscriptionID]*Subscription, 8192),
 	}
+}
+
+func (s *Subscription) GetAbandoned() bool {
+	if atomic.LoadInt32(&(s.abandoned)) != 0 {
+		return true
+	}
+	return false
+}
+
+func (s *Subscription) Abandon() {
+	atomic.StoreInt32(&(s.abandoned), 1)
 }

@@ -27,58 +27,58 @@ func (s *WSServer) Stop() {
 func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 	conn, _, _, err := ws.UpgradeHTTP(req, w)
 	if err != nil {
-		// handle error
+		conn.Write([]byte("error occurred when trying to do http upgrade."))
+		return
 	}
 
-	//isWriterRun := false
-	client := NewClient(conn)
-	ctx, cancel := context.WithCancel(s.ctx) // todo: положить в юзера
+	ctx, cancel := context.WithCancel(s.ctx)
+	client := NewClient(conn, cancel)
 	client.cancelWriter = cancel
 
 	pollerDesc, err := netpoll.HandleRead(conn)
 	if err != nil {
-		// TODO: handle errors properly
 		log.Println(err)
 	}
 
-	//defer s.poller.Stop(pollerDesc)
-	//defer pollerDesc.Close()
-	//
-	//ctx, cancel := context.WithCancel(s.ctx)
-	//defer cancel()
-
 	err = s.poller.Start(pollerDesc, func(event netpoll.Event) {
-		if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0 {
-			// TODO
+		if event&netpoll.EventReadHup != 0 || event&netpoll.EventWriteHup != 0  || client.Cancelled() {
 			s.poller.Stop(pollerDesc)
-			conn.Close()
+			pollerDesc.Close()
+			client.Close()
 			return
 		}
 
 		msg, _, err := wsutil.ReadClientData(conn)
 		if err != nil {
-			// handle error
+			return
 		}
 
 		filter := &Filter{}
 		if err := json.Unmarshal(msg, filter); err == nil {
 			sub, err := s.subscriber.Subscribe(client, *filter)
 			if err != nil {
-				// TODO handle error
+				log.Println("An error occurred when trying to subscribe client.")
+				log.Print("error: ")
+				log.Println(err)
+				return
 			}
 
 			if client.writer == nil {
 				client.writer = NewAsyncWriter()
-				go client.writer.Run(ctx, client) // TODO
+				go client.writer.Run(ctx, client)
 			}
 
 			if err = wsutil.WriteServerText(conn, []byte(sub.id)); err != nil {
 				log.Println(err)
+				return
 			}
 		} else {
 			if id, err := uuid.Parse(string(msg)); err == nil {
 				if err := s.subscriber.Unsubscribe(SubscriptionID(id.String())); err != nil {
-					// TODO: Handle error
+					log.Println("An error occurred when trying to unsubscribe client.")
+					log.Print("error: ")
+					log.Println(err)
+					return
 				}
 
 				if err = wsutil.WriteServerText(conn, []byte("unsubscribed "+id.String())); err != nil {
@@ -89,13 +89,18 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 	})
 
 	if err != nil {
-		// handle error
+		log.Println("An error occurred when trying to start poller.")
+		log.Print("error: ")
+		log.Println(err)
+		return
 	}
 }
 
-func NewWSServer(poller netpoll.Poller, subscriber Subscriber) *WSServer {
+func NewWSServer(poller netpoll.Poller, subscriber Subscriber, ctx context.Context, cancel context.CancelFunc) *WSServer {
 	return &WSServer{
 		poller:     poller,
 		subscriber: subscriber,
+		ctx:        ctx,
+		cancel:     cancel,
 	}
 }

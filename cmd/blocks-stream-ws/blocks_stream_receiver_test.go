@@ -45,7 +45,7 @@ func TestBlocksStreamReceiver(t *testing.T) {
 			uuidObtained = true
 			go func() {
 				for {
-					<-time.After(time.Second * 100)
+					<-time.After(time.Second * 1000)
 					log.Println("unsubscribing")
 					wsutil.WriteClientText(conn, []byte(id.String()))
 					return

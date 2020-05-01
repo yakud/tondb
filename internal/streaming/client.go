@@ -2,8 +2,9 @@ package streaming
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -19,17 +20,11 @@ type (
 		writer    *AsyncWriter
 
 		cancelWriter context.CancelFunc
-		isCancel     bool
+		cancelled    int32
+
+		subs []*Subscription
 	}
 )
-
-func (c *Client) Close() {
-	if !c.isCancel {
-		close(c.writeChan)
-		c.conn.Close()
-		c.cancelWriter()
-	}
-}
 
 func (c *Client) WriteAsync(j JSON) error {
 	select {
@@ -37,14 +32,47 @@ func (c *Client) WriteAsync(j JSON) error {
 		return nil
 
 	default:
-		return fmt.Errorf("slow client")
+		return errors.New("slow client")
 	}
 }
 
-func NewClient(conn net.Conn) *Client {
+func (c *Client) Close() {
+	if c.Cancelled() {
+		return
+	}
+
+	c.Cancel()
+
+	for _, sub := range c.subs {
+		sub.Abandon()
+	}
+
+	close(c.writeChan)
+	c.conn.Close()
+	c.cancelWriter()
+}
+
+func (c *Client) AddSubscription(sub *Subscription) {
+	c.subs = append(c.subs, sub)
+}
+
+func (c *Client) Cancelled() bool {
+	if atomic.LoadInt32(&(c.cancelled)) != 0 {
+		return true
+	}
+	return false
+}
+
+func (c *Client) Cancel() {
+	atomic.StoreInt32(&(c.cancelled), 1)
+}
+
+func NewClient(conn net.Conn, cancel context.CancelFunc) *Client {
 	return &Client{
-		id:        ClientID(uuid.New().String()),
-		conn:      conn,
-		writeChan: make(chan JSON, 25),
+		id:           ClientID(uuid.New().String()),
+		conn:         conn,
+		writeChan:    make(chan JSON, 25),
+		subs:         make([]*Subscription, 0, 4),
+		cancelWriter: cancel,
 	}
 }

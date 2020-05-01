@@ -13,6 +13,10 @@ func (w *AsyncWriter) Run(ctx context.Context, client *Client) error {
 	var jsonBuffer = make([]JSON, 0, 25)
 
 	for {
+		if client.Cancelled() {
+			return nil
+		}
+
 		select {
 		case json, ok := <-client.writeChan:
 			if !ok {
@@ -23,11 +27,10 @@ func (w *AsyncWriter) Run(ctx context.Context, client *Client) error {
 
 		default:
 			// channel is empty, flush buffer to user
-			// TODO: we send here separate messages for every entry in buffer, maybe it's better to join all or some
-			//  entries with some delimiter and then send them as one message
 			for _, json := range jsonBuffer {
 				if err := wsutil.WriteServerText(client.conn, json); err != nil {
-					// TODO: handle error properly, maybe we need to return it?
+					client.Close()
+					return err
 				}
 			}
 

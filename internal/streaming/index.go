@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/google/btree"
@@ -33,11 +34,15 @@ type (
 		transactionsByAddr map[Addr][]*feed.TransactionInFeed
 		messagesByAddr     map[Addr][]*feed.MessageInFeed
 
+		trxByTotalNanogram map[uint64][]*feed.TransactionInFeed
+		msgByValueNanogram map[uint64][]*feed.MessageInFeed
+
 		transactionsTotalNanogram *btree.BTree
 		messagesValueNanogram     *btree.BTree
+
+		treesFilled bool
 	}
 
-	// TODO: Do we need some kind of interfaces for these two structs
 	UInt64TrxIndex struct {
 		key  uint64
 		trxs []*feed.TransactionInFeed
@@ -140,12 +145,25 @@ func (i *Index) FetchMessage(f Filter) ([]*feed.MessageInFeed, error) {
 		msgsToIntersect = append(msgsToIntersect, iter.GetMessages())
 	}
 
-	return i.intersectMessages(msgsToIntersect), nil
+	if f.MessageDirection == nil {
+		return i.intersectMessages(msgsToIntersect), nil
+	}
 
-	// todo: in/out filter
+	res := make([]*feed.MessageInFeed, 0, len(msgsToIntersect) * len(msgsToIntersect[0]) + len(msgsToIntersect) * 10)
+	for _, msg := range i.intersectMessages(msgsToIntersect) {
+		if MessageDirection(msg.Direction) == *f.MessageDirection {
+			res = append(res, msg)
+		}
+	}
+
+	return res, nil
 }
 
 func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(uint64) btree.Item) error {
+	if !i.treesFilled {
+		i.fillTrees()
+	}
+
 	switch cf.Operation {
 	case OpEq:
 		v, err := strconv.ParseUint(cf.ValueString, 10, 64)
@@ -189,6 +207,14 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 
 // TODO: make test
 func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFeed) []*feed.TransactionInFeed {
+	if len(trxsToIntersect) == 0 {
+		return []*feed.TransactionInFeed{}
+	}
+
+	if len(trxsToIntersect) == 1 {
+		return trxsToIntersect[0]
+	}
+
 	smallestTrxs := trxsToIntersect[0]
 	trxSets := make([]map[string]struct{}, 0, len(trxsToIntersect))
 	for i, trxs := range trxsToIntersect {
@@ -219,6 +245,14 @@ func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFee
 }
 
 func (i *Index) intersectMessages(msgsToIntersect [][]*feed.MessageInFeed) []*feed.MessageInFeed {
+	if len(msgsToIntersect) == 0 {
+		return []*feed.MessageInFeed{}
+	}
+
+	if len(msgsToIntersect) == 1 {
+		return msgsToIntersect[0]
+	}
+
 	smallestMsgs := msgsToIntersect[0]
 	msgSets := make([]map[string]struct{}, 0, len(msgsToIntersect))
 	for i, msgs := range msgsToIntersect {
@@ -256,16 +290,17 @@ func (i *Index) IndexBlock(block *feed.BlockInFeed) error {
 func (i *Index) IndexTransaction(trx *feed.TransactionInFeed) error {
 	i.transactions = append(i.transactions, trx)
 
-	if v, ok := i.transactionsByAddr[Addr(trx.AccountAddr)]; ok {
-		v = append(v, trx)
+	addr := Addr(fmt.Sprintf("%d:%s", trx.WorkchainId, trx.AccountAddr))
+	if v, ok := i.transactionsByAddr[addr]; ok {
+		i.transactionsByAddr[addr] = append(v, trx)
 	} else {
-		i.transactionsByAddr[Addr(trx.AccountAddr)] = []*feed.TransactionInFeed{trx}
+		i.transactionsByAddr[addr] = []*feed.TransactionInFeed{trx}
 	}
 
-	if rawIndex := i.transactionsTotalNanogram.ReplaceOrInsert(NewUInt64TrxIndex(trx.TotalNanograms, trx)); rawIndex != nil {
-		index := rawIndex.(UInt64TrxIndex)
-		index.trxs = append(index.trxs, trx)
-		i.transactionsTotalNanogram.ReplaceOrInsert(index)
+	if v, ok := i.trxByTotalNanogram[trx.TotalNanograms]; ok {
+		i.trxByTotalNanogram[trx.TotalNanograms] = append(v, trx)
+	} else {
+		i.trxByTotalNanogram[trx.TotalNanograms] = []*feed.TransactionInFeed{trx}
 	}
 
 	return nil
@@ -274,25 +309,42 @@ func (i *Index) IndexTransaction(trx *feed.TransactionInFeed) error {
 func (i *Index) IndexMessage(msg *feed.MessageInFeed) error {
 	i.messages = append(i.messages, msg)
 
-	if v, ok := i.messagesByAddr[Addr(msg.Src)]; ok {
-		v = append(v, msg)
+	src := Addr(fmt.Sprintf("%d:%s", msg.SrcWorkchainId, msg.Src))
+	if v, ok := i.messagesByAddr[src]; ok {
+		i.messagesByAddr[src] = append(v, msg)
 	} else {
-		i.messagesByAddr[Addr(msg.Src)] = []*feed.MessageInFeed{msg}
+		i.messagesByAddr[src] = []*feed.MessageInFeed{msg}
 	}
 
-	if v, ok := i.messagesByAddr[Addr(msg.Dest)]; ok {
-		v = append(v, msg)
+	dest := Addr(fmt.Sprintf("%d:%s", msg.DestWorkchainId, msg.Dest))
+	if v, ok := i.messagesByAddr[dest]; ok {
+		i.messagesByAddr[dest] = append(v, msg)
 	} else {
-		i.messagesByAddr[Addr(msg.Dest)] = []*feed.MessageInFeed{msg}
+		i.messagesByAddr[dest] = []*feed.MessageInFeed{msg}
 	}
 
-	if rawIndex := i.messagesValueNanogram.ReplaceOrInsert(NewUInt64MsgIndex(msg.ValueNanogram, msg)); rawIndex != nil {
-		index := rawIndex.(UInt64MsgIndex)
-		index.msgs = append(index.msgs, msg)
-		i.messagesValueNanogram.ReplaceOrInsert(index)
+	if v, ok := i.msgByValueNanogram[msg.ValueNanogram]; ok {
+		i.msgByValueNanogram[msg.ValueNanogram] = append(v, msg)
+	} else {
+		i.msgByValueNanogram[msg.ValueNanogram] = []*feed.MessageInFeed{msg}
 	}
 
 	return nil
+}
+
+func (i *Index) fillTrees() {
+	for totalNanogram, trxs := range i.trxByTotalNanogram {
+		i.transactionsTotalNanogram.ReplaceOrInsert(NewUInt64TrxsIndex(totalNanogram, trxs))
+	}
+
+	for valueNanogram, msgs := range i.msgByValueNanogram {
+		i.messagesValueNanogram.ReplaceOrInsert(NewUInt64MsgsIndex(valueNanogram, msgs))
+	}
+
+	i.trxByTotalNanogram = map[uint64][]*feed.TransactionInFeed{}
+	i.msgByValueNanogram = map[uint64][]*feed.MessageInFeed{}
+
+	i.treesFilled = true
 }
 
 func NewIndex() *Index {
@@ -300,10 +352,12 @@ func NewIndex() *Index {
 		transactions: make([]*feed.TransactionInFeed, 0, 16),
 		messages:     make([]*feed.MessageInFeed, 0, 32),
 
-		transactionsByAddr:        make(map[Addr][]*feed.TransactionInFeed),
-		messagesByAddr:            make(map[Addr][]*feed.MessageInFeed),
+		transactionsByAddr:        make(map[Addr][]*feed.TransactionInFeed, 16),
+		messagesByAddr:            make(map[Addr][]*feed.MessageInFeed, 32),
 		transactionsTotalNanogram: btree.New(2),
 		messagesValueNanogram:     btree.New(2),
+		trxByTotalNanogram:        make(map[uint64][]*feed.TransactionInFeed, 16),
+		msgByValueNanogram:        make(map[uint64][]*feed.MessageInFeed, 32),
 	}
 }
 
@@ -334,7 +388,7 @@ func ConstructUInt64TrxIndex(key uint64) btree.Item {
 }
 
 func (i UInt64MsgIndex) Less(item btree.Item) bool {
-	return i.key < item.(UInt64TrxIndex).key
+	return i.key < item.(UInt64MsgIndex).key
 }
 
 func (i UInt64MsgIndex) GetMessages() []*feed.MessageInFeed {
@@ -345,6 +399,13 @@ func NewUInt64MsgIndex(key uint64, msg *feed.MessageInFeed) UInt64MsgIndex {
 	return UInt64MsgIndex{
 		key:  key,
 		msgs: []*feed.MessageInFeed{msg},
+	}
+}
+
+func NewUInt64MsgsIndex(key uint64, msgs []*feed.MessageInFeed) UInt64MsgIndex {
+	return UInt64MsgIndex{
+		key:  key,
+		msgs: msgs,
 	}
 }
 

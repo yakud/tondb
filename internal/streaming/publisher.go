@@ -2,7 +2,6 @@ package streaming
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
@@ -16,27 +15,20 @@ type Publisher interface {
 }
 
 type JSONPublisher struct {
-	// TODO: it's jsons cache per block, so there should be only one block's json cached. Do we really need map here?
-	jsonCacheBlocks       map[string]JSON
+	jsonCacheBlocks       JSON
 	jsonCacheTransactions map[string]JSON
 	jsonCacheMessages     map[string]JSON
 }
 
-func (p *JSONPublisher) PublishBlock(sub *Subscription, block *feed.BlockInFeed) error {
-	key := fmt.Sprintf("%d,%d,%d", block.WorkchainId, block.Shard, block.SeqNo)
-
-	if blockJson, ok := p.jsonCacheBlocks[key]; ok {
-		return sub.client.WriteAsync(toWsFeed(sub.id, blockJson, "block"))
+func (p *JSONPublisher) PublishBlock(sub *Subscription, block *feed.BlockInFeed) (err error) {
+	if len(p.jsonCacheBlocks) == 0 {
+		p.jsonCacheBlocks, err = json.Marshal(block)
+		if err != nil {
+			return err
+		}
 	}
 
-	blockJson, err := json.Marshal(block)
-	if err != nil {
-		return err
-	}
-
-	p.jsonCacheBlocks[key] = blockJson
-
-	return sub.client.WriteAsync(toWsFeed(sub.id, blockJson, "block"))
+	return sub.client.WriteAsync(toWsFeed(sub.id, p.jsonCacheBlocks, "block"))
 }
 
 func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*feed.TransactionInFeed) error {
@@ -45,12 +37,14 @@ func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*f
 	for _, trx := range transactions {
 		if trxJson, ok := p.jsonCacheTransactions[trx.TrxHash]; ok {
 			trxJsons = append(trxJsons, trxJson)
+			continue
 		}
 
 		trxJson, err := json.Marshal(trx)
 		if err != nil {
 			return err
 		}
+		trxJsons = append(trxJsons, trxJson)
 
 		p.jsonCacheTransactions[trx.TrxHash] = trxJson
 	}
@@ -62,21 +56,22 @@ func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*f
 
 func (p *JSONPublisher) PublishMessages(sub *Subscription, messages []*feed.MessageInFeed) error {
 	msgJsons := make([]JSON, 0, len(messages))
-	key := ""
 
 	for _, msg := range messages {
-		key = msg.TrxHash + "," + strconv.FormatUint(msg.MessageLt, 64)
+		key := msg.TrxHash + "," + strconv.FormatUint(msg.MessageLt, 10)
 
-		if msgJson, ok := p.jsonCacheTransactions[key]; ok {
+		if msgJson, ok := p.jsonCacheMessages[key]; ok {
 			msgJsons = append(msgJsons, msgJson)
+			continue
 		}
 
 		msgJson, err := json.Marshal(msg)
 		if err != nil {
 			return err
 		}
+		msgJsons = append(msgJsons, msgJson)
 
-		p.jsonCacheTransactions[key] = msgJson
+		p.jsonCacheMessages[key] = msgJson
 	}
 
 	mergedJsons := mergeJsons(msgJsons)
@@ -85,7 +80,7 @@ func (p *JSONPublisher) PublishMessages(sub *Subscription, messages []*feed.Mess
 }
 
 func (p *JSONPublisher) ClearCache() {
-	p.jsonCacheBlocks = make(map[string]JSON)
+	p.jsonCacheBlocks = make(JSON, 0, 128)
 	p.jsonCacheTransactions = make(map[string]JSON, 32)
 	p.jsonCacheMessages = make(map[string]JSON, 64)
 }
@@ -93,29 +88,32 @@ func (p *JSONPublisher) ClearCache() {
 func toWsFeed(id SubscriptionID, json JSON, fieldName string) JSON {
 	res := JSON(`{"subscription_id":"` + string(id) + `","` + fieldName + `":`)
 	res = append(res, json...)
-	res = append(res, []byte("}")...)
+	res = append(res, "}"...)
 	return res
 }
 
 func mergeJsons(jsons []JSON) JSON {
-	res := make(JSON, 0, len(jsons)*len(jsons[0])+len(jsons)*16)
-	comma := []byte(",")
+	if len(jsons) == 0 {
+		return JSON{}
+	}
 
-	res = append(res, []byte("[")...)
+	res := make(JSON, 0, len(jsons)*len(jsons[0])+len(jsons)*16)
+
+	res = append(res, "["...)
 	for i, v := range jsons {
 		res = append(res, v...)
 		if i < len(jsons)-1 {
-			res = append(res, comma...)
+			res = append(res, ","...)
 		}
 	}
-	res = append(res, []byte("]")...)
+	res = append(res, "]"...)
 
 	return res
 }
 
 func NewJSONPublisher() *JSONPublisher {
 	return &JSONPublisher{
-		jsonCacheBlocks:       make(map[string]JSON),
+		jsonCacheBlocks:       make(JSON, 0, 128),
 		jsonCacheTransactions: make(map[string]JSON, 32),
 		jsonCacheMessages:     make(map[string]JSON, 64),
 	}

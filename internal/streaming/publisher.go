@@ -28,6 +28,8 @@ func (p *JSONPublisher) PublishBlock(sub *Subscription, block *feed.BlockInFeed)
 		}
 	}
 
+	// todo: metric += len blocks
+
 	return sub.client.WriteAsync(toWsFeed(sub.id, p.jsonCacheBlocks, "block"))
 }
 
@@ -48,6 +50,7 @@ func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*f
 
 		p.jsonCacheTransactions[trx.TrxHash] = trxJson
 	}
+	// todo: metric += len trxJsons
 
 	mergedJsons := mergeJsons(trxJsons)
 
@@ -73,6 +76,8 @@ func (p *JSONPublisher) PublishMessages(sub *Subscription, messages []*feed.Mess
 
 		p.jsonCacheMessages[key] = msgJson
 	}
+
+	// todo: metric += len messages
 
 	mergedJsons := mergeJsons(msgJsons)
 

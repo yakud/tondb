@@ -31,6 +31,11 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// todo clients count by ip ~ 10
+	// conn.RemoteAddr().
+
+	// todo: metric clients count
+
 	ctx, cancel := context.WithCancel(s.ctx)
 	client := NewClient(conn, cancel)
 
@@ -54,6 +59,9 @@ func (s *WSServer) Handler(w http.ResponseWriter, req *http.Request) {
 
 		filter := &Filter{}
 		if err := json.Unmarshal(msg, filter); err == nil {
+			// todo: subs count by ip 30
+			// todo: metric subs count
+
 			sub, err := s.subscriber.Subscribe(client, *filter)
 			if err != nil {
 				log.Println("An error occurred when trying to subscribe client.")

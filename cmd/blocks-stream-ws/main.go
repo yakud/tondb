@@ -16,6 +16,8 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/blocks_receiver"
 
 	"github.com/mailru/easygo/netpoll"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var tlbParser = tlb_pretty.NewParser()
@@ -84,6 +86,11 @@ func main() {
 		wsServerAddr = "0.0.0.0:1818"
 	}
 
+	promAddr := os.Getenv("WS_PROM_ADDR")
+	if promAddr == "" {
+		promAddr = "0.0.0.0:8080"
+	}
+
 	poller, err := netpoll.New(nil)
 	if err != nil {
 		log.Fatal(err)
@@ -107,7 +114,24 @@ func main() {
 		}
 	}()
 
-	workers := 1
+	promServer := http.Server{
+		Addr: promAddr,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			case "/metrics":
+				promhttp.Handler().ServeHTTP(w, req)
+			}
+		}),
+	}
+
+	// prom metrics server
+	go func() {
+		if err := promServer.ListenAndServe(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	workers := 4
 	for i := 0; i < workers; i++ {
 		go func() {
 			if err := workerBlocksHandler(); err != nil {

@@ -36,9 +36,7 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 				}
 
 				if err := publisher.PublishBlock(sub, block); err != nil {
-					if err = r.subscriber.Unsubscribe(sub.id); err != nil {
-						return err
-					}
+					sub.client.Close()
 				}
 			}
 
@@ -59,9 +57,7 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 				}
 
 				if err := publisher.PublishTransactions(sub, trxs); err != nil {
-					if err = r.subscriber.Unsubscribe(sub.id); err != nil {
-						return err
-					}
+					sub.client.Close()
 				}
 			}
 
@@ -82,9 +78,7 @@ func (r *StreamReceiver) HandleBlock(block *ton.Block) error {
 				}
 
 				if err := publisher.PublishMessages(sub, msgs); err != nil {
-					if err = r.subscriber.Unsubscribe(sub.id); err != nil {
-						return err
-					}
+					sub.client.Close()
 				}
 			}
 		}

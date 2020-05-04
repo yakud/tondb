@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -66,12 +67,15 @@ func (s *SubscriberImpl) Subscribe(client *Client, filter Filter) (*Subscription
 
 func (s *SubscriberImpl) Unsubscribe(id SubscriptionID) error {
 	s.subBySubIdMutex.Lock()
+	defer s.subBySubIdMutex.Unlock()
+
 	if sub, ok := s.subBySubId[id]; ok {
 		sub.Abandon()
 		delete(s.subBySubId, id)
+		return nil
 	}
-	s.subBySubIdMutex.Unlock()
-	return nil
+
+	return errors.New("no sub with such id")
 }
 
 func (s *SubscriberImpl) IterateSubscriptions(iterator func(subscriptions *Subscriptions) error) error {

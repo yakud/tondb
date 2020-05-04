@@ -5,6 +5,26 @@ import (
 	"strconv"
 
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+var (
+	blocksCountMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "blocks_published",
+		Help: "Blocks published count",
+	}, []string{"workchain_id"})
+
+	transactionsCountMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "transactions_published",
+		Help: "Transactions published count",
+	}, []string{"workchain_id"})
+
+	messagesCountMetrics = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "messages_published",
+		Help: "Messages published count",
+	}, []string{"workchain_id"})
 )
 
 type Publisher interface {
@@ -28,7 +48,7 @@ func (p *JSONPublisher) PublishBlock(sub *Subscription, block *feed.BlockInFeed)
 		}
 	}
 
-	// todo: metric += len blocks
+	blocksCountMetrics.WithLabelValues(strconv.FormatInt(int64(block.WorkchainId), 10)).Inc()
 
 	return sub.client.WriteAsync(toWsFeed(sub.id, p.jsonCacheBlocks, "block"))
 }
@@ -37,6 +57,8 @@ func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*f
 	trxJsons := make([]JSON, 0, len(transactions))
 
 	for _, trx := range transactions {
+		transactionsCountMetrics.WithLabelValues(strconv.FormatInt(int64(trx.WorkchainId), 10)).Inc()
+
 		if trxJson, ok := p.jsonCacheTransactions[trx.TrxHash]; ok {
 			trxJsons = append(trxJsons, trxJson)
 			continue
@@ -50,7 +72,6 @@ func (p *JSONPublisher) PublishTransactions(sub *Subscription, transactions []*f
 
 		p.jsonCacheTransactions[trx.TrxHash] = trxJson
 	}
-	// todo: metric += len trxJsons
 
 	mergedJsons := mergeJsons(trxJsons)
 
@@ -61,8 +82,9 @@ func (p *JSONPublisher) PublishMessages(sub *Subscription, messages []*feed.Mess
 	msgJsons := make([]JSON, 0, len(messages))
 
 	for _, msg := range messages {
-		key := msg.TrxHash + "," + strconv.FormatUint(msg.MessageLt, 10)
+		messagesCountMetrics.WithLabelValues(strconv.FormatInt(int64(msg.WorkchainId), 10)).Inc()
 
+		key := msg.TrxHash + "," + strconv.FormatUint(msg.MessageLt, 10)
 		if msgJson, ok := p.jsonCacheMessages[key]; ok {
 			msgJsons = append(msgJsons, msgJson)
 			continue
@@ -76,8 +98,6 @@ func (p *JSONPublisher) PublishMessages(sub *Subscription, messages []*feed.Mess
 
 		p.jsonCacheMessages[key] = msgJson
 	}
-
-	// todo: metric += len messages
 
 	mergedJsons := mergeJsons(msgJsons)
 

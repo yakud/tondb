@@ -46,6 +46,14 @@ func (*FeedConverterImpl) ConvertTransaction(trx *ton.Transaction) (*feed.Transa
 	var srcWorkchainId, destWorkchainId int32
 	var err error
 
+	if len(accountAddr) == 65 && strings.HasPrefix(accountAddr, "x") {
+		accountAddr = accountAddr[1:]
+	}
+
+	if addrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, accountAddr); err != nil {
+		return nil, err
+	}
+
 	if trx.InMsg != nil {
 		totalNanograms, totalFwdFeeNanograms, totalIhrFeeNanograms, totalImportFeeNanograms =
 			trx.InMsg.ValueNanograms, trx.InMsg.FwdFeeNanograms, trx.InMsg.IhrFeeNanograms, trx.InMsg.ImportFeeNanograms
@@ -60,20 +68,12 @@ func (*FeedConverterImpl) ConvertTransaction(trx *ton.Transaction) (*feed.Transa
 			}
 		}
 		if len(dest) > 1 {
-			if strings.HasPrefix(src, "x") {
+			if strings.HasPrefix(dest, "x") {
 				dest = dest[1:]
 			}
 		}
 
 		srcWorkchainId, destWorkchainId = trx.InMsg.Src.WorkchainId, trx.InMsg.Dest.WorkchainId
-
-		if len(accountAddr) == 65 && strings.HasPrefix(accountAddr, "x") {
-			accountAddr = accountAddr[1:]
-		}
-
-		if addrUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, accountAddr); err != nil {
-			return nil, err
-		}
 
 		if len(src) == 64 {
 			if srcUf, err = utils.ComposeRawAndConvertToUserFriendly(trx.WorkchainId, src); err != nil {
@@ -132,7 +132,7 @@ func (*FeedConverterImpl) ConvertMessage(block *ton.Block, trx *ton.Transaction,
 	if len(src) > 1 && strings.HasPrefix(src, "x") {
 		src = src[1:]
 	}
-	if len(dest) > 1 {
+	if len(dest) > 1 && strings.HasPrefix(dest, "x") {
 		dest = dest[1:]
 	}
 	if len(src) == 64 {

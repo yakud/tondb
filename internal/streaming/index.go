@@ -83,7 +83,7 @@ func (i *Index) FetchTransactions(f Filter) ([]*feed.TransactionInFeed, error) {
 		return []*feed.TransactionInFeed{}, nil
 	}
 
-	if f.AccountAddr == nil || len(f.CustomFilters) == 0 {
+	if f.AccountAddr == nil && len(f.CustomFilters) == 0 {
 		return i.transactions, nil
 	}
 
@@ -120,8 +120,18 @@ func (i *Index) FetchMessage(f Filter) ([]*feed.MessageInFeed, error) {
 		return []*feed.MessageInFeed{}, nil
 	}
 
-	if f.AccountAddr == nil || len(f.CustomFilters) == 0 {
+	if f.AccountAddr == nil && f.MessageDirection == nil && len(f.CustomFilters) == 0 {
 		return i.messages, nil
+	}
+
+	if f.MessageDirection != nil && f.AccountAddr == nil && len(f.CustomFilters) == 0 {
+		res := make([]*feed.MessageInFeed, 0, len(i.messages)+len(i.messages)*10)
+		for _, msg := range i.messages {
+			if MessageDirection(msg.Direction) == *f.MessageDirection {
+				res = append(res, msg)
+			}
+		}
+		return res, nil
 	}
 
 	msgsToIntersect := make([][]*feed.MessageInFeed, 0, 8)
@@ -133,16 +143,14 @@ func (i *Index) FetchMessage(f Filter) ([]*feed.MessageInFeed, error) {
 		}
 	}
 
-	if len(f.CustomFilters) == 0 {
-		return i.intersectMessages(msgsToIntersect), nil
-	}
-
-	for _, cf := range f.CustomFilters {
-		iter := NewMsgIndexIterator()
-		if err := i.fetch(cf, iter, ConstructUInt64MsgIndex); err != nil {
-			return nil, err
+	if len(f.CustomFilters) > 0 {
+		for _, cf := range f.CustomFilters {
+			iter := NewMsgIndexIterator()
+			if err := i.fetch(cf, iter, ConstructUInt64MsgIndex); err != nil {
+				return nil, err
+			}
+			msgsToIntersect = append(msgsToIntersect, iter.GetMessages())
 		}
-		msgsToIntersect = append(msgsToIntersect, iter.GetMessages())
 	}
 
 	if f.MessageDirection == nil {
@@ -164,6 +172,11 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 		i.fillTrees()
 	}
 
+	tree := i.transactionsTotalNanogram
+	if cf.Field == FieldMsgValueNanogam {
+		tree = i.messagesValueNanogram
+	}
+
 	switch cf.Operation {
 	case OpEq:
 		v, err := strconv.ParseUint(cf.ValueString, 10, 64)
@@ -171,7 +184,7 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 			return err
 		}
 
-		item := i.transactionsTotalNanogram.Get(itemConstructor(v))
+		item := tree.Get(itemConstructor(v))
 		if item == nil {
 			return nil
 		}
@@ -183,21 +196,21 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 			return err
 		}
 
-		i.transactionsTotalNanogram.AscendLessThan(itemConstructor(v), iter.Iterate)
+		tree.AscendLessThan(itemConstructor(v), iter.Iterate)
 	case OpGt:
 		v, err := strconv.ParseUint(cf.ValueString, 10, 64)
 		if err != nil {
 			return err
 		}
 
-		i.transactionsTotalNanogram.DescendGreaterThan(itemConstructor(v), iter.Iterate)
+		tree.DescendGreaterThan(itemConstructor(v), iter.Iterate)
 	case OpRange:
 		first, second, err := cf.ParseRange()
-		if err == nil {
+		if err != nil {
 			return err
 		}
 
-		i.transactionsTotalNanogram.DescendRange(itemConstructor(first), itemConstructor(second), iter.Iterate)
+		tree.AscendRange(itemConstructor(first), itemConstructor(second), iter.Iterate)
 	default:
 		return errors.New("wrong operation code")
 	}
@@ -205,7 +218,6 @@ func (i *Index) fetch(cf CustomFilter, iter IndexIterator, itemConstructor func(
 	return nil
 }
 
-// TODO: make test
 func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFeed) []*feed.TransactionInFeed {
 	if len(trxsToIntersect) == 0 {
 		return []*feed.TransactionInFeed{}
@@ -216,7 +228,7 @@ func (i *Index) intersectTransactions(trxsToIntersect [][]*feed.TransactionInFee
 	}
 
 	smallestTrxs := trxsToIntersect[0]
-	trxSets := make([]map[string]struct{}, 0, len(trxsToIntersect))
+	trxSets := make([]map[string]struct{}, len(trxsToIntersect))
 	for i, trxs := range trxsToIntersect {
 		if len(trxs) < len(smallestTrxs) {
 			smallestTrxs = trxs
@@ -254,7 +266,7 @@ func (i *Index) intersectMessages(msgsToIntersect [][]*feed.MessageInFeed) []*fe
 	}
 
 	smallestMsgs := msgsToIntersect[0]
-	msgSets := make([]map[string]struct{}, 0, len(msgsToIntersect))
+	msgSets := make([]map[string]struct{}, len(msgsToIntersect))
 	for i, msgs := range msgsToIntersect {
 		if len(msgs) < len(smallestMsgs) {
 			smallestMsgs = msgs

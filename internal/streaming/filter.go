@@ -11,7 +11,7 @@ import (
 	"gitlab.flora.loc/mills/tondb/internal/ton/view/feed"
 )
 
-var rangeRegexp = regexp.MustCompile(`(?m)\[(\d+), *(\d+)\]`)
+var rangeRegexp = regexp.MustCompile(`\[(\d+), *(\d+)\]`)
 
 const (
 	FeedNameBlocks       FeedName = "blocks"
@@ -105,13 +105,13 @@ func (cf *CustomFilter) ParseRange() (first, second uint64, err error) {
 		return 0, 0, errors.New("cant parse range, invalid operation")
 	}
 
-	rng := rangeRegexp.FindAllString(cf.ValueString, -1)
-	if len(rng) != 2 {
+	rng := rangeRegexp.FindAllStringSubmatch(cf.ValueString, -1)
+	if len(rng) != 1 || len(rng[0]) != 3 {
 		return 0, 0, errors.New("invalid range")
 	}
 
-	first, err = strconv.ParseUint(rng[0], 10, 64)
-	second, err = strconv.ParseUint(rng[1], 10, 64)
+	first, err = strconv.ParseUint(rng[0][1], 10, 64)
+	second, err = strconv.ParseUint(rng[0][2], 10, 64)
 
 	// we expect ranges [lessThanOrEqual, greaterThanOrEqual] and [greaterThanOrEqual, lessThanOrEqual]
 	// but need to return [greaterOrEqual, lessThan) for btree.AscendRange()
